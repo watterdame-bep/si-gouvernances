@@ -1,0 +1,307 @@
+{% extends 'base.html' %}
+<!-- TEMPLATE DÉTAIL ÉTAPE SIMPLIFIÉ - VERSION 3.0 -->
+
+{% block title %}{{ etape.type_etape.get_nom_display }} - {{ projet.nom }} - SI-Gouvernance JCM{% endblock %}
+{% block page_title %}Détail de l'Étape{% endblock %}
+
+{% block content %}
+<div class="bg-gray-50 min-h-screen p-2 md:p-4">
+    <div class="max-w-5xl mx-auto space-y-3">
+        
+        <!-- Header Compact -->
+        <div class="bg-white rounded-lg p-3 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center
+                        {% if etape.statut == 'TERMINEE' %}bg-green-500
+                        {% elif etape.statut == 'EN_COURS' %}bg-orange-500
+                        {% else %}bg-gray-300{% endif %}">
+                        <span class="text-white text-sm">{{ etape.type_etape.icone_emoji }}</span>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-bold text-gray-900">{{ etape.type_etape.get_nom_display }}</h1>
+                        <p class="text-sm text-gray-600">{{ projet.nom }}</p>
+                    </div>
+                </div>
+                <a href="{% url 'gestion_etapes' projet.id %}" class="px-3 py-1.5 bg-gray-500 hover:bg-gray-600 text-white rounded-lg text-sm transition-colors">
+                    ← Retour
+                </a>
+            </div>
+        </div>
+
+        <!-- Informations Essentielles -->
+        <div class="bg-white rounded-lg p-3 shadow-sm">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-sm font-semibold text-gray-900 flex items-center">
+                    <span class="w-5 h-5 bg-blue-100 rounded mr-2 flex items-center justify-center text-xs">ℹ️</span>
+                    Informations
+                </h3>
+                <button onclick="ouvrirModalHistorique()" class="px-3 py-1 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 rounded text-xs transition-colors">
+                    📜 Historique
+                </button>
+            </div>
+            
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                <div class="text-center p-2 bg-gray-50 rounded">
+                    <div class="text-xs text-gray-600">Statut</div>
+                    <div class="text-sm font-medium
+                        {% if etape.statut == 'TERMINEE' %}text-green-700
+                        {% elif etape.statut == 'EN_COURS' %}text-orange-700
+                        {% else %}text-gray-600{% endif %}">
+                        {% if etape.statut == 'TERMINEE' %}✅ Terminée
+                        {% elif etape.statut == 'EN_COURS' %}🔄 En cours
+                        {% else %}⏳ À venir{% endif %}
+                    </div>
+                </div>
+                
+                <div class="text-center p-2 bg-gray-50 rounded">
+                    <div class="text-xs text-gray-600">Progression</div>
+                    <div class="text-sm font-medium text-gray-900">{{ stats.progression }}%</div>
+                </div>
+                
+                <div class="text-center p-2 bg-gray-50 rounded">
+                    <div class="text-xs text-gray-600">Tâches</div>
+                    <div class="text-sm font-medium text-gray-900">{{ stats.total_taches }}</div>
+                </div>
+                
+                {% if stats.duree_etape %}
+                <div class="text-center p-2 bg-gray-50 rounded">
+                    <div class="text-xs text-gray-600">Durée</div>
+                    <div class="text-sm font-medium text-gray-900">{{ stats.duree_etape }}j</div>
+                </div>
+                {% else %}
+                <div class="text-center p-2 bg-gray-50 rounded">
+                    <div class="text-xs text-gray-600">Ordre</div>
+                    <div class="text-sm font-medium text-gray-900">#{{ etape.ordre }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Statistiques Rapides -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <div class="bg-white rounded-lg p-3 shadow-sm text-center">
+                <div class="text-lg font-bold text-purple-600">{{ stats.total_taches }}</div>
+                <div class="text-xs text-gray-600">Total tâches</div>
+            </div>
+            
+            <div class="bg-white rounded-lg p-3 shadow-sm text-center">
+                <div class="text-lg font-bold text-green-600">{{ stats.taches_terminees }}</div>
+                <div class="text-xs text-gray-600">Terminées</div>
+            </div>
+            
+            <div class="bg-white rounded-lg p-3 shadow-sm text-center">
+                <div class="text-lg font-bold text-orange-600">{{ stats.taches_en_cours }}</div>
+                <div class="text-xs text-gray-600">En cours</div>
+            </div>
+            
+            <div class="bg-white rounded-lg p-3 shadow-sm text-center">
+                <div class="text-lg font-bold text-emerald-600">{{ stats.modules_crees }}</div>
+                <div class="text-xs text-gray-600">Modules</div>
+            </div>
+        </div>
+
+        <!-- Tâches de l'Étape -->
+        <div class="bg-white rounded-lg p-3 shadow-sm">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-sm font-semibold text-gray-900 flex items-center">
+                    <span class="w-5 h-5 bg-purple-100 rounded mr-2 flex items-center justify-center text-xs">📋</span>
+                    Tâches ({{ stats.total_taches }})
+                </h3>
+                {% if can_manage and etape.statut != 'TERMINEE' %}
+                <div class="flex space-x-2">
+                    <a href="{% url 'creer_tache_etape' projet.id etape.id %}" class="px-2 py-1 bg-purple-500 hover:bg-purple-600 text-white rounded text-xs">
+                        + Nouvelle
+                    </a>
+                    <a href="{% url 'gestion_taches_etape' projet.id etape.id %}" class="px-2 py-1 bg-indigo-500 hover:bg-indigo-600 text-white rounded text-xs">
+                        Gérer
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+            
+            {% if taches_etape %}
+            <div class="space-y-2">
+                {% for tache in taches_etape|slice:":5" %}
+                <div class="p-2 bg-gray-50 rounded border">
+                    <div class="flex items-center justify-between mb-1">
+                        <h4 class="text-sm font-medium text-gray-900 truncate">{{ tache.nom }}</h4>
+                        <div class="flex space-x-1">
+                            <span class="px-2 py-0.5 rounded text-xs
+                                {% if tache.priorite == 'CRITIQUE' %}bg-red-100 text-red-700
+                                {% elif tache.priorite == 'HAUTE' %}bg-orange-100 text-orange-700
+                                {% elif tache.priorite == 'MOYENNE' %}bg-blue-100 text-blue-700
+                                {% else %}bg-gray-100 text-gray-700{% endif %}">
+                                {{ tache.get_priorite_display }}
+                            </span>
+                            <span class="px-2 py-0.5 rounded text-xs
+                                {% if tache.statut == 'TERMINEE' %}bg-green-100 text-green-700
+                                {% elif tache.statut == 'EN_COURS' %}bg-orange-100 text-orange-700
+                                {% elif tache.statut == 'BLOQUEE' %}bg-red-100 text-red-700
+                                {% else %}bg-gray-100 text-gray-600{% endif %}">
+                                {{ tache.get_statut_display }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between text-xs text-gray-600">
+                        <div>
+                            {% if tache.responsable %}
+                            <span class="flex items-center">
+                                <span class="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center mr-1">
+                                    <span class="text-white text-xs">{{ tache.responsable.first_name.0 }}</span>
+                                </span>
+                                {{ tache.responsable.get_full_name }}
+                            </span>
+                            {% else %}
+                            <span class="text-gray-400">Non assignée</span>
+                            {% endif %}
+                        </div>
+                        {% if tache.date_debut %}
+                        <span>{{ tache.date_debut|date:"d/m/Y" }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+                
+                {% if taches_etape|length > 5 %}
+                <div class="text-center pt-2">
+                    <a href="{% url 'gestion_taches_etape' projet.id etape.id %}" class="text-xs text-purple-600 hover:text-purple-700">
+                        Voir toutes les {{ stats.total_taches }} tâches →
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+            {% else %}
+            <div class="text-center py-4">
+                <p class="text-sm text-gray-500 mb-2">Aucune tâche dans cette étape</p>
+                {% if can_manage and etape.statut != 'TERMINEE' %}
+                <a href="{% url 'creer_tache_etape' projet.id etape.id %}" class="text-xs text-purple-600 hover:text-purple-700">
+                    + Créer la première tâche
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Modules (si applicable) -->
+        {% if modules_crees %}
+        <div class="bg-white rounded-lg p-3 shadow-sm">
+            <h3 class="text-sm font-semibold text-gray-900 mb-3 flex items-center">
+                <span class="w-5 h-5 bg-emerald-100 rounded mr-2 flex items-center justify-center text-xs">🧩</span>
+                Modules créés ({{ stats.modules_crees }})
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {% for module in modules_crees %}
+                <div class="p-2 bg-gray-50 rounded border">
+                    <div class="flex items-center space-x-2 mb-1">
+                        <div class="w-4 h-4 rounded flex items-center justify-center" style="background-color: {{ module.couleur }}20;">
+                            <span class="text-xs">{{ module.icone_emoji }}</span>
+                        </div>
+                        <h4 class="text-sm font-medium text-gray-900 truncate">{{ module.nom }}</h4>
+                    </div>
+                    <div class="flex items-center justify-between text-xs text-gray-600">
+                        <span>{{ module.taches.count }} tâche{{ module.taches.count|pluralize }}</span>
+                        <span>{{ module.date_creation|date:"d/m/Y" }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Historique (modale) -->
+        <div id="modalHistorique" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
+                <div class="p-4 border-b border-gray-200">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center">
+                                <span class="text-white text-sm">📜</span>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-bold text-gray-900">Historique de l'Étape</h3>
+                                <p class="text-sm text-gray-600">{{ etape.type_etape.get_nom_display }}</p>
+                            </div>
+                        </div>
+                        <button onclick="fermerModalHistorique()" class="text-gray-400 hover:text-gray-600">
+                            <span class="text-xl">×</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="p-4 overflow-y-auto max-h-96">
+                    {% if historique_audit %}
+                    <div class="space-y-3">
+                        {% for audit in historique_audit %}
+                        <div class="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
+                            <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
+                                {% if audit.type_action == 'ACTIVATION_ETAPE' or audit.type_action == 'ACTIVATION_ETAPE_AUTOMATIQUE' %}bg-green-500
+                                {% elif audit.type_action == 'CLOTURE_ETAPE' %}bg-red-500
+                                {% elif audit.type_action == 'CREATION_TACHE' %}bg-purple-500
+                                {% elif audit.type_action == 'CREATION_MODULE' %}bg-emerald-500
+                                {% else %}bg-blue-500{% endif %}">
+                                <span class="text-white text-sm">
+                                    {% if audit.type_action == 'ACTIVATION_ETAPE' or audit.type_action == 'ACTIVATION_ETAPE_AUTOMATIQUE' %}🚀
+                                    {% elif audit.type_action == 'CLOTURE_ETAPE' %}🏁
+                                    {% elif audit.type_action == 'CREATION_TACHE' %}📋
+                                    {% elif audit.type_action == 'CREATION_MODULE' %}🧩
+                                    {% else %}📝{% endif %}
+                                </span>
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-gray-900 mb-1">{{ audit.description }}</p>
+                                <div class="flex items-center space-x-2 text-xs text-gray-500">
+                                    <span class="font-medium">{{ audit.utilisateur.get_full_name }}</span>
+                                    <span>•</span>
+                                    <span>{{ audit.timestamp|date:"d/m/Y à H:i" }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-8">
+                        <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <span class="text-gray-400 text-xl">📜</span>
+                        </div>
+                        <p class="text-sm text-gray-500">Aucun historique disponible</p>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="p-4 border-t border-gray-200">
+                    <button onclick="fermerModalHistorique()" class="w-full px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors">
+                        Fermer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function ouvrirModalHistorique() {
+    document.getElementById('modalHistorique').classList.remove('hidden');
+}
+
+function fermerModalHistorique() {
+    document.getElementById('modalHistorique').classList.add('hidden');
+}
+
+// Fermer modale en cliquant à l'extérieur
+document.getElementById('modalHistorique').addEventListener('click', function(e) {
+    if (e.target === this) {
+        fermerModalHistorique();
+    }
+});
+
+// Fermer modale avec Escape
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        fermerModalHistorique();
+    }
+});
+</script>
+{% endblock %}

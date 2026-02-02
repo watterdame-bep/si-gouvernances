@@ -1,0 +1,384 @@
+{% extends 'base.html' %}
+<!-- TEMPLATE GESTION TÂCHES ÉTAPE SIMPLIFIÉ - VERSION 3.0 -->
+
+{% block title %}Tâches - {{ etape.type_etape.get_nom_display }} - {{ projet.nom }} - SI-Gouvernance JCM{% endblock %}
+{% block page_title %}Tâches de l'Étape{% endblock %}
+
+{% block content %}
+<div class="bg-gray-50 min-h-screen p-2 md:p-4">
+    <div class="max-w-5xl mx-auto space-y-3">
+        
+        <!-- Header Compact -->
+        <div class="bg-white rounded-lg p-3 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 rounded-lg flex items-center justify-center
+                        {% if etape.statut == 'TERMINEE' %}bg-green-500
+                        {% elif etape.statut == 'EN_COURS' %}bg-orange-500
+                        {% else %}bg-gray-300{% endif %}">
+                        <span class="text-white text-sm">{{ etape.type_etape.icone_emoji }}</span>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-bold text-gray-900">Tâches de l'Étape</h1>
+                        <p class="text-sm text-gray-600">{{ etape.type_etape.get_nom_display }}</p>
+                    </div>
+                </div>
+                <div class="flex space-x-2">
+                    {% if can_create %}
+                    <a href="{% url 'creer_tache_etape' projet.id etape.id %}" class="px-3 py-1.5 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-sm">
+                        + Nouvelle
+                    </a>
+                    {% endif %}
+                    <a href="{% url 'detail_etape' projet.id etape.id %}" class="px-3 py-1.5 bg-gray-500 hover:bg-gray-600 text-white rounded-lg text-sm">
+                        ← Retour
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Résumé de l'étape -->
+        <div class="bg-white rounded-lg p-3 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <span class="px-2 py-1 rounded text-sm
+                        {% if etape.statut == 'TERMINEE' %}bg-green-100 text-green-700
+                        {% elif etape.statut == 'EN_COURS' %}bg-orange-100 text-orange-700
+                        {% else %}bg-gray-100 text-gray-600{% endif %}">
+                        {% if etape.statut == 'TERMINEE' %}✅ Terminée
+                        {% elif etape.statut == 'EN_COURS' %}🔄 En cours
+                        {% else %}⏳ À venir{% endif %}
+                    </span>
+                    <span class="text-sm text-gray-600">{{ taches.count }} tâche{{ taches.count|pluralize }}</span>
+                    {% if etape.date_debut_reelle %}
+                    <span class="text-sm text-gray-600">Depuis le {{ etape.date_debut_reelle|date:"d/m/Y" }}</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <!-- Liste des Tâches -->
+        <div class="bg-white rounded-lg p-3 shadow-sm">
+            {% if taches %}
+            <div class="space-y-2">
+                {% for tache in taches %}
+                <div class="p-3 bg-gray-50 rounded-lg border hover:shadow-sm transition-shadow" data-tache-id="{{ tache.id }}" data-responsable-id="{% if tache.responsable %}{{ tache.responsable.id }}{% endif %}">
+                    <div class="flex items-start justify-between mb-2">
+                        <div class="flex-1">
+                            <h4 class="font-medium text-gray-900 text-sm mb-1">{{ tache.nom }}</h4>
+                            <p class="text-xs text-gray-600 mb-2">{{ tache.description|truncatechars:100 }}</p>
+                        </div>
+                        <div class="flex space-x-1 ml-3">
+                            <span class="px-2 py-0.5 rounded text-xs
+                                {% if tache.priorite == 'CRITIQUE' %}bg-red-100 text-red-700
+                                {% elif tache.priorite == 'HAUTE' %}bg-orange-100 text-orange-700
+                                {% elif tache.priorite == 'MOYENNE' %}bg-blue-100 text-blue-700
+                                {% else %}bg-gray-100 text-gray-700{% endif %}">
+                                {% if tache.priorite == 'CRITIQUE' %}🔴
+                                {% elif tache.priorite == 'HAUTE' %}🟠
+                                {% elif tache.priorite == 'MOYENNE' %}🔵
+                                {% else %}⚪{% endif %}
+                            </span>
+                            <span class="px-2 py-0.5 rounded text-xs
+                                {% if tache.statut == 'TERMINEE' %}bg-green-100 text-green-700
+                                {% elif tache.statut == 'EN_COURS' %}bg-blue-100 text-blue-700
+                                {% elif tache.statut == 'BLOQUEE' %}bg-red-100 text-red-700
+                                {% else %}bg-gray-100 text-gray-600{% endif %}">
+                                {% if tache.statut == 'TERMINEE' %}✅
+                                {% elif tache.statut == 'EN_COURS' %}🔄
+                                {% elif tache.statut == 'BLOQUEE' %}🚫
+                                {% else %}📋{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between text-xs">
+                        <div class="flex items-center space-x-3">
+                            {% if tache.responsable %}
+                            <div class="flex items-center space-x-1">
+                                <div class="w-4 h-4 bg-purple-500 rounded-full flex items-center justify-center">
+                                    <span class="text-white text-xs">{{ tache.responsable.first_name.0 }}</span>
+                                </div>
+                                <span class="text-gray-700">{{ tache.responsable.get_full_name }}</span>
+                            </div>
+                            {% else %}
+                            <span class="text-gray-400">Non assignée</span>
+                            {% endif %}
+                            
+                            {% if tache.date_debut or tache.date_fin %}
+                            <span class="text-gray-500">
+                                {% if tache.date_debut and tache.date_fin %}
+                                    {{ tache.date_debut|date:"d/m" }} - {{ tache.date_fin|date:"d/m" }}
+                                {% elif tache.date_debut %}
+                                    Dès {{ tache.date_debut|date:"d/m" }}
+                                {% elif tache.date_fin %}
+                                    Avant {{ tache.date_fin|date:"d/m" }}
+                                {% endif %}
+                            </span>
+                            {% endif %}
+                        </div>
+                        
+                        {% if can_create %}
+                        <div class="flex space-x-1">
+                            {% if not tache.responsable and tache.statut != 'TERMINEE' %}
+                            <button onclick="assignerTache('{{ tache.id }}')" class="text-xs text-purple-600 hover:text-purple-700 px-1 py-0.5 hover:bg-purple-50 rounded">
+                                👤
+                            </button>
+                            {% elif tache.responsable and tache.statut != 'TERMINEE' %}
+                            <button onclick="transfererTache('{{ tache.id }}')" class="text-xs text-blue-600 hover:text-blue-700 px-1 py-0.5 hover:bg-blue-50 rounded">
+                                🔄
+                            </button>
+                            {% endif %}
+                            
+                            {% if tache.statut != 'TERMINEE' %}
+                            <button onclick="terminerTache('{{ tache.id }}')" class="text-xs text-green-600 hover:text-green-700 px-1 py-0.5 hover:bg-green-50 rounded">
+                                ✅
+                            </button>
+                            <a href="{% url 'modifier_tache_etape' projet.id etape.id tache.id %}" class="text-xs text-gray-600 hover:text-gray-700 px-1 py-0.5 hover:bg-gray-50 rounded">
+                                ✏️
+                            </a>
+                            {% else %}
+                            <span class="text-xs text-gray-400 px-1 py-0.5">🔒 Terminée</span>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-8">
+                <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <span class="text-gray-400 text-xl">📋</span>
+                </div>
+                <p class="text-sm text-gray-500 mb-2">Aucune tâche définie</p>
+                {% if can_create %}
+                <a href="{% url 'creer_tache_etape' projet.id etape.id %}" class="text-sm text-purple-600 hover:text-purple-700">
+                    + Créer la première tâche
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal Assigner/Transférer Tâche -->
+<div id="assignModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div class="p-4">
+            <div class="flex items-center mb-4">
+                <div class="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center mr-3">
+                    <span class="text-white text-sm">👤</span>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900" id="assignTitle">Assigner la tâche</h3>
+                </div>
+            </div>
+            
+            <form id="assignForm">
+                {% csrf_token %}
+                <input type="hidden" id="tacheId" name="tache_id">
+                <div class="mb-4">
+                    <label for="responsable_id" class="block text-sm font-medium text-gray-700 mb-2">Responsable</label>
+                    <select id="responsable_id" name="responsable_id" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                        <option value="">Sélectionner un responsable</option>
+                        {% for membre in equipe %}
+                        <option value="{{ membre.id }}">{{ membre.get_full_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="flex space-x-3">
+                    <button type="button" onclick="fermerModalAssign()" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-medium">
+                        Annuler
+                    </button>
+                    <button type="submit" class="flex-1 bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg font-medium">
+                        Confirmer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Terminer Tâche -->
+<div id="completeModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div class="p-4 text-center">
+            <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span class="text-green-600 text-xl">✅</span>
+            </div>
+            <h3 class="text-lg font-bold text-gray-900 mb-2">Terminer la tâche</h3>
+            <p class="text-gray-600 mb-4">Confirmer que cette tâche est terminée ?</p>
+            
+            <form id="completeForm">
+                {% csrf_token %}
+                <input type="hidden" id="completeTacheId" name="tache_id">
+                <div class="flex space-x-3">
+                    <button type="button" onclick="fermerModalComplete()" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-medium">
+                        Annuler
+                    </button>
+                    <button type="submit" class="flex-1 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-medium">
+                        Terminer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+let isTransferMode = false;
+
+function assignerTache(tacheId) {
+    isTransferMode = false;
+    document.getElementById('assignTitle').textContent = 'Assigner la tâche';
+    document.getElementById('tacheId').value = tacheId;
+    
+    // Réinitialiser le select
+    const select = document.getElementById('responsable_id');
+    select.selectedIndex = 0;
+    const options = select.querySelectorAll('option');
+    options.forEach(option => option.style.display = 'block');
+    
+    document.getElementById('assignModal').classList.remove('hidden');
+}
+
+function transfererTache(tacheId) {
+    isTransferMode = true;
+    document.getElementById('assignTitle').textContent = 'Transférer la tâche';
+    document.getElementById('tacheId').value = tacheId;
+    
+    // Masquer le responsable actuel
+    const tacheElement = document.querySelector(`[data-tache-id="${tacheId}"]`);
+    const responsableActuelId = tacheElement ? tacheElement.getAttribute('data-responsable-id') : null;
+    
+    const select = document.getElementById('responsable_id');
+    select.selectedIndex = 0;
+    const options = select.querySelectorAll('option');
+    
+    let optionsDisponibles = 0;
+    options.forEach(option => {
+        if (option.value === '' || option.value === responsableActuelId) {
+            option.style.display = 'none';
+        } else {
+            option.style.display = 'block';
+            optionsDisponibles++;
+        }
+    });
+    
+    if (optionsDisponibles === 0) {
+        alert('Aucun autre membre disponible pour le transfert.');
+        return;
+    }
+    
+    document.getElementById('assignModal').classList.remove('hidden');
+}
+
+function fermerModalAssign() {
+    document.getElementById('assignModal').classList.add('hidden');
+}
+
+function terminerTache(tacheId) {
+    document.getElementById('completeTacheId').value = tacheId;
+    document.getElementById('completeModal').classList.remove('hidden');
+}
+
+function fermerModalComplete() {
+    document.getElementById('completeModal').classList.add('hidden');
+}
+
+// Gestionnaire assignation/transfert
+document.getElementById('assignForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const tacheId = document.getElementById('tacheId').value;
+    const responsableId = document.getElementById('responsable_id').value;
+    
+    if (!responsableId) {
+        alert('Veuillez sélectionner un responsable');
+        return;
+    }
+    
+    const submitBtn = this.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Traitement...';
+    
+    fetch(`{% url 'assigner_tache_etape' projet.id etape.id '00000000-0000-0000-0000-000000000000' %}`.replace('00000000-0000-0000-0000-000000000000', tacheId), {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `responsable_id=${responsableId}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            fermerModalAssign();
+            location.reload();
+        } else {
+            alert('Erreur: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Erreur: ' + error);
+    })
+    .finally(() => {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Confirmer';
+    });
+});
+
+// Gestionnaire terminer tâche
+document.getElementById('completeForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const tacheId = document.getElementById('completeTacheId').value;
+    const submitBtn = this.querySelector('button[type="submit"]');
+    
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Finalisation...';
+    
+    fetch(`{% url 'terminer_tache_etape' projet.id etape.id '00000000-0000-0000-0000-000000000000' %}`.replace('00000000-0000-0000-0000-000000000000', tacheId), {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/x-www-form-urlencoded',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            fermerModalComplete();
+            location.reload();
+        } else {
+            alert('Erreur: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Erreur: ' + error);
+    })
+    .finally(() => {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Terminer';
+    });
+});
+
+// Fermer modales en cliquant à l'extérieur
+document.getElementById('assignModal').addEventListener('click', function(e) {
+    if (e.target === this) fermerModalAssign();
+});
+
+document.getElementById('completeModal').addEventListener('click', function(e) {
+    if (e.target === this) fermerModalComplete();
+});
+
+// Fermer modales avec Escape
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        fermerModalAssign();
+        fermerModalComplete();
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,885 @@
+{% extends 'base.html' %}
+<!-- TEMPLATE PARAMETRES SIMPLIFIE - VERSION 3.0 -->
+
+{% block title %}Paramètres - {{ projet.nom }} - SI-Gouvernance JCM{% endblock %}
+{% block page_title %}Paramètres du Projet{% endblock %}
+
+{% block content %}
+<div class="bg-gray-50 min-h-screen p-2 md:p-4">
+    <div class="max-w-6xl mx-auto space-y-3">
+        
+        <!-- Header Compact -->
+        <div class="bg-white rounded-lg p-3 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center">
+                        <span class="text-white text-sm">⚙️</span>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-bold text-gray-900">Paramètres</h1>
+                        <p class="text-sm text-gray-600">{{ projet.nom }}</p>
+                    </div>
+                </div>
+                <a href="{% url 'projet_detail' projet.id %}" class="px-3 py-1.5 bg-gray-500 hover:bg-gray-600 text-white rounded-lg text-sm transition-colors">
+                    ← Retour
+                </a>
+            </div>
+        </div>
+
+        <!-- Informations Essentielles -->
+        <div class="bg-white rounded-lg p-3 shadow-sm">
+            <h3 class="text-sm font-semibold text-gray-900 mb-2 flex items-center">
+                <span class="w-5 h-5 bg-blue-100 rounded mr-2 flex items-center justify-center text-xs">ℹ️</span>
+                Informations
+            </h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                <div class="text-center p-2 bg-gray-50 rounded">
+                    <div class="text-xs text-gray-600">Statut</div>
+                    <div class="text-sm font-medium text-gray-900">{{ projet.statut.get_nom_display }}</div>
+                </div>
+                <div class="text-center p-2 bg-gray-50 rounded">
+                    <div class="text-xs text-gray-600">Priorité</div>
+                    <div class="text-sm font-medium text-gray-900">{{ projet.get_priorite_display }}</div>
+                </div>
+                <div class="text-center p-2 bg-gray-50 rounded">
+                    <div class="text-xs text-gray-600">Budget</div>
+                    <div class="text-sm font-medium text-gray-900">{{ projet.budget_previsionnel|floatformat:0 }}€</div>
+                </div>
+                <div class="text-center p-2 bg-gray-50 rounded">
+                    <div class="text-xs text-gray-600">Créé le</div>
+                    <div class="text-sm font-medium text-gray-900">{{ projet.date_creation|date:"d/m/Y" }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sections principales -->
+        <div class="space-y-8">
+            
+            <!-- Étapes et Équipe sur la même ligne -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                
+                <!-- Étapes (1/2 de la largeur) -->
+                <div class="bg-white rounded-lg p-3 shadow-sm">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-sm font-semibold text-gray-900 flex items-center">
+                            <span class="w-5 h-5 bg-purple-100 rounded mr-2 flex items-center justify-center text-xs">⏱️</span>
+                            Étapes ({{ projet.etapes.count }})
+                        </h3>
+                        <a href="{% url 'gestion_etapes' projet.id %}" class="text-xs text-purple-600 hover:text-purple-700 font-medium">
+                            Gérer →
+                        </a>
+                    </div>
+                    
+                    <!-- 4 lignes d'étapes -->
+                    <div class="space-y-2 h-32">
+                        {% for etape in projet.etapes.all|slice:":4" %}
+                        <div class="flex items-center justify-between text-xs p-2 bg-gray-50 rounded">
+                            <span class="font-medium truncate">{{ etape.type_etape.get_nom_display }}</span>
+                            <span class="px-2 py-0.5 rounded text-xs flex-shrink-0
+                                {% if etape.statut == 'TERMINEE' %}bg-green-100 text-green-700
+                                {% elif etape.statut == 'EN_COURS' %}bg-orange-100 text-orange-700
+                                {% else %}bg-gray-100 text-gray-600{% endif %}">
+                                {% if etape.statut == 'TERMINEE' %}✅
+                                {% elif etape.statut == 'EN_COURS' %}🔄
+                                {% else %}⏳{% endif %}
+                            </span>
+                        </div>
+                        {% endfor %}
+                        
+                        <!-- Lignes vides pour compléter à 4 -->
+                        {% if projet.etapes.count == 0 %}
+                        <div class="flex items-center justify-center text-xs p-2 bg-gray-50 rounded opacity-50">
+                            <span class="text-gray-400">Aucune étape</span>
+                        </div>
+                        <div class="p-2 bg-gray-50 rounded opacity-30"></div>
+                        <div class="p-2 bg-gray-50 rounded opacity-30"></div>
+                        <div class="p-2 bg-gray-50 rounded opacity-30"></div>
+                        {% elif projet.etapes.count == 1 %}
+                        <div class="p-2 bg-gray-50 rounded opacity-30"></div>
+                        <div class="p-2 bg-gray-50 rounded opacity-30"></div>
+                        <div class="p-2 bg-gray-50 rounded opacity-30"></div>
+                        {% elif projet.etapes.count == 2 %}
+                        <div class="p-2 bg-gray-50 rounded opacity-30"></div>
+                        <div class="p-2 bg-gray-50 rounded opacity-30"></div>
+                        {% elif projet.etapes.count == 3 %}
+                        <div class="p-2 bg-gray-50 rounded opacity-30"></div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Équipe (1/2 de la largeur) -->
+                <div class="bg-white rounded-lg p-3 shadow-sm">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-sm font-semibold text-gray-900 flex items-center">
+                            <span class="w-5 h-5 bg-blue-100 rounded mr-2 flex items-center justify-center text-xs">👥</span>
+                            Équipe ({{ affectations|length }} membre{{ affectations|length|pluralize }})
+                        </h3>
+                        {% if can_manage %}
+                        <button onclick="ouvrirModalAjouterMembre()" class="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded text-xs transition-colors">
+                            + Ajouter
+                        </button>
+                        {% endif %}
+                    </div>
+
+                    <!-- 4 lignes de membres -->
+                    <div class="space-y-2 h-32">
+                        {% for affectation in affectations|slice:":4" %}
+                        <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                            <div class="flex items-center space-x-2 flex-1 min-w-0">
+                                <div class="w-5 h-5 bg-blue-500 rounded flex items-center justify-center flex-shrink-0">
+                                    <span class="text-xs font-bold text-white">
+                                        {{ affectation.utilisateur.first_name.0 }}{{ affectation.utilisateur.last_name.0 }}
+                                    </span>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="text-xs font-medium text-gray-900 truncate">{{ affectation.utilisateur.get_full_name }}</div>
+                                    <div class="text-xs text-gray-600 truncate">
+                                        {% if affectation.role_projet %}{{ affectation.role_projet.get_nom_display }}
+                                        {% elif affectation.role_sur_projet %}{{ affectation.role_sur_projet.get_nom_display }}
+                                        {% else %}Membre{% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center space-x-1 flex-shrink-0">
+                                {% if affectation.est_responsable_principal %}
+                                <span class="px-1 py-0.5 bg-yellow-100 text-yellow-800 rounded text-xs">👑</span>
+                                {% endif %}
+                                {% if affectation.utilisateur == projet.createur %}
+                                <span class="px-1 py-0.5 bg-green-100 text-green-800 rounded text-xs">⭐</span>
+                                {% endif %}
+                                
+                                {% if can_manage %}
+                                <div class="flex space-x-1">
+                                    {% if affectation.est_responsable_principal %}
+                                        <!-- Bouton pour transférer la responsabilité (visible sur le responsable actuel) -->
+                                        {% if is_creator or responsable == user %}
+                                        <button onclick="ouvrirModalTransfert('{{ affectation.id }}', '{{ affectation.utilisateur.get_full_name }}')" 
+                                                class="text-orange-600 hover:text-orange-700 text-xs" title="Transférer responsabilité">🔄</button>
+                                        {% endif %}
+                                    {% else %}
+                                        <!-- Bouton pour définir comme responsable (visible sur les non-responsables) -->
+                                        {% if is_creator and not responsable %}
+                                        <button onclick="definirResponsable('{{ affectation.id }}', '{{ affectation.utilisateur.get_full_name }}')" 
+                                                class="text-yellow-600 hover:text-yellow-700 text-xs" title="Définir responsable">👑</button>
+                                        {% endif %}
+                                    {% endif %}
+                                    
+                                    {% if affectation.utilisateur != projet.createur and not affectation.est_responsable_principal %}
+                                    <button onclick="ouvrirModalRetirer('{{ affectation.id }}', '{{ affectation.utilisateur.get_full_name }}')" 
+                                            class="text-red-600 hover:text-red-700 text-xs" title="Retirer">❌</button>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                        
+                        <!-- Lignes vides pour compléter à 4 -->
+                        {% if affectations|length == 0 %}
+                        <div class="flex items-center justify-center text-xs p-2 bg-gray-50 rounded opacity-50">
+                            <span class="text-gray-400">Aucun membre</span>
+                        </div>
+                        <div class="p-2 bg-gray-50 rounded opacity-30"></div>
+                        <div class="p-2 bg-gray-50 rounded opacity-30"></div>
+                        <div class="p-2 bg-gray-50 rounded opacity-30"></div>
+                        {% elif affectations|length == 1 %}
+                        <div class="p-2 bg-gray-50 rounded opacity-30"></div>
+                        <div class="p-2 bg-gray-50 rounded opacity-30"></div>
+                        <div class="p-2 bg-gray-50 rounded opacity-30"></div>
+                        {% elif affectations|length == 2 %}
+                        <div class="p-2 bg-gray-50 rounded opacity-30"></div>
+                        <div class="p-2 bg-gray-50 rounded opacity-30"></div>
+                        {% elif affectations|length == 3 %}
+                        <div class="p-2 bg-gray-50 rounded opacity-30"></div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Budget en bas (pleine largeur) - même style que les autres sections -->
+            <div class="bg-white rounded-lg p-3 shadow-sm">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-sm font-semibold text-gray-900 flex items-center">
+                        <span class="w-5 h-5 bg-green-100 rounded mr-2 flex items-center justify-center text-xs">💰</span>
+                        Budget & Besoins
+                    </h3>
+                    {% if can_manage %}
+                    <div class="flex space-x-2">
+                        <button onclick="ouvrirModalBesoins()" 
+                                class="px-3 py-1 bg-green-500 hover:bg-green-600 text-white rounded text-xs transition-colors">
+                            + Ajouter
+                        </button>
+                        <button onclick="afficherTousBesoins()" 
+                                class="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded text-xs transition-colors">
+                            Voir tout
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    <!-- Budget Total -->
+                    <div class="p-3 bg-green-50 rounded-lg border border-green-200 text-center">
+                        <div class="text-xs text-green-700 mb-1">Budget Total</div>
+                        <div class="text-base font-bold text-green-900">{{ projet.budget_previsionnel|floatformat:0 }}€</div>
+                    </div>
+                    
+                    <!-- Ressources Humaines -->
+                    <div class="p-3 bg-blue-50 rounded-lg border border-blue-200 text-center">
+                        <div class="text-xs text-blue-700 mb-1">👥 RH</div>
+                        <div class="text-sm font-bold text-blue-900">0€</div>
+                    </div>
+                    
+                    <!-- Matériel -->
+                    <div class="p-3 bg-purple-50 rounded-lg border border-purple-200 text-center">
+                        <div class="text-xs text-purple-700 mb-1">🔧 Matériel</div>
+                        <div class="text-sm font-bold text-purple-900">0€</div>
+                    </div>
+                    
+                    <!-- Services -->
+                    <div class="p-3 bg-orange-50 rounded-lg border border-orange-200 text-center">
+                        <div class="text-xs text-orange-700 mb-1">🏢 Services</div>
+                        <div class="text-sm font-bold text-orange-900">0€</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Ajouter Membre -->
+<div id="modalAjouterMembre" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div class="p-4">
+            <div class="flex items-center mb-4">
+                <div class="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center mr-3">
+                    <span class="text-white text-sm">👥</span>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900">Ajouter un Membre</h3>
+                    <p class="text-sm text-gray-600">Sélectionner un utilisateur à ajouter</p>
+                </div>
+            </div>
+            
+            <form id="ajouterMembreForm">
+                {% csrf_token %}
+                <div class="mb-4">
+                    <label for="modal_utilisateur_id" class="block text-sm font-medium text-gray-700 mb-2">Utilisateur</label>
+                    <select id="modal_utilisateur_id" name="utilisateur_id" required 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Sélectionner un utilisateur</option>
+                        {% for utilisateur in utilisateurs_disponibles %}
+                        <option value="{{ utilisateur.id }}">{{ utilisateur.get_full_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="flex space-x-3">
+                    <button type="button" onclick="fermerModalAjouterMembre()" 
+                            class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-medium">
+                        Annuler
+                    </button>
+                    <button type="submit" 
+                            class="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium">
+                        Ajouter
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Retirer Membre -->
+<div id="modalRetirerMembre" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div class="p-4 text-center">
+            <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span class="text-red-600 text-xl">❌</span>
+            </div>
+            <h3 class="text-lg font-bold text-gray-900 mb-2">Retirer le membre</h3>
+            <p class="text-gray-600 mb-4">Êtes-vous sûr de vouloir retirer <strong id="nomMembreRetirer"></strong> de l'équipe ?</p>
+            
+            <form id="retirerMembreForm">
+                {% csrf_token %}
+                <input type="hidden" id="affectationIdRetirer" name="affectation_id">
+                <div class="flex space-x-3">
+                    <button type="button" onclick="fermerModalRetirer()" 
+                            class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-medium">
+                        Annuler
+                    </button>
+                    <button type="submit" 
+                            class="flex-1 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-medium">
+                        Retirer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Gestion des Besoins -->
+<div id="modalBesoins" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
+        <div class="p-4 border-b border-gray-200">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
+                        <span class="text-white text-sm">💰</span>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-900">Gestion des Besoins</h3>
+                        <p class="text-sm text-gray-600">Définir les besoins financiers du projet</p>
+                    </div>
+                </div>
+                <button onclick="fermerModalBesoins()" class="text-gray-400 hover:text-gray-600">
+                    <span class="text-xl">×</span>
+                </button>
+            </div>
+        </div>
+        
+        <div class="p-4 overflow-y-auto max-h-96">
+            <form id="besoinsForm">
+                {% csrf_token %}
+                
+                <!-- Budget Global -->
+                <div class="mb-4">
+                    <label for="budget_previsionnel" class="block text-sm font-medium text-gray-700 mb-2">
+                        💰 Budget Prévisionnel Total
+                    </label>
+                    <div class="relative">
+                        <input type="number" id="budget_previsionnel" name="budget_previsionnel" 
+                               value="{{ projet.budget_previsionnel|floatformat:0 }}" 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 pr-8"
+                               placeholder="0">
+                        <span class="absolute right-3 top-2 text-gray-500 text-sm">€</span>
+                    </div>
+                </div>
+
+                <!-- Catégories de Besoins -->
+                <div class="mb-4">
+                    <h4 class="text-sm font-medium text-gray-700 mb-3">📋 Catégories de Besoins</h4>
+                    <div class="space-y-3">
+                        
+                        <!-- Ressources Humaines -->
+                        <div class="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                            <div class="flex items-center justify-between mb-2">
+                                <label class="text-sm font-medium text-blue-900">👥 Ressources Humaines</label>
+                                <input type="number" name="budget_rh" placeholder="0" 
+                                       class="w-24 px-2 py-1 text-sm border border-blue-300 rounded focus:ring-1 focus:ring-blue-500">
+                            </div>
+                            <textarea name="description_rh" placeholder="Détails des besoins en personnel..." 
+                                      class="w-full px-2 py-1 text-sm border border-blue-300 rounded focus:ring-1 focus:ring-blue-500" rows="2"></textarea>
+                        </div>
+
+                        <!-- Matériel et Équipements -->
+                        <div class="p-3 bg-purple-50 rounded-lg border border-purple-200">
+                            <div class="flex items-center justify-between mb-2">
+                                <label class="text-sm font-medium text-purple-900">🔧 Matériel & Équipements</label>
+                                <input type="number" name="budget_materiel" placeholder="0" 
+                                       class="w-24 px-2 py-1 text-sm border border-purple-300 rounded focus:ring-1 focus:ring-purple-500">
+                            </div>
+                            <textarea name="description_materiel" placeholder="Matériel, logiciels, équipements nécessaires..." 
+                                      class="w-full px-2 py-1 text-sm border border-purple-300 rounded focus:ring-1 focus:ring-purple-500" rows="2"></textarea>
+                        </div>
+
+                        <!-- Services Externes -->
+                        <div class="p-3 bg-orange-50 rounded-lg border border-orange-200">
+                            <div class="flex items-center justify-between mb-2">
+                                <label class="text-sm font-medium text-orange-900">🏢 Services Externes</label>
+                                <input type="number" name="budget_services" placeholder="0" 
+                                       class="w-24 px-2 py-1 text-sm border border-orange-300 rounded focus:ring-1 focus:ring-orange-500">
+                            </div>
+                            <textarea name="description_services" placeholder="Consultants, sous-traitance, formations..." 
+                                      class="w-full px-2 py-1 text-sm border border-orange-300 rounded focus:ring-1 focus:ring-orange-500" rows="2"></textarea>
+                        </div>
+
+                        <!-- Autres Coûts -->
+                        <div class="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                            <div class="flex items-center justify-between mb-2">
+                                <label class="text-sm font-medium text-gray-900">📦 Autres Coûts</label>
+                                <input type="number" name="budget_autres" placeholder="0" 
+                                       class="w-24 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-gray-500">
+                            </div>
+                            <textarea name="description_autres" placeholder="Frais divers, imprévus, déplacements..." 
+                                      class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-gray-500" rows="2"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Total Calculé -->
+                <div class="p-3 bg-green-50 rounded-lg border border-green-200 mb-4">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium text-green-900">💰 Total des Besoins</span>
+                        <span id="totalBesoins" class="text-lg font-bold text-green-900">0 €</span>
+                    </div>
+                    <div class="text-xs text-green-700 mt-1">
+                        Budget disponible: <span class="font-medium">{{ projet.budget_previsionnel|floatformat:0 }} €</span>
+                    </div>
+                </div>
+            </form>
+        </div>
+        
+        <div class="p-4 border-t border-gray-200">
+            <div class="flex space-x-3">
+                <button onclick="fermerModalBesoins()" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-medium">
+                    Annuler
+                </button>
+                <button onclick="ajouterNouveauBesoin()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium">
+                    + Ajouter besoin
+                </button>
+                <button onclick="sauvegarderBesoins()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-medium">
+                    💾 Sauvegarder
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Modal Transférer Responsabilité -->
+<div id="modalTransfertResponsabilite" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div class="p-4">
+            <div class="flex items-center mb-4">
+                <div class="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center mr-3">
+                    <span class="text-white text-sm">🔄</span>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900">Transférer la Responsabilité</h3>
+                    <p class="text-sm text-gray-600">Choisir le nouveau responsable</p>
+                </div>
+            </div>
+            
+            <div class="mb-4 p-3 bg-orange-50 rounded-lg border border-orange-200">
+                <div class="text-sm text-orange-800">
+                    <strong>Responsable actuel :</strong> <span id="responsableActuel"></span>
+                </div>
+            </div>
+            
+            <form id="transfertResponsabiliteForm">
+                {% csrf_token %}
+                <input type="hidden" id="transfert_responsable_actuel_id" name="responsable_actuel_id">
+                
+                <div class="mb-4">
+                    <label for="transfert_nouveau_responsable" class="block text-sm font-medium text-gray-700 mb-2">Nouveau responsable</label>
+                    <select id="transfert_nouveau_responsable" name="nouveau_responsable_id" required 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+                        <option value="">Sélectionner un membre</option>
+                        {% for affectation in affectations %}
+                        {% if not affectation.est_responsable_principal %}
+                        <option value="{{ affectation.id }}">{{ affectation.utilisateur.get_full_name }}</option>
+                        {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="flex space-x-3">
+                    <button type="button" onclick="fermerModalTransfert()" 
+                            class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-medium">
+                        Annuler
+                    </button>
+                    <button type="submit" 
+                            class="flex-1 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-medium">
+                        Transférer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Définir Responsable -->
+<div id="modalDefinirResponsable" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div class="p-4">
+            <div class="flex items-center mb-4">
+                <div class="w-8 h-8 bg-yellow-500 rounded-lg flex items-center justify-center mr-3">
+                    <span class="text-white text-sm">👑</span>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900">Définir Responsable</h3>
+                    <p class="text-sm text-gray-600">Confirmer la nomination</p>
+                </div>
+            </div>
+            
+            <form id="definirResponsableForm">
+                {% csrf_token %}
+                <input type="hidden" id="definir_affectation_id" name="affectation_id">
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Membre sélectionné</label>
+                    <div id="definir_nom_utilisateur" class="text-sm text-gray-900 font-medium bg-blue-50 p-3 rounded-lg"></div>
+                </div>
+                
+                <div class="flex space-x-3">
+                    <button type="button" onclick="fermerModalDefinirResponsable()" 
+                            class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-medium">
+                        Annuler
+                    </button>
+                    <button type="submit" 
+                            class="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg font-medium">
+                        Définir
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Modal Ajouter Membre
+function ouvrirModalAjouterMembre() {
+    document.getElementById('modalAjouterMembre').classList.remove('hidden');
+}
+
+function fermerModalAjouterMembre() {
+    document.getElementById('modalAjouterMembre').classList.add('hidden');
+    document.getElementById('ajouterMembreForm').reset();
+}
+
+// Modal Retirer Membre
+function ouvrirModalRetirer(affectationId, nomUtilisateur) {
+    document.getElementById('affectationIdRetirer').value = affectationId;
+    document.getElementById('nomMembreRetirer').textContent = nomUtilisateur;
+    document.getElementById('modalRetirerMembre').classList.remove('hidden');
+}
+
+function fermerModalRetirer() {
+    document.getElementById('modalRetirerMembre').classList.add('hidden');
+}
+
+// Modal Besoins
+function ouvrirModalBesoins() {
+    document.getElementById('modalBesoins').classList.remove('hidden');
+    calculerTotalBesoins(); // Calculer le total initial
+}
+
+function fermerModalBesoins() {
+    document.getElementById('modalBesoins').classList.add('hidden');
+    
+    // Réinitialiser l'état de la modale
+    const ajouterBtn = document.querySelector('button[onclick="ajouterNouveauBesoin()"]');
+    const sauvegarderBtn = document.querySelector('button[onclick="sauvegarderBesoins()"]');
+    
+    if (ajouterBtn) ajouterBtn.style.display = 'inline-block';
+    if (sauvegarderBtn) sauvegarderBtn.style.display = 'inline-block';
+    
+    // Restaurer le titre
+    const titre = document.querySelector('#modalBesoins h3');
+    if (titre) titre.textContent = 'Gestion des Besoins';
+    
+    // Réactiver les champs de saisie
+    const inputs = document.querySelectorAll('#modalBesoins input, #modalBesoins textarea');
+    inputs.forEach(input => {
+        input.disabled = false;
+        input.style.backgroundColor = '';
+    });
+}
+
+function calculerTotalBesoins() {
+    const budgetRh = parseFloat(document.querySelector('input[name="budget_rh"]').value) || 0;
+    const budgetMateriel = parseFloat(document.querySelector('input[name="budget_materiel"]').value) || 0;
+    const budgetServices = parseFloat(document.querySelector('input[name="budget_services"]').value) || 0;
+    const budgetAutres = parseFloat(document.querySelector('input[name="budget_autres"]').value) || 0;
+    
+    const total = budgetRh + budgetMateriel + budgetServices + budgetAutres;
+    document.getElementById('totalBesoins').textContent = total.toLocaleString() + ' €';
+}
+
+function sauvegarderBesoins() {
+    // Récupérer les valeurs des champs
+    const budgetPrevisionnel = document.querySelector('input[name="budget_previsionnel"]').value;
+    const budgetRh = document.querySelector('input[name="budget_rh"]').value || 0;
+    const budgetMateriel = document.querySelector('input[name="budget_materiel"]').value || 0;
+    const budgetServices = document.querySelector('input[name="budget_services"]').value || 0;
+    const budgetAutres = document.querySelector('input[name="budget_autres"]').value || 0;
+    
+    // Simuler la sauvegarde (à remplacer par un appel AJAX réel)
+    const formData = new FormData();
+    formData.append('budget_previsionnel', budgetPrevisionnel);
+    formData.append('budget_rh', budgetRh);
+    formData.append('budget_materiel', budgetMateriel);
+    formData.append('budget_services', budgetServices);
+    formData.append('budget_autres', budgetAutres);
+    
+    // Pour l'instant, juste fermer la modale et afficher un message
+    fermerModalBesoins();
+    
+    // Mettre à jour l'affichage des budgets sur la page
+    document.querySelector('.text-green-900').textContent = budgetPrevisionnel + '€';
+    
+    alert('Besoins sauvegardés avec succès !');
+}
+
+function ajouterNouveauBesoin() {
+    // Ajouter une nouvelle catégorie de besoin dynamiquement
+    const container = document.querySelector('#modalBesoins .space-y-3');
+    const nouveauBesoin = document.createElement('div');
+    nouveauBesoin.className = 'p-3 bg-gray-50 rounded-lg border border-gray-200';
+    nouveauBesoin.innerHTML = `
+        <div class="flex items-center justify-between mb-2">
+            <input type="text" placeholder="Nom de la catégorie" 
+                   class="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-gray-500 mr-2">
+            <input type="number" placeholder="0" 
+                   class="w-24 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-gray-500">
+        </div>
+        <textarea placeholder="Description du besoin..." 
+                  class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-gray-500" rows="2"></textarea>
+        <button onclick="this.parentElement.remove()" class="mt-2 text-xs text-red-600 hover:text-red-700">
+            🗑️ Supprimer
+        </button>
+    `;
+    container.appendChild(nouveauBesoin);
+}
+
+// Fonction pour afficher tous les besoins
+function afficherTousBesoins() {
+    // Ouvrir la même modale mais en mode consultation
+    ouvrirModalBesoins();
+    
+    // Masquer les boutons d'ajout et de sauvegarde
+    const ajouterBtn = document.querySelector('button[onclick="ajouterNouveauBesoin()"]');
+    const sauvegarderBtn = document.querySelector('button[onclick="sauvegarderBesoins()"]');
+    
+    if (ajouterBtn) ajouterBtn.style.display = 'none';
+    if (sauvegarderBtn) sauvegarderBtn.style.display = 'none';
+    
+    // Changer le titre
+    const titre = document.querySelector('#modalBesoins h3');
+    if (titre) titre.textContent = 'Consultation des Besoins';
+    
+    // Désactiver les champs de saisie
+    const inputs = document.querySelectorAll('#modalBesoins input, #modalBesoins textarea');
+    inputs.forEach(input => {
+        input.disabled = true;
+        input.style.backgroundColor = '#f9fafb';
+    });
+}
+
+// Ajouter un membre
+document.getElementById('ajouterMembreForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    
+    submitBtn.innerHTML = 'Ajout...';
+    submitBtn.disabled = true;
+    
+    fetch('{% url "ajouter_membre_projet" projet.id %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Erreur: ' + data.error);
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        }
+    })
+    .catch(error => {
+        alert('Erreur: ' + error);
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    });
+});
+
+// Retirer un membre
+document.getElementById('retirerMembreForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    
+    submitBtn.innerHTML = 'Suppression...';
+    submitBtn.disabled = true;
+    
+    fetch('{% url "retirer_membre_projet" projet.id %}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Erreur: ' + data.error);
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        }
+    })
+    .catch(error => {
+        alert('Erreur: ' + error);
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    });
+});
+
+// Ouvrir modal transfert responsabilité
+function ouvrirModalTransfert(responsableActuelId, nomResponsableActuel) {
+    document.getElementById('transfert_responsable_actuel_id').value = responsableActuelId;
+    document.getElementById('responsableActuel').textContent = nomResponsableActuel;
+    
+    // Réinitialiser la sélection
+    document.getElementById('transfert_nouveau_responsable').value = '';
+    
+    document.getElementById('modalTransfertResponsabilite').classList.remove('hidden');
+}
+
+function fermerModalTransfert() {
+    document.getElementById('modalTransfertResponsabilite').classList.add('hidden');
+}
+
+// Définir responsable
+function definirResponsable(affectationId, nomUtilisateur) {
+    document.getElementById('definir_affectation_id').value = affectationId;
+    document.getElementById('definir_nom_utilisateur').textContent = nomUtilisateur;
+    document.getElementById('modalDefinirResponsable').classList.remove('hidden');
+}
+
+// Transférer responsabilité (même fonction mais avec un titre différent)
+function transfererResponsabilite(affectationId, nomUtilisateur) {
+    document.getElementById('definir_affectation_id').value = affectationId;
+    document.getElementById('definir_nom_utilisateur').textContent = nomUtilisateur;
+    
+    // Changer le titre de la modale
+    const titre = document.querySelector('#modalDefinirResponsable h3');
+    if (titre) titre.textContent = 'Transférer la Responsabilité';
+    
+    document.getElementById('modalDefinirResponsable').classList.remove('hidden');
+}
+
+function fermerModalDefinirResponsable() {
+    document.getElementById('modalDefinirResponsable').classList.add('hidden');
+    
+    // Restaurer le titre original
+    const titre = document.querySelector('#modalDefinirResponsable h3');
+    if (titre) titre.textContent = 'Définir Responsable';
+}
+
+// Traitement transfert responsabilité
+document.getElementById('transfertResponsabiliteForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    
+    submitBtn.innerHTML = 'Transfert...';
+    submitBtn.disabled = true;
+    
+    fetch('{% url "definir_responsable" projet.id %}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            fermerModalTransfert();
+            location.reload();
+        } else {
+            alert('Erreur: ' + data.error);
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        }
+    })
+    .catch(error => {
+        alert('Erreur: ' + error);
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    });
+});
+
+// Traitement définir responsable
+document.getElementById('definirResponsableForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    
+    submitBtn.innerHTML = 'Définition...';
+    submitBtn.disabled = true;
+    
+    fetch('{% url "definir_responsable" projet.id %}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            fermerModalDefinirResponsable();
+            location.reload();
+        } else {
+            alert('Erreur: ' + data.error);
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        }
+    })
+    .catch(error => {
+        alert('Erreur: ' + error);
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    });
+});
+
+// Calculer automatiquement le total des besoins
+document.addEventListener('DOMContentLoaded', function() {
+    const budgetInputs = document.querySelectorAll('input[name^="budget_"]');
+    budgetInputs.forEach(input => {
+        input.addEventListener('input', calculerTotalBesoins);
+    });
+});
+
+// Fermer modales en cliquant à l'extérieur
+document.getElementById('modalAjouterMembre').addEventListener('click', function(e) {
+    if (e.target === this) {
+        fermerModalAjouterMembre();
+    }
+});
+
+document.getElementById('modalRetirerMembre').addEventListener('click', function(e) {
+    if (e.target === this) {
+        fermerModalRetirer();
+    }
+});
+
+document.getElementById('modalBesoins').addEventListener('click', function(e) {
+    if (e.target === this) {
+        fermerModalBesoins();
+    }
+});
+
+document.getElementById('modalTransfertResponsabilite').addEventListener('click', function(e) {
+    if (e.target === this) {
+        fermerModalTransfert();
+    }
+});
+
+document.getElementById('modalDefinirResponsable').addEventListener('click', function(e) {
+    if (e.target === this) {
+        fermerModalDefinirResponsable();
+    }
+});
+
+// Fermer modales avec Escape
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        fermerModalAjouterMembre();
+        fermerModalRetirer();
+        fermerModalBesoins();
+        fermerModalTransfert();
+        fermerModalDefinirResponsable();
+    }
+});
+</script>
+{% endblock %}

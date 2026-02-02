@@ -1,0 +1,257 @@
+{% extends 'base.html' %}
+
+{% block title %}Liste des Projets - SI-Gouvernance JCM{% endblock %}
+{% block page_title %}{% if user.est_super_admin %}Gestion des Projets{% else %}Mes Projets{% endif %}{% endblock %}
+
+{% block content %}
+<div class="bg-gray-50 min-h-screen p-2 md:p-4">
+    <div class="max-w-7xl mx-auto space-y-3 md:space-y-4">
+        <!-- Header Ultra Compact -->
+        <div class="bg-white rounded-lg p-3 md:p-4 shadow-md border border-white/20">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-md">
+                        <i class="fas fa-project-diagram text-white text-sm"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-lg md:text-xl font-bold text-gray-900">{% if user.est_super_admin %}Gestion des Projets{% else %}Mes Projets{% endif %}</h1>
+                        <p class="text-xs md:text-sm text-gray-600">{% if user.est_super_admin %}Gérez et suivez tous vos projets{% else %}Projets auxquels vous êtes affecté{% endif %}</p>
+                    </div>
+                </div>
+                
+                {% if user.est_super_admin and can_create %}
+                <a href="{% url 'creer_projet' %}" class="group flex items-center px-3 py-2 md:px-4 md:py-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-lg font-semibold shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300 text-sm">
+                    <i class="fas fa-plus mr-2 group-hover:rotate-90 transition-transform duration-300"></i>
+                    <span class="hidden sm:inline">Nouveau Projet</span>
+                    <span class="sm:hidden">Nouveau</span>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Filtres Ultra Compacts -->
+        <div class="bg-white rounded-lg p-3 md:p-4 shadow-md border border-white/20">
+            <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <!-- Search -->
+                <div class="md:col-span-2">
+                    <label for="search" class="block text-xs font-semibold text-gray-700 mb-1">Rechercher</label>
+                    <div class="relative">
+                        <input 
+                            type="text" 
+                            id="search" 
+                            name="search" 
+                            value="{{ search }}"
+                            placeholder="Nom du projet, client..."
+                            class="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 text-sm"
+                        >
+                        <i class="fas fa-search absolute left-2.5 top-2.5 text-gray-400 text-xs"></i>
+                    </div>
+                </div>
+
+                <!-- Status Filter -->
+                <div>
+                    <label for="statut" class="block text-xs font-semibold text-gray-700 mb-1">Statut</label>
+                    <select 
+                        id="statut" 
+                        name="statut"
+                        class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 text-sm"
+                    >
+                        <option value="">Tous les statuts</option>
+                        {% for statut in statuts %}
+                        <option value="{{ statut.nom }}" {% if statut_filter == statut.nom %}selected{% endif %}>
+                            {{ statut.get_nom_display }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Search Button -->
+                <div class="flex items-end">
+                    <button 
+                        type="submit"
+                        class="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-3 py-2 rounded-lg font-semibold shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300 text-sm"
+                    >
+                        <i class="fas fa-search mr-1"></i>Filtrer
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Projects List Ultra Compact -->
+        {% if page_obj.object_list %}
+        <div class="space-y-2 md:space-y-3">
+            {% for projet in page_obj.object_list %}
+            <div class="bg-white rounded-lg p-3 md:p-4 shadow-md border border-white/20 hover:shadow-lg transition-all duration-300">
+                <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+                    <!-- Project Main Info -->
+                    <div class="flex items-center space-x-3 flex-1 min-w-0">
+                        <div class="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-md flex-shrink-0">
+                            <i class="fas fa-project-diagram text-white text-xs md:text-sm"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h3 class="text-sm md:text-base font-semibold text-gray-900 mb-1 hover:text-blue-600 transition-colors duration-300 truncate leading-tight">{{ projet.nom }}</h3>
+                            {% if projet.client %}
+                            <p class="text-xs md:text-sm text-gray-600 mb-1 truncate">{{ projet.client }}</p>
+                            {% endif %}
+                            <div class="flex flex-wrap items-center gap-1">
+                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium
+                                    {% if projet.statut.nom == 'IDEE' %}bg-gray-100 text-gray-800
+                                    {% elif projet.statut.nom == 'AFFECTE' %}bg-blue-100 text-blue-800
+                                    {% elif projet.statut.nom == 'PLANIFIE' %}bg-purple-100 text-purple-800
+                                    {% elif projet.statut.nom == 'EN_COURS' %}bg-yellow-100 text-yellow-800
+                                    {% elif projet.statut.nom == 'TERMINE' %}bg-green-100 text-green-800
+                                    {% elif projet.statut.nom == 'SUSPENDU' %}bg-red-100 text-red-800
+                                    {% endif %}">
+                                    <i class="fas fa-circle mr-1 text-xs"></i>
+                                    <span class="hidden sm:inline">{{ projet.statut.get_nom_display }}</span>
+                                    <span class="sm:hidden">{{ projet.statut.get_nom_display|truncatechars:6 }}</span>
+                                </span>
+                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700">
+                                    <i class="fas fa-calendar mr-1 text-xs"></i>
+                                    <span class="hidden md:inline">{{ projet.date_creation|date:"d/m/Y" }}</span>
+                                    <span class="md:hidden">{{ projet.date_creation|date:"d/m" }}</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Project Stats & Actions Compact -->
+                    <div class="flex items-center justify-between sm:justify-end gap-3 sm:gap-4">
+                        <!-- Budget & Responsible Compact -->
+                        <div class="flex items-center gap-3 text-xs">
+                            <!-- Budget -->
+                            <div class="text-center">
+                                <div class="text-xs font-medium text-gray-500">Budget</div>
+                                <div class="text-sm font-bold text-gray-900">{{ projet.budget_previsionnel|floatformat:0 }}€</div>
+                            </div>
+
+                            <!-- Responsible -->
+                            <div class="text-center hidden sm:block">
+                                <div class="text-xs font-medium text-gray-500 mb-1">Responsable</div>
+                                {% with responsable=projet.get_responsable_principal %}
+                                    {% if responsable %}
+                                        <div class="flex items-center justify-center space-x-1">
+                                            <div class="w-5 h-5 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center">
+                                                <span class="text-xs font-bold text-white">{{ responsable.first_name.0 }}</span>
+                                            </div>
+                                            <div class="text-xs font-semibold text-gray-900 truncate max-w-20">{{ responsable.first_name }}</div>
+                                        </div>
+                                    {% else %}
+                                        <span class="text-xs text-gray-400 italic flex items-center justify-center">
+                                            <i class="fas fa-user-slash mr-1"></i>
+                                            N/A
+                                        </span>
+                                    {% endif %}
+                                {% endwith %}
+                            </div>
+                        </div>
+
+                        <!-- Actions Compact -->
+                        <div class="flex items-center gap-1">
+                            <a href="{% url 'projet_detail' projet.id %}" class="px-2 py-1.5 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded font-medium shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300 text-xs">
+                                <i class="fas fa-eye"></i>
+                                <span class="hidden md:inline ml-1">Voir</span>
+                            </a>
+                            {% if can_create %}
+                            <a href="{% url 'modifier_projet' projet.id %}" class="px-2 py-1.5 bg-white border border-gray-200 hover:border-gray-300 text-gray-700 hover:text-gray-900 rounded font-medium shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300 text-xs">
+                                <i class="fas fa-edit"></i>
+                                <span class="hidden md:inline ml-1">Modifier</span>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination Ultra Compacte -->
+        {% if page_obj.has_other_pages %}
+        <div class="bg-white rounded-lg px-3 md:px-4 py-3 shadow-md border border-white/20">
+            <div class="flex items-center justify-between">
+                <div class="flex-1 flex justify-between sm:hidden">
+                    {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}&search={{ search }}&statut={{ statut_filter }}" class="px-3 py-1.5 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 transition-all duration-300">
+                        Précédent
+                    </a>
+                    {% endif %}
+                    {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}&search={{ search }}&statut={{ statut_filter }}" class="px-3 py-1.5 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 transition-all duration-300">
+                        Suivant
+                    </a>
+                    {% endif %}
+                </div>
+                <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                    <div>
+                        <p class="text-xs font-medium text-gray-700">
+                            Affichage de <span class="font-bold text-blue-600">{{ page_obj.start_index }}</span> à <span class="font-bold text-blue-600">{{ page_obj.end_index }}</span>
+                            sur <span class="font-bold text-blue-600">{{ page_obj.paginator.count }}</span> résultats
+                        </p>
+                    </div>
+                    <div>
+                        <nav class="flex rounded shadow-sm -space-x-px">
+                            {% if page_obj.has_previous %}
+                            <a href="?page={{ page_obj.previous_page_number }}&search={{ search }}&statut={{ statut_filter }}" class="px-2 py-1.5 rounded-l border border-gray-300 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-all duration-300">
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                            {% endif %}
+                            
+                            {% for num in page_obj.paginator.page_range %}
+                                {% if page_obj.number == num %}
+                                <span class="px-3 py-1.5 border border-blue-500 bg-blue-500 text-xs font-bold text-white">
+                                    {{ num }}
+                                </span>
+                                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                <a href="?page={{ num }}&search={{ search }}&statut={{ statut_filter }}" class="px-3 py-1.5 border border-gray-300 bg-white text-xs font-medium text-gray-700 hover:bg-gray-50 hover:text-blue-600 transition-all duration-300">
+                                    {{ num }}
+                                </a>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if page_obj.has_next %}
+                            <a href="?page={{ page_obj.next_page_number }}&search={{ search }}&statut={{ statut_filter }}" class="px-2 py-1.5 rounded-r border border-gray-300 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-all duration-300">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                            {% endif %}
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% else %}
+        <!-- Empty State Ultra Compact -->
+        <div class="bg-white rounded-lg shadow-md border border-white/20 overflow-hidden">
+            <div class="text-center py-8 md:py-12">
+                <div class="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <i class="fas fa-folder-open text-lg md:text-2xl text-gray-400"></i>
+                </div>
+                <h3 class="text-base md:text-lg font-bold text-gray-900 mb-2">Aucun projet trouvé</h3>
+                <p class="text-xs md:text-sm text-gray-500 mb-4 max-w-md mx-auto">
+                    {% if search or statut_filter %}
+                        Aucun projet ne correspond à vos critères de recherche.
+                    {% else %}
+                        Vous n'avez pas encore de projets. Commencez par créer votre premier projet.
+                    {% endif %}
+                </p>
+                <div class="flex flex-col sm:flex-row items-center justify-center gap-2">
+                    {% if can_create and not search and not statut_filter %}
+                    <a href="{% url 'creer_projet' %}" class="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-lg font-semibold shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300 text-sm">
+                        <i class="fas fa-plus mr-2"></i>
+                        Créer un projet
+                    </a>
+                    {% endif %}
+                    {% if search or statut_filter %}
+                    <a href="{% url 'projets_list' %}" class="px-4 py-2 bg-white border border-gray-200 hover:border-gray-300 text-gray-700 hover:text-gray-900 rounded-lg font-semibold shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300 text-sm">
+                        <i class="fas fa-times mr-2"></i>
+                        Effacer les filtres
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

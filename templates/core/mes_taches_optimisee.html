@@ -1,0 +1,514 @@
+{% extends 'base.html' %}
+
+{% block title %}Mes Tâches - {{ projet.nom }} - SI-Gouvernance JCM{% endblock %}
+{% block page_title %}Mes Tâches{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-2 sm:p-4">
+    <div class="max-w-7xl mx-auto space-y-3">
+        
+        <!-- Header Ultra-Compact -->
+        <div class="bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-sm border border-white/50">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-md flex items-center justify-center">
+                        <span class="text-white text-sm">📋</span>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-bold text-gray-900">Mes Tâches</h1>
+                        <p class="text-xs text-gray-600 truncate max-w-[200px] sm:max-w-none">{{ projet.nom }}</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-1">
+                    <a href="{% url 'projet_detail' projet.id %}" 
+                       class="inline-flex items-center px-2 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md text-xs font-medium transition-colors">
+                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                        </svg>
+                        Retour
+                    </a>
+                    
+                    <button onclick="window.location.reload()" 
+                            class="p-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-md transition-colors">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistiques Ultra-Compactes -->
+        <div class="grid grid-cols-4 gap-2">
+            <div class="bg-white/90 backdrop-blur-sm rounded-lg p-2 shadow-sm border border-white/50">
+                <div class="text-center">
+                    <p class="text-xs text-gray-600 mb-0.5">Total</p>
+                    <p class="text-lg font-bold text-gray-900 counter" data-target="{{ stats.total }}">0</p>
+                </div>
+            </div>
+            
+            <div class="bg-white/90 backdrop-blur-sm rounded-lg p-2 shadow-sm border border-white/50">
+                <div class="text-center">
+                    <p class="text-xs text-gray-600 mb-0.5">En cours</p>
+                    <p class="text-lg font-bold text-orange-600 counter" data-target="{{ stats.en_cours }}">0</p>
+                </div>
+            </div>
+            
+            <div class="bg-white/90 backdrop-blur-sm rounded-lg p-2 shadow-sm border border-white/50">
+                <div class="text-center">
+                    <p class="text-xs text-gray-600 mb-0.5">Terminées</p>
+                    <p class="text-lg font-bold text-green-600 counter" data-target="{{ stats.terminees }}">0</p>
+                </div>
+            </div>
+            
+            <div class="bg-white/90 backdrop-blur-sm rounded-lg p-2 shadow-sm border border-white/50">
+                <div class="text-center">
+                    <p class="text-xs text-gray-600 mb-0.5">Bloquées</p>
+                    <p class="text-lg font-bold text-red-600 counter" data-target="{{ stats.bloquees }}">0</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filtres Compacts -->
+        <div class="bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-sm border border-white/50">
+            <form method="GET" class="flex flex-col sm:flex-row gap-2">
+                <div class="flex-1">
+                    <select name="statut" id="statut" class="w-full px-2 py-1.5 bg-white border border-gray-200 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-xs">
+                        <option value="">🎯 Tous les statuts</option>
+                        {% for value, label in statuts_disponibles %}
+                            <option value="{{ value }}" {% if statut_filter == value %}selected{% endif %}>
+                                {% if value == 'A_FAIRE' %}⏸️{% elif value == 'EN_COURS' %}⏳{% elif value == 'TERMINEE' %}✅{% elif value == 'BLOQUEE' %}🚫{% endif %} {{ label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="flex-1">
+                    <select name="priorite" id="priorite" class="w-full px-2 py-1.5 bg-white border border-gray-200 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-xs">
+                        <option value="">🎚️ Toutes les priorités</option>
+                        {% for value, label in priorites_disponibles %}
+                            <option value="{{ value }}" {% if priorite_filter == value %}selected{% endif %}>
+                                {% if value == 'CRITIQUE' %}🔥{% elif value == 'HAUTE' %}⚡{% elif value == 'MOYENNE' %}📊{% elif value == 'BASSE' %}📉{% endif %} {{ label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="flex space-x-1">
+                    <button type="submit" class="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-md text-xs font-medium transition-colors">
+                        🔍 Filtrer
+                    </button>
+                    <a href="{% url 'mes_taches' projet.id %}" class="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md text-xs font-medium transition-colors">
+                        🔄 Reset
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Tâches d'Étapes Optimisées -->
+        {% if mes_taches_etape %}
+        <div class="bg-white/90 backdrop-blur-sm rounded-lg shadow-sm border border-white/50 overflow-hidden">
+            <div class="bg-gradient-to-r from-blue-50 to-purple-50 p-2 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-sm font-semibold text-gray-900 flex items-center">
+                        <span class="w-5 h-5 bg-blue-500 rounded text-white text-xs flex items-center justify-center mr-2">🎯</span>
+                        Tâches d'Étapes
+                    </h2>
+                    <span class="px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                        {{ mes_taches_etape|length }}
+                    </span>
+                </div>
+            </div>
+            
+            <div class="divide-y divide-gray-100">
+                {% for tache in mes_taches_etape %}
+                <div class="p-3 hover:bg-blue-50/30 transition-colors task-item">
+                    <div class="flex flex-col space-y-2">
+                        <!-- Ligne principale -->
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1 min-w-0">
+                                <h3 class="font-medium text-gray-900 text-sm truncate">{{ tache.nom }}</h3>
+                                <p class="text-xs text-gray-600 mt-0.5 line-clamp-1">{{ tache.description|truncatewords:15 }}</p>
+                            </div>
+                            
+                            <!-- Badges compacts -->
+                            <div class="flex items-center space-x-1 ml-2">
+                                <!-- Statut -->
+                                {% if tache.statut == 'A_FAIRE' %}
+                                    <span class="px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">⏸️</span>
+                                {% elif tache.statut == 'EN_COURS' %}
+                                    <span class="px-1.5 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800">⏳</span>
+                                {% elif tache.statut == 'TERMINEE' %}
+                                    <span class="px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">✅</span>
+                                {% elif tache.statut == 'BLOQUEE' %}
+                                    <span class="px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">🚫</span>
+                                {% endif %}
+                                
+                                <!-- Priorité -->
+                                {% if tache.priorite == 'CRITIQUE' %}
+                                    <span class="px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">🔥</span>
+                                {% elif tache.priorite == 'HAUTE' %}
+                                    <span class="px-1.5 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800">⚡</span>
+                                {% elif tache.priorite == 'MOYENNE' %}
+                                    <span class="px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">📊</span>
+                                {% else %}
+                                    <span class="px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">📉</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Métadonnées et progression -->
+                        <div class="flex items-center justify-between text-xs text-gray-500">
+                            <div class="flex items-center space-x-2">
+                                <span>📁 {{ tache.etape.type_etape.nom }}</span>
+                                {% if tache.date_debut %}
+                                <span>📅 {{ tache.date_debut|date:"d/m" }}</span>
+                                {% endif %}
+                                {% if tache.date_fin %}
+                                <span>⏰ {{ tache.date_fin|date:"d/m" }}</span>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Barre de progression mini -->
+                            <div class="flex items-center space-x-1">
+                                <span class="text-xs">{{ tache.pourcentage_completion|default:0 }}%</span>
+                                <div class="w-12 bg-gray-200 rounded-full h-1.5">
+                                    <div class="bg-blue-500 h-1.5 rounded-full progress-bar" 
+                                         data-progress="{{ tache.pourcentage_completion|default:0 }}"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Actions compactes -->
+                        {% if tache.statut != 'TERMINEE' %}
+                        <div class="flex items-center justify-end space-x-1">
+                            <!-- Menu déroulant ultra-compact -->
+                            <div class="relative">
+                                <button onclick="toggleStatutMenu('{{ tache.id }}')" 
+                                        class="inline-flex items-center px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded text-xs font-medium">
+                                    🔄
+                                    <svg class="ml-0.5 w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                </button>
+                                
+                                <div id="statutMenu-{{ tache.id }}" class="hidden absolute right-0 mt-1 w-40 bg-white rounded-md shadow-lg border z-20">
+                                    <div class="py-1">
+                                        {% if tache.statut != 'EN_COURS' %}
+                                        <button onclick="changerStatut('{{ tache.id }}', 'etape', 'EN_COURS', '{{ tache.nom|escapejs }}')" 
+                                                class="w-full text-left px-2 py-1 text-xs text-gray-700 hover:bg-orange-50 hover:text-orange-800">
+                                            ⏳ En cours
+                                        </button>
+                                        {% endif %}
+                                        
+                                        {% if tache.statut != 'BLOQUEE' %}
+                                        <button onclick="changerStatut('{{ tache.id }}', 'etape', 'BLOQUEE', '{{ tache.nom|escapejs }}')" 
+                                                class="w-full text-left px-2 py-1 text-xs text-gray-700 hover:bg-red-50 hover:text-red-800">
+                                            🚫 Bloquée
+                                        </button>
+                                        {% endif %}
+                                        
+                                        {% if tache.statut != 'A_FAIRE' %}
+                                        <button onclick="changerStatut('{{ tache.id }}', 'etape', 'A_FAIRE', '{{ tache.nom|escapejs }}')" 
+                                                class="w-full text-left px-2 py-1 text-xs text-gray-700 hover:bg-gray-50 hover:text-gray-800">
+                                            ⏸️ À faire
+                                        </button>
+                                        {% endif %}
+                                        
+                                        <hr class="my-1">
+                                        <button onclick="changerStatut('{{ tache.id }}', 'etape', 'TERMINEE', '{{ tache.nom|escapejs }}')" 
+                                                class="w-full text-left px-2 py-1 text-xs text-gray-700 hover:bg-green-50 hover:text-green-800">
+                                            ✅ Terminer
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Bouton rapide terminer -->
+                            <button onclick="terminerTache('{{ tache.id }}', 'etape', '{{ tache.nom|escapejs }}')"
+                                    class="inline-flex items-center px-2 py-1 bg-green-500 hover:bg-green-600 text-white rounded text-xs font-medium">
+                                ✅
+                            </button>
+                        </div>
+                        {% else %}
+                        <div class="flex justify-end">
+                            <div class="inline-flex items-center px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">
+                                ✅ Terminée
+                                {% if tache.date_fin_reelle %}
+                                    <span class="ml-1 text-xs opacity-75">{{ tache.date_fin_reelle|date:"d/m H:i" }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Message si aucune tâche -->
+        {% if not mes_taches_etape and not mes_taches_module %}
+        <div class="bg-white/90 backdrop-blur-sm rounded-lg p-8 shadow-sm border border-white/50 text-center">
+            <div class="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">Aucune tâche assignée</h3>
+            <p class="text-gray-600 mb-4 text-sm">
+                Vous n'avez actuellement aucune tâche assignée dans ce projet.
+            </p>
+            <a href="{% url 'projet_detail' projet.id %}" 
+               class="inline-flex items-center px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md font-medium text-sm">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                </svg>
+                Retour au projet
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal de confirmation compact -->
+<div id="confirmModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-lg p-6 max-w-sm mx-auto shadow-xl transform scale-95 transition-all duration-300">
+        <div class="flex items-center mb-4">
+            <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                <svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900">Confirmer</h3>
+        </div>
+        <p class="text-gray-600 mb-6 text-sm">
+            Marquer "<span id="tacheNom" class="font-medium text-gray-900"></span>" comme terminée ?
+        </p>
+        <div class="flex justify-end space-x-3">
+            <button onclick="fermerModal()" 
+                    class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md font-medium text-sm">
+                Annuler
+            </button>
+            <button id="confirmerBtn" 
+                    class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-md font-medium text-sm">
+                Confirmer
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+let tacheEnCours = null;
+
+// Animation des compteurs
+function animateCounters() {
+    document.querySelectorAll('.counter').forEach(counter => {
+        const target = parseInt(counter.getAttribute('data-target'));
+        const increment = target / 30;
+        let current = 0;
+        
+        const timer = setInterval(() => {
+            current += increment;
+            if (current >= target) {
+                counter.textContent = target;
+                clearInterval(timer);
+            } else {
+                counter.textContent = Math.floor(current);
+            }
+        }, 50);
+    });
+}
+
+function terminerTache(tacheId, typeTache, nomTache) {
+    tacheEnCours = { id: tacheId, type: typeTache };
+    document.getElementById('tacheNom').textContent = nomTache;
+    const modal = document.getElementById('confirmModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    setTimeout(() => {
+        modal.querySelector('div').classList.remove('scale-95');
+        modal.querySelector('div').classList.add('scale-100');
+    }, 10);
+}
+
+function changerStatut(tacheId, typeTache, nouveauStatut, nomTache) {
+    document.querySelectorAll('[id^="statutMenu-"]').forEach(menu => {
+        menu.classList.add('hidden');
+    });
+    
+    if (nouveauStatut === 'TERMINEE') {
+        terminerTache(tacheId, typeTache, nomTache);
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('statut', nouveauStatut);
+    
+    fetch(`{% url 'changer_statut_ma_tache' projet.id '00000000-0000-0000-0000-000000000000' 'etape' %}`.replace('00000000-0000-0000-0000-000000000000', tacheId).replace('etape', typeTache), {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            afficherMessage(data.message, 'success');
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            afficherMessage('Erreur: ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        afficherMessage('Une erreur est survenue.', 'error');
+    });
+}
+
+function toggleStatutMenu(menuId) {
+    document.querySelectorAll('[id^="statutMenu-"]').forEach(menu => {
+        if (menu.id !== 'statutMenu-' + menuId) {
+            menu.classList.add('hidden');
+        }
+    });
+    
+    const menu = document.getElementById('statutMenu-' + menuId);
+    if (menu) {
+        menu.classList.toggle('hidden');
+    }
+}
+
+function fermerModal() {
+    const modal = document.getElementById('confirmModal');
+    modal.querySelector('div').classList.remove('scale-100');
+    modal.querySelector('div').classList.add('scale-95');
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }, 200);
+    tacheEnCours = null;
+}
+
+function afficherMessage(message, type) {
+    const div = document.createElement('div');
+    const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+    const icon = type === 'success' ? '✅' : '❌';
+    
+    div.className = `fixed top-4 right-4 ${bgColor} text-white px-4 py-2 rounded-lg shadow-lg z-50 transform translate-x-full transition-transform duration-300`;
+    div.innerHTML = `
+        <div class="flex items-center text-sm">
+            <span class="mr-2">${icon}</span>
+            <span>${message}</span>
+        </div>
+    `;
+    document.body.appendChild(div);
+    
+    setTimeout(() => {
+        div.classList.remove('translate-x-full');
+    }, 100);
+    
+    setTimeout(() => {
+        div.classList.add('translate-x-full');
+        setTimeout(() => {
+            if (document.body.contains(div)) {
+                document.body.removeChild(div);
+            }
+        }, 300);
+    }, 3000);
+}
+
+document.getElementById('confirmerBtn').addEventListener('click', function() {
+    if (!tacheEnCours) return;
+    
+    const submitBtn = this;
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = 'En cours...';
+    submitBtn.disabled = true;
+    
+    fetch(`{% url 'terminer_tache' projet.id '00000000-0000-0000-0000-000000000000' 'etape' %}`.replace('00000000-0000-0000-0000-000000000000', tacheEnCours.id).replace('etape', tacheEnCours.type), {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            afficherMessage(data.message, 'success');
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            afficherMessage('Erreur: ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        afficherMessage('Une erreur est survenue.', 'error');
+    })
+    .finally(() => {
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+        fermerModal();
+    });
+});
+
+// Fermer le modal en cliquant à l'extérieur
+document.getElementById('confirmModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        fermerModal();
+    }
+});
+
+// Fermer avec Escape
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        fermerModal();
+        document.querySelectorAll('[id^="statutMenu-"]').forEach(menu => {
+            menu.classList.add('hidden');
+        });
+    }
+});
+
+// Fermer les menus en cliquant ailleurs
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('[onclick*="toggleStatutMenu"]') && !e.target.closest('[id^="statutMenu-"]')) {
+        document.querySelectorAll('[id^="statutMenu-"]').forEach(menu => {
+            menu.classList.add('hidden');
+        });
+    }
+});
+
+// Initialisation
+document.addEventListener('DOMContentLoaded', function() {
+    animateCounters();
+    
+    // Initialiser les barres de progression
+    document.querySelectorAll('.progress-bar').forEach(function(bar) {
+        const progress = bar.getAttribute('data-progress') || 0;
+        setTimeout(() => {
+            bar.style.width = progress + '%';
+        }, 300);
+    });
+    
+    // Animation d'entrée pour les tâches
+    document.querySelectorAll('.task-item').forEach((item, index) => {
+        item.style.opacity = '0';
+        item.style.transform = 'translateY(10px)';
+        setTimeout(() => {
+            item.style.transition = 'all 0.3s ease-out';
+            item.style.opacity = '1';
+            item.style.transform = 'translateY(0)';
+        }, index * 50);
+    });
+});
+</script>
+
+{% csrf_token %}
+{% endblock %}

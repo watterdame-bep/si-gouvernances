@@ -1,0 +1,355 @@
+{% extends 'base.html' %}
+
+{% block title %}Gestion des Tâches - {{ module.nom }} - SI-Gouvernance JCM{% endblock %}
+{% block page_title %}Gestion des Tâches - {{ module.nom }}{% endblock %}
+
+{% block content %}
+<div class="bg-gray-50 min-h-screen p-2 md:p-4">
+    <div class="max-w-7xl mx-auto space-y-4">
+        
+        <!-- Header -->
+        <div class="bg-white rounded-lg p-4 shadow-md border border-white/20">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-lg flex items-center justify-center shadow-md" style="background-color: {{ module.couleur }};">
+                        <span class="text-white font-bold text-lg">{{ module.icone_emoji }}</span>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-900">Gestion des Tâches</h1>
+                        <p class="text-sm text-gray-600">{{ module.nom }} - {{ projet.nom }}</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3">
+                    {% if can_manage %}
+                    <a href="{% url 'creer_tache' module.id %}" class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-lg font-medium shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300 text-sm">
+                        <span class="mr-2">➕</span>Nouvelle tâche
+                    </a>
+                    {% endif %}
+                    <a href="{% url 'detail_module' projet.id module.id %}" class="inline-flex items-center px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium shadow-md transition-all duration-300 text-sm">
+                        <span class="mr-2">←</span>Retour au module
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filtres et statistiques -->
+        <div class="bg-white rounded-lg p-4 shadow-md border border-white/20">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <!-- Statistiques rapides -->
+                <div class="text-center p-3 bg-blue-50 rounded-lg">
+                    <div class="text-2xl font-bold text-blue-600">{{ taches.count }}</div>
+                    <div class="text-sm text-blue-800">Total</div>
+                </div>
+                <div class="text-center p-3 bg-green-50 rounded-lg">
+                    <div class="text-2xl font-bold text-green-600">{{ taches|length|default:0 }}</div>
+                    <div class="text-sm text-green-800">Terminées</div>
+                </div>
+                <div class="text-center p-3 bg-orange-50 rounded-lg">
+                    <div class="text-2xl font-bold text-orange-600">{{ taches|length|default:0 }}</div>
+                    <div class="text-sm text-orange-800">En cours</div>
+                </div>
+                <div class="text-center p-3 bg-red-50 rounded-lg">
+                    <div class="text-2xl font-bold text-red-600">{{ taches|length|default:0 }}</div>
+                    <div class="text-sm text-red-800">Bloquées</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Liste des tâches -->
+        <div class="bg-white rounded-lg shadow-md border border-white/20 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-lg font-bold text-gray-900">Tâches du module</h2>
+                        <p class="text-sm text-gray-600">Organisation et suivi des tâches</p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <!-- Filtres rapides -->
+                        <select id="filtreStatut" class="px-3 py-1 border border-gray-300 rounded-lg text-sm">
+                            <option value="">Tous les statuts</option>
+                            <option value="A_FAIRE">À faire</option>
+                            <option value="EN_COURS">En cours</option>
+                            <option value="TERMINEE">Terminée</option>
+                            <option value="BLOQUEE">Bloquée</option>
+                        </select>
+                        <select id="filtrePriorite" class="px-3 py-1 border border-gray-300 rounded-lg text-sm">
+                            <option value="">Toutes priorités</option>
+                            <option value="CRITIQUE">Critique</option>
+                            <option value="HAUTE">Haute</option>
+                            <option value="MOYENNE">Moyenne</option>
+                            <option value="BASSE">Basse</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            {% if taches %}
+            <div class="p-6">
+                <!-- Vue en tableau -->
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="border-b border-gray-200">
+                                <th class="text-left py-3 px-4 font-medium text-gray-700">Tâche</th>
+                                <th class="text-left py-3 px-4 font-medium text-gray-700">Statut</th>
+                                <th class="text-left py-3 px-4 font-medium text-gray-700">Priorité</th>
+                                <th class="text-left py-3 px-4 font-medium text-gray-700">Responsable</th>
+                                <th class="text-left py-3 px-4 font-medium text-gray-700">Étape</th>
+                                <th class="text-left py-3 px-4 font-medium text-gray-700">Dates</th>
+                                {% if can_manage %}
+                                <th class="text-left py-3 px-4 font-medium text-gray-700">Actions</th>
+                                {% endif %}
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            {% for tache in taches %}
+                            <tr class="hover:bg-gray-50 transition-colors duration-200" data-statut="{{ tache.statut }}" data-priorite="{{ tache.priorite }}">
+                                <!-- Nom et description -->
+                                <td class="py-4 px-4">
+                                    <div class="flex-1 min-w-0">
+                                        <h4 class="font-medium text-gray-900 truncate">{{ tache.nom }}</h4>
+                                        <p class="text-sm text-gray-600 line-clamp-2">{{ tache.description }}</p>
+                                    </div>
+                                </td>
+                                
+                                <!-- Statut -->
+                                <td class="py-4 px-4">
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+                                        {% if tache.statut == 'TERMINEE' %}bg-green-100 text-green-800
+                                        {% elif tache.statut == 'EN_COURS' %}bg-blue-100 text-blue-800
+                                        {% elif tache.statut == 'BLOQUEE' %}bg-red-100 text-red-800
+                                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                        {% if tache.statut == 'TERMINEE' %}✅ Terminée
+                                        {% elif tache.statut == 'EN_COURS' %}🔄 En cours
+                                        {% elif tache.statut == 'BLOQUEE' %}🚫 Bloquée
+                                        {% else %}📋 À faire{% endif %}
+                                    </span>
+                                </td>
+                                
+                                <!-- Priorité -->
+                                <td class="py-4 px-4">
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+                                        {% if tache.priorite == 'CRITIQUE' %}bg-red-100 text-red-800
+                                        {% elif tache.priorite == 'HAUTE' %}bg-orange-100 text-orange-800
+                                        {% elif tache.priorite == 'MOYENNE' %}bg-blue-100 text-blue-800
+                                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                        {% if tache.priorite == 'CRITIQUE' %}🔴 Critique
+                                        {% elif tache.priorite == 'HAUTE' %}🟠 Haute
+                                        {% elif tache.priorite == 'MOYENNE' %}🔵 Moyenne
+                                        {% else %}⚪ Basse{% endif %}
+                                    </span>
+                                </td>
+                                
+                                <!-- Responsable -->
+                                <td class="py-4 px-4">
+                                    {% if tache.responsable %}
+                                        <div class="flex items-center space-x-2">
+                                            <div class="w-6 h-6 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
+                                                <span class="text-xs font-bold text-white">{{ tache.responsable.first_name.0 }}</span>
+                                            </div>
+                                            <span class="text-sm text-gray-900 truncate">{{ tache.responsable.get_full_name }}</span>
+                                        </div>
+                                    {% else %}
+                                        <span class="text-sm text-gray-500 italic">Non assignée</span>
+                                    {% endif %}
+                                </td>
+                                
+                                <!-- Étape d'exécution -->
+                                <td class="py-4 px-4">
+                                    {% if tache.etape_execution %}
+                                        <span class="text-sm text-gray-900">{{ tache.etape_execution.type_etape.get_nom_display }}</span>
+                                    {% else %}
+                                        <span class="text-sm text-gray-500 italic">Toutes</span>
+                                    {% endif %}
+                                </td>
+                                
+                                <!-- Dates -->
+                                <td class="py-4 px-4">
+                                    <div class="text-sm text-gray-900">
+                                        {% if tache.date_debut and tache.date_fin %}
+                                            {{ tache.date_debut|date:"d/m" }} - {{ tache.date_fin|date:"d/m/Y" }}
+                                        {% elif tache.date_debut %}
+                                            Dès le {{ tache.date_debut|date:"d/m/Y" }}
+                                        {% elif tache.date_fin %}
+                                            Avant le {{ tache.date_fin|date:"d/m/Y" }}
+                                        {% else %}
+                                            <span class="text-gray-500 italic">À définir</span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                
+                                <!-- Actions -->
+                                {% if can_manage %}
+                                <td class="py-4 px-4">
+                                    <div class="flex items-center space-x-2">
+                                        {% if not tache.responsable %}
+                                        <button onclick="assignerTache('{{ tache.id }}')" class="text-xs text-blue-600 hover:text-blue-700 font-medium px-2 py-1 bg-blue-50 hover:bg-blue-100 rounded">
+                                            👤 Assigner
+                                        </button>
+                                        {% endif %}
+                                        <button class="text-xs text-gray-600 hover:text-gray-700 font-medium px-2 py-1 bg-gray-50 hover:bg-gray-100 rounded">
+                                            ✏️ Modifier
+                                        </button>
+                                    </div>
+                                </td>
+                                {% endif %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% else %}
+            <div class="p-12 text-center">
+                <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span class="text-gray-400 text-2xl">📋</span>
+                </div>
+                <p class="text-lg font-medium text-gray-500 mb-2">Aucune tâche définie</p>
+                <p class="text-sm text-gray-400 mb-6">Créez des tâches pour organiser le travail de ce module</p>
+                {% if can_manage %}
+                <a href="{% url 'creer_tache' module.id %}" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-lg font-medium shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300">
+                    <span class="mr-2">📋</span>Créer la première tâche
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Informations sur les tâches -->
+        <div class="bg-white rounded-lg p-6 shadow-md border border-white/20">
+            <div class="flex items-center space-x-3 mb-4">
+                <div class="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center shadow-md">
+                    <span class="text-white text-sm">💡</span>
+                </div>
+                <h3 class="text-lg font-bold text-gray-900">À propos des tâches</h3>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-3">
+                    <h4 class="font-medium text-gray-900">Organisation</h4>
+                    <ul class="text-sm text-gray-600 space-y-1">
+                        <li>• Les tâches décomposent le travail du module</li>
+                        <li>• Assignez chaque tâche à un membre de l'équipe</li>
+                        <li>• Définissez les priorités et les dates</li>
+                    </ul>
+                </div>
+                <div class="space-y-3">
+                    <h4 class="font-medium text-gray-900">Suivi</h4>
+                    <ul class="text-sm text-gray-600 space-y-1">
+                        <li>• Suivez l'avancement en temps réel</li>
+                        <li>• Identifiez les blocages rapidement</li>
+                        <li>• Adaptez la planification si nécessaire</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal d'assignation de tâche -->
+<div id="assignModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">Assigner la tâche</h3>
+            <form id="assignForm">
+                {% csrf_token %}
+                <input type="hidden" id="tacheId" name="tache_id">
+                <div class="mb-4">
+                    <label for="responsable_id" class="block text-sm font-medium text-gray-700 mb-2">
+                        Responsable
+                    </label>
+                    <select id="responsable_id" name="responsable_id" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Sélectionner un responsable</option>
+                        {% for membre in equipe %}
+                        <option value="{{ membre.id }}">{{ membre.get_full_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <button type="button" onclick="fermerModalAssign()" class="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium">
+                        Annuler
+                    </button>
+                    <button type="submit" class="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-lg font-medium">
+                        Assigner
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts JavaScript -->
+<script>
+// Filtres
+document.getElementById('filtreStatut').addEventListener('change', function() {
+    filtrerTaches();
+});
+
+document.getElementById('filtrePriorite').addEventListener('change', function() {
+    filtrerTaches();
+});
+
+function filtrerTaches() {
+    const statutFiltre = document.getElementById('filtreStatut').value;
+    const prioriteFiltre = document.getElementById('filtrePriorite').value;
+    const lignes = document.querySelectorAll('tbody tr[data-statut]');
+    
+    lignes.forEach(ligne => {
+        const statut = ligne.getAttribute('data-statut');
+        const priorite = ligne.getAttribute('data-priorite');
+        
+        const afficherStatut = !statutFiltre || statut === statutFiltre;
+        const afficherPriorite = !prioriteFiltre || priorite === prioriteFiltre;
+        
+        if (afficherStatut && afficherPriorite) {
+            ligne.style.display = '';
+        } else {
+            ligne.style.display = 'none';
+        }
+    });
+}
+
+// Assignation de tâche
+function assignerTache(tacheId) {
+    document.getElementById('tacheId').value = tacheId;
+    document.getElementById('assignModal').classList.remove('hidden');
+}
+
+function fermerModalAssign() {
+    document.getElementById('assignModal').classList.add('hidden');
+}
+
+document.getElementById('assignForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const tacheId = document.getElementById('tacheId').value;
+    const responsableId = document.getElementById('responsable_id').value;
+    
+    if (!responsableId) {
+        alert('Veuillez sélectionner un responsable');
+        return;
+    }
+    
+    fetch(`{% url 'assigner_tache' module.id '00000000-0000-0000-0000-000000000000' %}`.replace('00000000-0000-0000-0000-000000000000', tacheId), {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `responsable_id=${responsableId}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Erreur: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        alert('Une erreur est survenue');
+    });
+});
+</script>
+{% endblock %}

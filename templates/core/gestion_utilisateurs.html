@@ -1,0 +1,612 @@
+{% extends 'base.html' %}
+
+{% block title %}Gestion des Utilisateurs - SI-Gouvernance JCM{% endblock %}
+{% block page_title %}Gestion des Utilisateurs{% endblock %}
+
+{% block content %}
+<div class="bg-gray-50 min-h-screen p-2 md:p-4">
+    <div class="max-w-7xl mx-auto space-y-3 md:space-y-4">
+        
+        <!-- Header Modern -->
+        <div class="bg-white rounded-lg p-3 md:p-4 shadow-md border border-white/20">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-md">
+                        <span class="text-white font-bold text-sm">👥</span>
+                    </div>
+                    <div>
+                        <h1 class="text-lg md:text-xl font-bold text-gray-900">Gestion des Utilisateurs</h1>
+                        <p class="text-xs md:text-sm text-gray-600">{{ stats.total }} utilisateur{{ stats.total|pluralize }}</p>
+                    </div>
+                </div>
+                <a href="{% url 'creer_utilisateur' %}" class="group flex items-center px-3 py-2 md:px-4 md:py-2 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white rounded-lg font-semibold shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300 text-sm">
+                    <span class="mr-2">➕</span>
+                    <span class="hidden sm:inline">Nouvel Utilisateur</span>
+                    <span class="sm:hidden">Nouveau</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Statistiques Compactes -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
+            <div class="bg-white rounded-lg shadow-md border border-white/20 p-3 hover:shadow-lg transition-shadow">
+                <div class="flex items-center">
+                    <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-2">
+                        <span class="text-blue-600 text-sm">👥</span>
+                    </div>
+                    <div>
+                        <p class="text-xs font-medium text-gray-500">Total</p>
+                        <p class="text-lg font-bold text-gray-900">{{ stats.total }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-md border border-white/20 p-3 hover:shadow-lg transition-shadow">
+                <div class="flex items-center">
+                    <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mr-2">
+                        <span class="text-green-600 text-sm">✅</span>
+                    </div>
+                    <div>
+                        <p class="text-xs font-medium text-gray-500">Actifs</p>
+                        <p class="text-lg font-bold text-gray-900">{{ stats.actifs }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-md border border-white/20 p-3 hover:shadow-lg transition-shadow">
+                <div class="flex items-center">
+                    <div class="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center mr-2">
+                        <span class="text-gray-600 text-sm">❌</span>
+                    </div>
+                    <div>
+                        <p class="text-xs font-medium text-gray-500">Inactifs</p>
+                        <p class="text-lg font-bold text-gray-900">{{ stats.inactifs }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-md border border-white/20 p-3 hover:shadow-lg transition-shadow">
+                <div class="flex items-center">
+                    <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mr-2">
+                        <span class="text-purple-600 text-sm">👑</span>
+                    </div>
+                    <div>
+                        <p class="text-xs font-medium text-gray-500">Admins</p>
+                        <p class="text-lg font-bold text-gray-900">{{ stats.super_admins }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filtres Compacts -->
+        <div class="bg-white rounded-lg p-3 md:p-4 shadow-md border border-white/20">
+            <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <!-- Search -->
+                <div class="md:col-span-2">
+                    <label for="search" class="block text-xs font-semibold text-gray-700 mb-1">Rechercher</label>
+                    <div class="relative">
+                        <input 
+                            type="text" 
+                            id="search" 
+                            name="search" 
+                            value="{{ search }}"
+                            placeholder="Nom, email, username..."
+                            class="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-300 text-sm"
+                        >
+                        <span class="absolute left-2.5 top-2.5 text-gray-400 text-xs">🔍</span>
+                    </div>
+                </div>
+
+                <!-- Status Filter -->
+                <div>
+                    <label for="statut" class="block text-xs font-semibold text-gray-700 mb-1">Statut</label>
+                    <select 
+                        id="statut" 
+                        name="statut"
+                        class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-300 text-sm"
+                    >
+                        <option value="">Tous</option>
+                        <option value="actif" {% if statut_filter == 'actif' %}selected{% endif %}>Actifs</option>
+                        <option value="inactif" {% if statut_filter == 'inactif' %}selected{% endif %}>Inactifs</option>
+                        <option value="super_admin" {% if statut_filter == 'super_admin' %}selected{% endif %}>Admins</option>
+                    </select>
+                </div>
+
+                <!-- Search Button -->
+                <div class="flex items-end">
+                    <button 
+                        type="submit"
+                        class="w-full bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white px-3 py-2 rounded-lg font-semibold shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300 text-sm"
+                    >
+                        <span class="mr-1">🔍</span>Filtrer
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Liste des utilisateurs - Design Compact -->
+        {% if page_obj.object_list %}
+        <div class="space-y-2 md:space-y-3">
+            {% for utilisateur in page_obj.object_list %}
+            <div class="bg-white rounded-lg p-3 md:p-4 shadow-md border border-white/20 hover:shadow-lg transition-all duration-300">
+                <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+                    <!-- User Info -->
+                    <div class="flex items-center space-x-3 flex-1 min-w-0">
+                        <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full flex items-center justify-center shadow-md flex-shrink-0">
+                            <span class="text-white font-bold text-sm">{{ utilisateur.first_name.0|upper }}{{ utilisateur.last_name.0|upper }}</span>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h3 class="text-sm md:text-base font-semibold text-gray-900 truncate">{{ utilisateur.get_full_name }}</h3>
+                            <p class="text-xs md:text-sm text-gray-600 truncate">{{ utilisateur.email }}</p>
+                            <div class="flex flex-wrap items-center gap-1 mt-1">
+                                <!-- Role Badge -->
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
+                                    {% if utilisateur.is_superuser %}bg-purple-100 text-purple-800
+                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {% if utilisateur.is_superuser %}
+                                        👑 Admin
+                                    {% else %}
+                                        {% if utilisateur.role_systeme %}
+                                            👤 {{ utilisateur.role_systeme.get_nom_display|truncatechars:8 }}
+                                        {% else %}
+                                            👤 User
+                                        {% endif %}
+                                    {% endif %}
+                                </span>
+                                
+                                <!-- Status Badge -->
+                                {% if utilisateur.est_compte_bloque %}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                                        🔒 Bloqué
+                                    </span>
+                                {% elif utilisateur.statut_actif %}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                        ✅ Actif
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                                        ❌ Inactif
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- User Details & Actions -->
+                    <div class="flex items-center justify-between sm:justify-end gap-3 sm:gap-4">
+                        <!-- Connection Info -->
+                        <div class="text-center hidden sm:block">
+                            <div class="text-xs font-medium text-gray-500">Dernière connexion</div>
+                            {% if utilisateur.derniere_connexion %}
+                                <div class="text-xs text-gray-900">{{ utilisateur.derniere_connexion|date:"d/m/Y H:i" }}</div>
+                            {% else %}
+                                <div class="text-xs text-gray-400 italic">Jamais</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="flex items-center gap-1">
+                            <a href="{% url 'modifier_utilisateur' utilisateur.id %}" 
+                               class="inline-flex items-center justify-center w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-lg shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300" 
+                               title="Modifier">
+                                <span class="text-sm">✏️</span>
+                            </a>
+                            
+                            {% if utilisateur != user %}
+                            <button type="button"
+                                    data-user-id="{{ utilisateur.id }}"
+                                    data-user-name="{{ utilisateur.get_full_name }}"
+                                    data-user-active="{{ utilisateur.statut_actif|yesno:'true,false' }}"
+                                    onclick="showToggleStatusModal(this.dataset.userId, this.dataset.userName, this.dataset.userActive === 'true')" 
+                                    class="inline-flex items-center justify-center w-8 h-8 {% if utilisateur.statut_actif %}bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700{% else %}bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700{% endif %} text-white rounded-lg shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300" 
+                                    title="{% if utilisateur.statut_actif %}Désactiver{% else %}Activer{% endif %}">
+                                <span class="text-sm">{% if utilisateur.statut_actif %}❌{% else %}✅{% endif %}</span>
+                            </button>
+                            
+                            <button type="button"
+                                    data-user-id="{{ utilisateur.id }}"
+                                    data-user-name="{{ utilisateur.get_full_name }}"
+                                    onclick="showResetPasswordModal(this.dataset.userId, this.dataset.userName)" 
+                                    class="inline-flex items-center justify-center w-8 h-8 bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700 text-white rounded-lg shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300" 
+                                    title="Réinitialiser mot de passe">
+                                <span class="text-sm">🔑</span>
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Mobile Connection Info -->
+                <div class="sm:hidden mt-2 pt-2 border-t border-gray-100">
+                    <div class="flex items-center justify-between text-xs">
+                        {% if utilisateur.telephone %}
+                        <div class="flex items-center text-gray-500">
+                            <span class="mr-1">📞</span>
+                            <span>{{ utilisateur.telephone }}</span>
+                        </div>
+                        {% endif %}
+                        <div class="flex items-center text-gray-500">
+                            <span class="mr-1">🕒</span>
+                            {% if utilisateur.derniere_connexion %}
+                                <span>{{ utilisateur.derniere_connexion|date:"d/m/Y" }}</span>
+                            {% else %}
+                                <span class="italic">Jamais connecté</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination Compacte -->
+        {% if page_obj.has_other_pages %}
+        <div class="bg-white rounded-lg px-3 md:px-4 py-3 shadow-md border border-white/20">
+            <div class="flex items-center justify-between">
+                <div class="flex-1 flex justify-between sm:hidden">
+                    {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}&search={{ search }}&statut={{ statut_filter }}" class="px-3 py-1.5 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 transition-all duration-300">
+                        Précédent
+                    </a>
+                    {% endif %}
+                    {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}&search={{ search }}&statut={{ statut_filter }}" class="px-3 py-1.5 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 transition-all duration-300">
+                        Suivant
+                    </a>
+                    {% endif %}
+                </div>
+                <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                    <div>
+                        <p class="text-xs font-medium text-gray-700">
+                            Affichage de <span class="font-bold text-purple-600">{{ page_obj.start_index }}</span> à <span class="font-bold text-purple-600">{{ page_obj.end_index }}</span>
+                            sur <span class="font-bold text-purple-600">{{ page_obj.paginator.count }}</span> résultats
+                        </p>
+                    </div>
+                    <div>
+                        <nav class="flex rounded shadow-sm -space-x-px">
+                            {% if page_obj.has_previous %}
+                            <a href="?page={{ page_obj.previous_page_number }}&search={{ search }}&statut={{ statut_filter }}" class="px-2 py-1.5 rounded-l border border-gray-300 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-all duration-300">
+                                ←
+                            </a>
+                            {% endif %}
+                            
+                            {% for num in page_obj.paginator.page_range %}
+                                {% if page_obj.number == num %}
+                                <span class="px-3 py-1.5 border border-purple-500 bg-purple-500 text-xs font-bold text-white">
+                                    {{ num }}
+                                </span>
+                                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                <a href="?page={{ num }}&search={{ search }}&statut={{ statut_filter }}" class="px-3 py-1.5 border border-gray-300 bg-white text-xs font-medium text-gray-700 hover:bg-gray-50 hover:text-purple-600 transition-all duration-300">
+                                    {{ num }}
+                                </a>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if page_obj.has_next %}
+                            <a href="?page={{ page_obj.next_page_number }}&search={{ search }}&statut={{ statut_filter }}" class="px-2 py-1.5 rounded-r border border-gray-300 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-all duration-300">
+                                →
+                            </a>
+                            {% endif %}
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% else %}
+        <!-- Empty State Compact -->
+        <div class="bg-white rounded-lg shadow-md border border-white/20 text-center py-8 md:py-12">
+            <div class="w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span class="text-2xl text-gray-400">👥</span>
+            </div>
+            <h3 class="text-base md:text-lg font-bold text-gray-900 mb-2">Aucun utilisateur trouvé</h3>
+            <p class="text-xs md:text-sm text-gray-500 mb-4">
+                {% if search or statut_filter %}
+                    Aucun utilisateur ne correspond à vos critères de recherche.
+                {% else %}
+                    Commencez par créer votre premier utilisateur.
+                {% endif %}
+            </p>
+            {% if not search and not statut_filter %}
+            <a href="{% url 'creer_utilisateur' %}" class="bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white px-4 py-2 rounded-lg font-semibold shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300 text-sm">
+                <span class="mr-2">➕</span>
+                Créer un utilisateur
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modals simplifiés -->
+<div id="toggleStatusModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 hidden">
+    <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-1/2 lg:w-1/3 shadow-lg rounded-lg bg-white">
+        <div class="mt-3">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-900" id="toggleStatusTitle">Confirmer l'action</h3>
+                <button onclick="closeToggleStatusModal()" class="text-gray-400 hover:text-gray-600">
+                    <span class="text-xl">✖️</span>
+                </button>
+            </div>
+            <div class="text-center">
+                <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" id="toggleStatusIcon">
+                    <!-- Icône sera ajoutée dynamiquement -->
+                </div>
+                <p class="text-gray-600 mb-6" id="toggleStatusMessage">
+                    <!-- Message sera ajouté dynamiquement -->
+                </p>
+                <div class="flex space-x-3 justify-center">
+                    <button onclick="closeToggleStatusModal()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-2 rounded-lg text-sm transition-colors">
+                        Annuler
+                    </button>
+                    <button onclick="confirmToggleStatus()" class="px-6 py-2 rounded-lg text-sm font-medium transition-colors" id="toggleStatusConfirmBtn">
+                        <!-- Texte et couleur seront ajoutés dynamiquement -->
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="resetPasswordConfirmModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 hidden">
+    <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-1/2 lg:w-1/3 shadow-lg rounded-lg bg-white">
+        <div class="mt-3">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">Réinitialiser le mot de passe</h3>
+                <button onclick="closeResetPasswordConfirmModal()" class="text-gray-400 hover:text-gray-600">
+                    <span class="text-xl">✖️</span>
+                </button>
+            </div>
+            <div class="text-center">
+                <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span class="text-yellow-600 text-2xl">🔑</span>
+                </div>
+                <p class="text-gray-600 mb-6" id="resetPasswordConfirmMessage">
+                    <!-- Message sera ajouté dynamiquement -->
+                </p>
+                <div class="flex space-x-3 justify-center">
+                    <button onclick="closeResetPasswordConfirmModal()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-2 rounded-lg text-sm transition-colors">
+                        Annuler
+                    </button>
+                    <button onclick="confirmResetPassword()" class="bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors">
+                        Réinitialiser
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="resetPasswordResultModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 hidden">
+    <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-1/2 lg:w-1/3 shadow-lg rounded-lg bg-white">
+        <div class="mt-3">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">Nouveau mot de passe généré</h3>
+                <button onclick="closeResetPasswordResultModal()" class="text-gray-400 hover:text-gray-600">
+                    <span class="text-xl">✖️</span>
+                </button>
+            </div>
+            <div id="resetPasswordResultContent" class="space-y-4">
+                <!-- Le contenu sera rempli dynamiquement -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Variables globales pour les modals
+let currentUserId = null;
+let currentUserName = null;
+let currentUserStatus = null;
+
+// Fonction utilitaire pour afficher des notifications
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    const bgColor = type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500';
+    const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+    
+    notification.className = `fixed top-4 right-4 ${bgColor} text-white px-4 py-3 rounded-lg shadow-lg z-50 transform transition-all duration-300 translate-x-full`;
+    notification.innerHTML = `<span class="mr-2">${icon}</span>${message}`;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.classList.remove('translate-x-full');
+    }, 100);
+    
+    setTimeout(() => {
+        notification.classList.add('translate-x-full');
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 300);
+    }, 3000);
+}
+
+// === MODAL POUR CHANGER LE STATUT ===
+function showToggleStatusModal(userId, userName, isActive) {
+    currentUserId = userId;
+    currentUserName = userName;
+    currentUserStatus = isActive;
+    
+    const modal = document.getElementById('toggleStatusModal');
+    const title = document.getElementById('toggleStatusTitle');
+    const icon = document.getElementById('toggleStatusIcon');
+    const message = document.getElementById('toggleStatusMessage');
+    const confirmBtn = document.getElementById('toggleStatusConfirmBtn');
+    
+    if (isActive) {
+        title.textContent = 'Désactiver l\'utilisateur';
+        icon.innerHTML = '<span class="text-red-600 text-2xl">❌</span>';
+        icon.className = 'w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4';
+        message.innerHTML = `Êtes-vous sûr de vouloir <strong>désactiver</strong> l'utilisateur <strong>${userName}</strong> ?<br><span class="text-sm text-gray-500 mt-2 block">L'utilisateur ne pourra plus se connecter au système.</span>`;
+        confirmBtn.textContent = 'Désactiver';
+        confirmBtn.className = 'bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors';
+    } else {
+        title.textContent = 'Réactiver l\'utilisateur';
+        icon.innerHTML = '<span class="text-green-600 text-2xl">✅</span>';
+        icon.className = 'w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4';
+        message.innerHTML = `Êtes-vous sûr de vouloir <strong>réactiver</strong> l'utilisateur <strong>${userName}</strong> ?<br><span class="text-sm text-gray-500 mt-2 block">L'utilisateur pourra à nouveau se connecter au système.</span>`;
+        confirmBtn.textContent = 'Réactiver';
+        confirmBtn.className = 'bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors';
+    }
+    
+    modal.classList.remove('hidden');
+}
+
+function closeToggleStatusModal() {
+    document.getElementById('toggleStatusModal').classList.add('hidden');
+    currentUserId = null;
+    currentUserName = null;
+    currentUserStatus = null;
+}
+
+function confirmToggleStatus() {
+    if (!currentUserId) return;
+    
+    const confirmBtn = document.getElementById('toggleStatusConfirmBtn');
+    const originalText = confirmBtn.textContent;
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = 'Traitement...';
+    
+    fetch(`/utilisateurs/${currentUserId}/toggle-status/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            closeToggleStatusModal();
+            showNotification(data.message || 'Statut modifié avec succès', 'success');
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            showNotification('Erreur: ' + (data.error || 'Une erreur est survenue'), 'error');
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = originalText;
+        }
+    })
+    .catch(error => {
+        showNotification('Une erreur de connexion est survenue', 'error');
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = originalText;
+    });
+}
+
+// === MODAL POUR RÉINITIALISER LE MOT DE PASSE ===
+function showResetPasswordModal(userId, userName) {
+    currentUserId = userId;
+    currentUserName = userName;
+    
+    const modal = document.getElementById('resetPasswordConfirmModal');
+    const message = document.getElementById('resetPasswordConfirmMessage');
+    
+    message.innerHTML = `Êtes-vous sûr de vouloir réinitialiser le mot de passe de <strong>${userName}</strong> ?<br><span class="text-sm text-gray-500 mt-2 block">Un nouveau mot de passe temporaire sera généré.</span>`;
+    
+    modal.classList.remove('hidden');
+}
+
+function closeResetPasswordConfirmModal() {
+    document.getElementById('resetPasswordConfirmModal').classList.add('hidden');
+    currentUserId = null;
+    currentUserName = null;
+}
+
+function confirmResetPassword() {
+    if (!currentUserId) return;
+    
+    const confirmBtn = document.querySelector('#resetPasswordConfirmModal button[onclick="confirmResetPassword()"]');
+    const originalText = confirmBtn.textContent;
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = 'Traitement...';
+    
+    fetch(`/utilisateurs/${currentUserId}/reset-password/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            closeResetPasswordConfirmModal();
+            showResetPasswordResultModal(currentUserName, data.nouveau_mot_de_passe);
+        } else {
+            showNotification('Erreur: ' + (data.error || 'Une erreur est survenue'), 'error');
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = originalText;
+        }
+    })
+    .catch(error => {
+        showNotification('Une erreur de connexion est survenue', 'error');
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = originalText;
+    });
+}
+
+function showResetPasswordResultModal(userName, newPassword) {
+    const content = `
+        <div class="text-center">
+            <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span class="text-green-600 text-2xl">🔑</span>
+            </div>
+            <h4 class="text-lg font-medium text-gray-900 mb-2">Mot de passe réinitialisé</h4>
+            <p class="text-gray-600 mb-4">Le mot de passe de <strong>${userName}</strong> a été réinitialisé.</p>
+            <div class="bg-gray-50 p-4 rounded-lg mb-4">
+                <p class="text-sm text-gray-600 mb-2">Nouveau mot de passe temporaire :</p>
+                <div class="relative">
+                    <p class="font-mono text-lg font-bold text-gray-900 bg-white p-3 rounded border select-all break-all">${newPassword}</p>
+                </div>
+            </div>
+            <div class="flex space-x-3 justify-center">
+                <button onclick="copierMotDePasse('${newPassword}')" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm transition-colors">
+                    📋 Copier
+                </button>
+                <button onclick="closeResetPasswordResultModal()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm transition-colors">
+                    Fermer
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('resetPasswordResultContent').innerHTML = content;
+    document.getElementById('resetPasswordResultModal').classList.remove('hidden');
+}
+
+function closeResetPasswordResultModal() {
+    document.getElementById('resetPasswordResultModal').classList.add('hidden');
+}
+
+function copierMotDePasse(password) {
+    navigator.clipboard.writeText(password).then(() => {
+        showNotification('Mot de passe copié !', 'success');
+    }).catch(() => {
+        showNotification('Erreur lors de la copie', 'error');
+    });
+}
+
+// Fermer les modals en cliquant à l'extérieur
+document.addEventListener('click', function(e) {
+    if (e.target.id === 'toggleStatusModal') closeToggleStatusModal();
+    if (e.target.id === 'resetPasswordConfirmModal') closeResetPasswordConfirmModal();
+    if (e.target.id === 'resetPasswordResultModal') closeResetPasswordResultModal();
+});
+
+// Fermer avec Escape
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeToggleStatusModal();
+        closeResetPasswordConfirmModal();
+        closeResetPasswordResultModal();
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+
+{% block title %}Projet Créé - SI-Gouvernance JCM{% endblock %}
+{% block page_title %}Projet Créé{% endblock %}
+
+{% block extra_css %}
+{% endblock %}
+
+{% block content %}
+<div class="bg-gray-50 min-h-screen py-8">
+    <div class="container mx-auto px-4">
+        <!-- Carte de succès -->
+        <div class="bg-white rounded-xl shadow-lg border border-gray-200 max-w-4xl mx-auto">
+            <!-- Header de succès -->
+            <div class="bg-gradient-to-r from-green-600 to-green-500 text-white p-8 rounded-t-xl text-center">
+                <div class="flex items-center justify-center mb-4">
+                    <div class="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                        <i class="fas fa-check text-2xl"></i>
+                    </div>
+                </div>
+                <h1 class="text-2xl font-bold mb-2">Projet Créé avec Succès !</h1>
+                <p class="text-green-100">{{ projet_info.nom }}</p>
+            </div>
+
+            <!-- Corps de la carte -->
+            <div class="p-8">
+                <!-- Informations du projet -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 flex items-center">
+                        <div class="w-10 h-10 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
+                            <i class="fas fa-tag"></i>
+                        </div>
+                        <div class="flex-1">
+                            <div class="text-xs text-gray-500 uppercase tracking-wider font-medium mb-1">Nom du Projet</div>
+                            <div class="font-semibold text-gray-900">{{ projet_info.nom }}</div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 flex items-center">
+                        <div class="w-10 h-10 bg-green-100 text-green-600 rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
+                            <i class="fas fa-building"></i>
+                        </div>
+                        <div class="flex-1">
+                            <div class="text-xs text-gray-500 uppercase tracking-wider font-medium mb-1">Client</div>
+                            <div class="font-semibold text-gray-900">{{ projet_info.client }}</div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 flex items-center">
+                        <div class="w-10 h-10 bg-yellow-100 text-yellow-600 rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
+                            <i class="fas fa-flag"></i>
+                        </div>
+                        <div class="flex-1">
+                            <div class="text-xs text-gray-500 uppercase tracking-wider font-medium mb-1">Statut</div>
+                            <div class="font-semibold text-gray-900">{{ projet_info.statut }}</div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 flex items-center">
+                        <div class="w-10 h-10 bg-pink-100 text-pink-600 rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div class="flex-1">
+                            <div class="text-xs text-gray-500 uppercase tracking-wider font-medium mb-1">Priorité</div>
+                            <div class="font-semibold text-gray-900">{{ projet_info.priorite }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Description -->
+                <div class="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-8">
+                    <div class="flex items-start">
+                        <div class="w-10 h-10 bg-gray-100 text-gray-600 rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
+                            <i class="fas fa-align-left"></i>
+                        </div>
+                        <div class="flex-1">
+                            <div class="text-xs text-gray-500 uppercase tracking-wider font-medium mb-2">Description</div>
+                            <div class="text-gray-700 leading-relaxed">{{ projet_info.description }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900 text-center mb-6">Que faire maintenant ?</h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8 pt-8 border-t border-gray-200">
+                        <a href="{% url 'projet_detail' projet_info.id %}" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold text-base transition-all duration-200 hover:bg-blue-700 hover:-translate-y-0.5 flex items-center justify-center">
+                            <i class="fas fa-eye mr-2"></i>
+                            Voir le Projet
+                        </a>
+
+                        <a href="{% url 'creer_projet' %}" class="bg-white text-gray-700 border-2 border-gray-300 px-6 py-3 rounded-lg font-semibold text-base transition-all duration-200 hover:border-gray-400 hover:bg-gray-50 flex items-center justify-center">
+                            <i class="fas fa-plus mr-2"></i>
+                            Créer un Autre
+                        </a>
+
+                        <a href="{% url 'projets_list' %}" class="bg-white text-gray-700 border-2 border-gray-300 px-6 py-3 rounded-lg font-semibold text-base transition-all duration-200 hover:border-gray-400 hover:bg-gray-50 flex items-center justify-center">
+                            <i class="fas fa-list mr-2"></i>
+                            Tous les Projets
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Prochaine étape -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center mt-8">
+                    <div class="flex items-center justify-center">
+                        <i class="fas fa-lightbulb text-blue-500 mr-2"></i>
+                        <div>
+                            <div class="font-semibold text-blue-900">Prochaine étape</div>
+                            <div class="text-sm text-blue-700">Configurez l'équipe et définissez le budget du projet</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Animation simple au chargement avec Tailwind
+document.addEventListener('DOMContentLoaded', function() {
+    // Animation d'entrée pour les éléments
+    const elements = document.querySelectorAll('.bg-gray-50');
+    elements.forEach((el, index) => {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(20px)';
+        
+        setTimeout(() => {
+            el.style.transition = 'all 0.5s ease';
+            el.style.opacity = '1';
+            el.style.transform = 'translateY(0)';
+        }, index * 100);
+    });
+});
+</script>
+{% endblock %}

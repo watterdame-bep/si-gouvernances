@@ -1,0 +1,231 @@
+{% extends 'base.html' %}
+
+{% block title %}Nouveau Projet - SI-Gouvernance JCM{% endblock %}
+{% block page_title %}Nouveau Projet{% endblock %}
+
+{% block content %}
+<div class="bg-gray-50 min-h-screen p-2 md:p-4">
+    <div class="max-w-4xl mx-auto space-y-3 md:space-y-4">
+        
+        <!-- Header Modern -->
+        <div class="bg-white rounded-lg p-3 md:p-4 shadow-md border border-white/20">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center shadow-md">
+                    <i class="fas fa-plus text-white text-sm"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg md:text-xl font-bold text-gray-900">Nouveau Projet</h1>
+                    <p class="text-xs md:text-sm text-gray-600">Créez un nouveau projet pour votre entreprise</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Formulaire Modern -->
+        <div class="bg-white rounded-lg shadow-md border border-white/20 overflow-hidden">
+            <div class="p-4 md:p-6">
+                <form method="post" id="projectForm" class="space-y-4 md:space-y-6">
+                    {% csrf_token %}
+                    
+                    <!-- Nom du projet -->
+                    <div>
+                        <label for="nom" class="block text-sm font-semibold text-gray-700 mb-2">
+                            Nom du projet <span class="text-red-500">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="nom" 
+                            name="nom" 
+                            required
+                            value="{{ request.POST.nom|default:'' }}"
+                            class="w-full px-3 py-2 md:px-4 md:py-3 border border-gray-200 rounded-lg text-sm md:text-base transition-all duration-200 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                            placeholder="Entrez le nom du projet"
+                        >
+                    </div>
+
+                    <!-- Description -->
+                    <div>
+                        <label for="description" class="block text-sm font-semibold text-gray-700 mb-2">
+                            Description <span class="text-red-500">*</span>
+                        </label>
+                        <textarea 
+                            id="description" 
+                            name="description" 
+                            required
+                            class="w-full px-3 py-2 md:px-4 md:py-3 border border-gray-200 rounded-lg text-sm md:text-base transition-all duration-200 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 resize-vertical min-h-[80px] md:min-h-[100px]"
+                            placeholder="Décrivez brièvement le projet"
+                        >{{ request.POST.description|default:'' }}</textarea>
+                    </div>
+
+                    <!-- Client -->
+                    <div>
+                        <label for="client" class="block text-sm font-semibold text-gray-700 mb-2">
+                            Client <span class="text-gray-500 text-xs font-normal">(optionnel)</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="client" 
+                            name="client" 
+                            value="{{ request.POST.client|default:'' }}"
+                            class="w-full px-3 py-2 md:px-4 md:py-3 border border-gray-200 rounded-lg text-sm md:text-base transition-all duration-200 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                            placeholder="Nom du client ou organisation"
+                        >
+                    </div>
+
+                    <!-- Statut -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            Statut du projet <span class="text-red-500">*</span>
+                        </label>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div class="status-card border border-gray-200 rounded-lg p-3 text-center cursor-pointer transition-all duration-200 bg-white hover:border-blue-500 hover:bg-blue-50" onclick="selectStatus('IDEE', this)">
+                                <div class="w-8 h-8 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center mx-auto mb-2">
+                                    <i class="fas fa-lightbulb text-sm"></i>
+                                </div>
+                                <div class="font-semibold text-gray-700 mb-1 text-sm">Idée</div>
+                                <div class="text-xs text-gray-500">Projet en réflexion</div>
+                                <input type="radio" name="statut" value="IDEE" class="hidden" {% if request.POST.statut == 'IDEE' %}checked{% endif %}>
+                            </div>
+                            
+                            <div class="status-card border border-gray-200 rounded-lg p-3 text-center cursor-pointer transition-all duration-200 bg-white hover:border-blue-500 hover:bg-blue-50" onclick="selectStatus('PLANIFIE', this)">
+                                <div class="w-8 h-8 bg-green-100 text-green-600 rounded-lg flex items-center justify-center mx-auto mb-2">
+                                    <i class="fas fa-calendar-check text-sm"></i>
+                                </div>
+                                <div class="font-semibold text-gray-700 mb-1 text-sm">Planifié</div>
+                                <div class="text-xs text-gray-500">Prêt à démarrer</div>
+                                <input type="radio" name="statut" value="PLANIFIE" class="hidden" {% if request.POST.statut == 'PLANIFIE' %}checked{% endif %}>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Priorité -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Priorité</label>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                            <div class="priority-chip border border-gray-200 rounded-lg p-2 text-center cursor-pointer transition-all duration-200 bg-white hover:border-blue-500 text-xs font-medium" onclick="selectPriority('BASSE', this)">
+                                <i class="fas fa-flag mb-1 block text-gray-500 text-xs"></i>
+                                <div>Basse</div>
+                                <input type="radio" name="priorite" value="BASSE" class="hidden" {% if request.POST.priorite == 'BASSE' %}checked{% endif %}>
+                            </div>
+                            
+                            <div class="priority-chip selected border border-blue-500 bg-blue-50 text-blue-800 rounded-lg p-2 text-center cursor-pointer transition-all duration-200 text-xs font-medium" onclick="selectPriority('MOYENNE', this)">
+                                <i class="fas fa-flag mb-1 block text-blue-500 text-xs"></i>
+                                <div>Moyenne</div>
+                                <input type="radio" name="priorite" value="MOYENNE" class="hidden" checked>
+                            </div>
+                            
+                            <div class="priority-chip border border-gray-200 rounded-lg p-2 text-center cursor-pointer transition-all duration-200 bg-white hover:border-blue-500 text-xs font-medium" onclick="selectPriority('HAUTE', this)">
+                                <i class="fas fa-flag mb-1 block text-orange-500 text-xs"></i>
+                                <div>Haute</div>
+                                <input type="radio" name="priorite" value="HAUTE" class="hidden" {% if request.POST.priorite == 'HAUTE' %}checked{% endif %}>
+                            </div>
+                            
+                            <div class="priority-chip border border-gray-200 rounded-lg p-2 text-center cursor-pointer transition-all duration-200 bg-white hover:border-blue-500 text-xs font-medium" onclick="selectPriority('CRITIQUE', this)">
+                                <i class="fas fa-flag mb-1 block text-red-500 text-xs"></i>
+                                <div>Critique</div>
+                                <input type="radio" name="priorite" value="CRITIQUE" class="hidden" {% if request.POST.priorite == 'CRITIQUE' %}checked{% endif %}>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Boutons d'action -->
+                    <div class="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-200">
+                        <a href="{% url 'projets_list' %}" class="flex-1 bg-white text-gray-700 border border-gray-200 px-4 py-2 rounded-lg font-medium text-sm cursor-pointer transition-all duration-200 hover:border-gray-300 hover:bg-gray-50 flex items-center justify-center">
+                            <i class="fas fa-arrow-left mr-2"></i>Annuler
+                        </a>
+                        
+                        <button type="submit" class="flex-1 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white px-4 py-2 rounded-lg font-medium text-sm cursor-pointer transition-all duration-200 hover:shadow-lg transform hover:scale-105 flex items-center justify-center">
+                            <i class="fas fa-plus mr-2"></i>Créer le Projet
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Note informative -->
+        <div class="text-center">
+            <div class="inline-flex items-center px-3 py-2 bg-white rounded-lg shadow-sm border border-gray-200">
+                <i class="fas fa-info-circle text-blue-500 mr-2 text-sm"></i>
+                <span class="text-gray-600 text-xs md:text-sm">L'équipe et le budget seront configurés ultérieurement</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Sélection de statut
+function selectStatus(value, element) {
+    // Désélectionner tous les statuts
+    document.querySelectorAll('.status-card').forEach(el => {
+        el.classList.remove('border-blue-500', 'bg-blue-50');
+        el.classList.add('border-gray-200', 'bg-white');
+    });
+    
+    // Sélectionner le statut cliqué
+    element.classList.remove('border-gray-200', 'bg-white');
+    element.classList.add('border-blue-500', 'bg-blue-50');
+    element.querySelector('input[type="radio"]').checked = true;
+}
+
+// Sélection de priorité
+function selectPriority(value, element) {
+    // Désélectionner toutes les priorités
+    document.querySelectorAll('.priority-chip').forEach(el => {
+        el.classList.remove('selected', 'border-blue-500', 'bg-blue-50', 'text-blue-800');
+        el.classList.add('border-gray-200', 'bg-white');
+    });
+    
+    // Sélectionner la priorité cliquée
+    element.classList.remove('border-gray-200', 'bg-white');
+    element.classList.add('selected', 'border-blue-500', 'bg-blue-50', 'text-blue-800');
+    element.querySelector('input[type="radio"]').checked = true;
+}
+
+// Validation du formulaire
+document.getElementById('projectForm').addEventListener('submit', function(e) {
+    const nom = document.getElementById('nom').value.trim();
+    const description = document.getElementById('description').value.trim();
+    const statut = document.querySelector('input[name="statut"]:checked');
+    
+    if (!nom || !description || !statut) {
+        e.preventDefault();
+        
+        // Message d'erreur simple
+        alert('Veuillez remplir tous les champs obligatoires (nom, description et statut).');
+        
+        return false;
+    }
+    
+    // Animation du bouton de soumission
+    const submitBtn = document.querySelector('button[type="submit"]');
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Création en cours...';
+    submitBtn.disabled = true;
+    
+    return true;
+});
+
+// Initialisation des sélections au chargement
+document.addEventListener('DOMContentLoaded', function() {
+    // Sélectionner le statut par défaut si aucun n'est sélectionné
+    const selectedStatus = document.querySelector('input[name="statut"]:checked');
+    if (selectedStatus) {
+        const statusElement = selectedStatus.closest('.status-card');
+        if (statusElement) {
+            statusElement.classList.remove('border-gray-200', 'bg-white');
+            statusElement.classList.add('border-blue-500', 'bg-blue-50');
+        }
+    }
+    
+    // Sélectionner la priorité par défaut (Moyenne est déjà sélectionnée)
+    const selectedPriority = document.querySelector('input[name="priorite"]:checked');
+    if (selectedPriority) {
+        const priorityElement = selectedPriority.closest('.priority-chip');
+        if (priorityElement) {
+            priorityElement.classList.remove('border-gray-200', 'bg-white');
+            priorityElement.classList.add('selected', 'border-blue-500', 'bg-blue-50', 'text-blue-800');
+        }
+    }
+});
+</script>
+{% endblock %}

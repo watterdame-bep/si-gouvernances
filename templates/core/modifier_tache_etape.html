@@ -1,0 +1,268 @@
+{% extends 'base.html' %}
+
+{% block title %}Modifier la tâche - {{ tache.nom }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- En-tête -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900 mb-2">
+                        ✏️ Modifier la tâche
+                    </h1>
+                    <div class="flex items-center space-x-4 text-sm text-gray-600">
+                        <span>📋 {{ projet.nom }}</span>
+                        <span>•</span>
+                        <span>🎯 {{ etape.type_etape.get_nom_display }}</span>
+                        <span>•</span>
+                        <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
+                            {{ tache.get_statut_display }}
+                        </span>
+                    </div>
+                </div>
+                <div class="flex space-x-3">
+                    <a href="{% url 'detail_etape' projet.id etape.id %}" 
+                       class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                        ← Retour à l'étape
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Formulaire de modification -->
+        <div class="bg-white rounded-xl shadow-lg p-8">
+            <form method="post" class="space-y-6">
+                {% csrf_token %}
+                
+                <!-- Informations de base -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Nom de la tâche -->
+                    <div class="lg:col-span-2">
+                        <label for="nom" class="block text-sm font-medium text-gray-700 mb-2">
+                            Nom de la tâche *
+                        </label>
+                        <input type="text" 
+                               id="nom" 
+                               name="nom" 
+                               value="{{ tache.nom }}"
+                               required
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+
+                    <!-- Description -->
+                    <div class="lg:col-span-2">
+                        <label for="description" class="block text-sm font-medium text-gray-700 mb-2">
+                            Description *
+                        </label>
+                        <textarea id="description" 
+                                  name="description" 
+                                  rows="4" 
+                                  required
+                                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">{{ tache.description }}</textarea>
+                    </div>
+
+                    <!-- Responsable -->
+                    <div>
+                        <label for="responsable_id" class="block text-sm font-medium text-gray-700 mb-2">
+                            Responsable
+                        </label>
+                        <select id="responsable_id" 
+                                name="responsable_id"
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="">Aucun responsable</option>
+                            {% for membre in equipe %}
+                                <option value="{{ membre.utilisateur.id }}" 
+                                        {% if tache.responsable and membre.utilisateur.id == tache.responsable.id %}selected{% endif %}>
+                                    {{ membre.utilisateur.get_full_name }}
+                                    {% if membre.est_responsable_principal %}(Responsable principal){% endif %}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Priorité -->
+                    <div>
+                        <label for="priorite" class="block text-sm font-medium text-gray-700 mb-2">
+                            Priorité
+                        </label>
+                        <select id="priorite" 
+                                name="priorite"
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            {% for value, label in priorites %}
+                                <option value="{{ value }}" {% if tache.priorite == value %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Dates -->
+                    <div>
+                        <label for="date_debut" class="block text-sm font-medium text-gray-700 mb-2">
+                            Date de début
+                        </label>
+                        <input type="date" 
+                               id="date_debut" 
+                               name="date_debut" 
+                               value="{{ tache.date_debut|date:'Y-m-d' }}"
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+
+                    <div>
+                        <label for="date_fin" class="block text-sm font-medium text-gray-700 mb-2">
+                            Date de fin
+                        </label>
+                        <input type="date" 
+                               id="date_fin" 
+                               name="date_fin" 
+                               value="{{ tache.date_fin|date:'Y-m-d' }}"
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+
+                    <!-- Progression -->
+                    <div>
+                        <label for="pourcentage_completion" class="block text-sm font-medium text-gray-700 mb-2">
+                            Progression (%)
+                        </label>
+                        <div class="relative">
+                            <input type="number" 
+                                   id="pourcentage_completion" 
+                                   name="pourcentage_completion" 
+                                   value="{{ tache.pourcentage_completion }}"
+                                   min="0" 
+                                   max="100"
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <div class="absolute inset-y-0 right-0 flex items-center pr-3">
+                                <span class="text-gray-500 text-sm">%</span>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                                     style="width: {{ tache.pourcentage_completion }}%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Étiquettes -->
+                    <div>
+                        <label for="etiquettes" class="block text-sm font-medium text-gray-700 mb-2">
+                            Étiquettes
+                        </label>
+                        <input type="text" 
+                               id="etiquettes" 
+                               name="etiquettes" 
+                               value="{{ tache.etiquettes }}"
+                               placeholder="urgent, backend, api"
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <p class="mt-1 text-sm text-gray-500">Séparez les étiquettes par des virgules</p>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+                    <a href="{% url 'detail_etape' projet.id etape.id %}" 
+                       class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                        Annuler
+                    </a>
+                    <button type="submit" 
+                            class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        💾 Enregistrer les modifications
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Informations supplémentaires -->
+        <div class="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Historique récent -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">📊 Informations</h3>
+                <div class="space-y-3 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Créée le :</span>
+                        <span class="font-medium">{{ tache.date_creation|date:'d/m/Y H:i' }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Créée par :</span>
+                        <span class="font-medium">{{ tache.createur.get_full_name }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Dernière modification :</span>
+                        <span class="font-medium">{{ tache.date_modification|date:'d/m/Y H:i' }}</span>
+                    </div>
+                    {% if tache.date_debut_reelle %}
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Début réel :</span>
+                        <span class="font-medium">{{ tache.date_debut_reelle|date:'d/m/Y H:i' }}</span>
+                    </div>
+                    {% endif %}
+                    {% if tache.date_fin_reelle %}
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Fin réelle :</span>
+                        <span class="font-medium">{{ tache.date_fin_reelle|date:'d/m/Y H:i' }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Actions rapides -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">⚡ Actions rapides</h3>
+                <div class="space-y-3">
+                    <a href="{% url 'historique_tache' projet.id etape.id tache.id %}" 
+                       class="block w-full px-4 py-2 text-left text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                        📋 Voir l'historique complet
+                    </a>
+                    <button onclick="changerStatut('TERMINEE')" 
+                            class="block w-full px-4 py-2 text-left text-green-600 hover:bg-green-50 rounded-lg transition-colors">
+                        ✅ Marquer comme terminée
+                    </button>
+                    <button onclick="changerStatut('BLOQUEE')" 
+                            class="block w-full px-4 py-2 text-left text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                        🚫 Marquer comme bloquée
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Mise à jour de la barre de progression en temps réel
+document.getElementById('pourcentage_completion').addEventListener('input', function() {
+    const value = this.value;
+    const progressBar = document.querySelector('.bg-blue-600');
+    progressBar.style.width = value + '%';
+});
+
+// Fonction pour changer le statut rapidement
+function changerStatut(statut) {
+    if (confirm('Êtes-vous sûr de vouloir changer le statut de cette tâche ?')) {
+        const formData = new FormData();
+        formData.append('statut', statut);
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+        
+        fetch('{% url "changer_statut_tache_etape" projet.id etape.id tache.id %}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert('Erreur: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            alert('Une erreur est survenue');
+        });
+    }
+}
+</script>
+{% endblock %}

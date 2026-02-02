@@ -1,0 +1,403 @@
+{% extends 'base.html' %}
+
+{% block title %}Notifications{% endblock %}
+
+{% block page_title %}Notifications{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 -m-6">
+    <div class="w-full max-w-none px-4 sm:px-6 lg:px-8 py-6">
+        <!-- En-tête moderne pleine largeur -->
+        <div class="bg-white rounded-2xl shadow-lg p-6 mb-6">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                    <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+                        <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-bell text-white text-lg"></i>
+                        </div>
+                        {% if user.est_super_admin %}Notifications système{% else %}Mes notifications{% endif %}
+                    </h1>
+                    <p class="text-gray-600">
+                        {% if user.est_super_admin %}Suivez toutes les activités du système{% else %}Suivez les mises à jour de vos tâches et projets en temps réel{% endif %}
+                    </p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span id="badgeNonLues" class="px-3 py-1.5 bg-red-100 text-red-800 rounded-full text-sm font-medium hidden">
+                        <i class="fas fa-circle text-xs mr-1"></i>
+                        <span id="countNonLues">0</span> non lue(s)
+                    </span>
+                    <button onclick="markAllAsRead()" id="btnMarkAll" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium hidden">
+                        <i class="fas fa-check-double mr-2"></i>
+                        Tout marquer comme lu
+                    </button>
+                    <a href="{% url 'dashboard' %}" 
+                       class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium">
+                        <i class="fas fa-arrow-left mr-2"></i>
+                        Retour
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Onglets modernes -->
+        <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+            <div class="border-b border-gray-200">
+                <nav class="flex space-x-8 px-6" aria-label="Tabs">
+                    <button onclick="showTab('unread')" 
+                            id="btnUnread"
+                            class="py-4 px-1 border-b-2 border-blue-500 font-medium text-sm text-blue-600 whitespace-nowrap transition-all duration-200">
+                        <i class="fas fa-circle text-xs mr-2"></i>
+                        Non lues (<span id="countUnread">0</span>)
+                    </button>
+                    <button onclick="showTab('read')" 
+                            id="btnRead"
+                            class="py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap transition-all duration-200">
+                        <i class="fas fa-check-circle text-xs mr-2"></i>
+                        Lues (<span id="countRead">0</span>)
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Contenu des notifications -->
+            <div class="min-h-96">
+                <!-- Notifications non lues -->
+                <div id="tabUnread" class="tab-content p-6">
+                    <div id="listUnread" class="space-y-4">
+                        <div class="flex items-center justify-center py-12">
+                            <i class="fas fa-spinner fa-spin text-3xl text-gray-400 mr-4"></i>
+                            <p class="text-gray-500 text-lg">Chargement des notifications...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notifications lues -->
+                <div id="tabRead" class="tab-content p-6 hidden">
+                    <div id="listRead" class="space-y-4">
+                        <div class="flex items-center justify-center py-12">
+                            <i class="fas fa-spinner fa-spin text-3xl text-gray-400 mr-4"></i>
+                            <p class="text-gray-500 text-lg">Chargement des notifications...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentTab = 'unread';
+let notifications = { unread: [], read: [] };
+
+// Chargement simple
+function loadData() {
+    console.log('Chargement des données...');
+    
+    fetch('/api/notifications/detailed/')
+    .then(response => {
+        console.log('Réponse reçue:', response.status);
+        return response.json();
+    })
+    .then(data => {
+        console.log('Données:', data);
+        
+        if (data.success) {
+            notifications.unread = data.notifications_non_lues || [];
+            notifications.read = data.notifications_lues || [];
+            
+            // Mettre à jour les compteurs
+            document.getElementById('countUnread').textContent = notifications.unread.length;
+            document.getElementById('countRead').textContent = notifications.read.length;
+            
+            // Mettre à jour le badge et bouton "Tout marquer"
+            const badgeNonLues = document.getElementById('badgeNonLues');
+            const btnMarkAll = document.getElementById('btnMarkAll');
+            const countNonLues = document.getElementById('countNonLues');
+            
+            if (countNonLues) countNonLues.textContent = notifications.unread.length;
+            
+            if (notifications.unread.length > 0) {
+                if (badgeNonLues) badgeNonLues.classList.remove('hidden');
+                if (btnMarkAll) btnMarkAll.classList.remove('hidden');
+            } else {
+                if (badgeNonLues) badgeNonLues.classList.add('hidden');
+                if (btnMarkAll) btnMarkAll.classList.add('hidden');
+            }
+            
+            // Afficher les notifications
+            showUnread();
+            showRead();
+            
+            console.log('✅ Données chargées avec succès');
+        } else {
+            console.error('Erreur API:', data.error);
+            document.getElementById('listUnread').innerHTML = '<p class="text-red-500">Erreur: ' + (data.error || 'Erreur inconnue') + '</p>';
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        document.getElementById('listUnread').innerHTML = '<p class="text-red-500">Erreur de connexion: ' + error.message + '</p>';
+    });
+}
+
+// Afficher non lues
+function showUnread() {
+    const container = document.getElementById('listUnread');
+    
+    if (notifications.unread.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-16">
+                <div class="w-20 h-20 mx-auto mb-6 bg-green-100 rounded-full flex items-center justify-center">
+                    <i class="fas fa-check text-3xl text-green-500"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-900 mb-2">Aucune nouvelle notification</h3>
+                <p class="text-gray-500">Vous êtes à jour avec toutes vos notifications !</p>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '';
+    notifications.unread.forEach(notif => {
+        const timeAgo = formatTimeAgo(notif.date_creation);
+        const projectInfo = notif.projet_nom || 'Projet non spécifié';
+        
+        html += `
+            <div class="border-l-4 border-red-400 bg-red-50 p-6 rounded-r-xl hover:bg-red-100 transition-colors duration-200 shadow-sm" 
+                 data-notification-id="${notif.id}">
+                <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                    <div class="flex-1 min-w-0">
+                        <div class="flex flex-wrap items-center gap-2 mb-3">
+                            <span class="px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium">
+                                <i class="fas fa-tasks mr-1"></i>
+                                ${notif.type_notification}
+                            </span>
+                            <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                                <i class="fas fa-project-diagram mr-1"></i>
+                                ${projectInfo}
+                            </span>
+                            <span class="text-xs text-gray-500">
+                                <i class="fas fa-clock mr-1"></i>
+                                ${timeAgo}
+                            </span>
+                        </div>
+                        <p class="text-gray-900 font-medium mb-2 leading-relaxed">
+                            ${notif.message}
+                        </p>
+                    </div>
+                    <div class="flex flex-col sm:flex-row gap-2 sm:ml-4">
+                        <button onclick="markRead(${notif.id})" 
+                                class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-sm shadow-sm">
+                            <i class="fas fa-check mr-2"></i>
+                            Marquer comme lue
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+// Afficher lues
+function showRead() {
+    const container = document.getElementById('listRead');
+    
+    if (notifications.read.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-16">
+                <div class="w-20 h-20 mx-auto mb-6 bg-gray-100 rounded-full flex items-center justify-center">
+                    <i class="fas fa-history text-3xl text-gray-400"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-900 mb-2">Aucune notification lue</h3>
+                <p class="text-gray-500">Les notifications lues apparaîtront ici.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '';
+    notifications.read.forEach(notif => {
+        const timeAgo = formatTimeAgo(notif.date_creation);
+        const projectInfo = notif.projet_nom || 'Projet non spécifié';
+        
+        html += `
+            <div class="border-l-4 border-gray-300 bg-gray-50 p-6 rounded-r-xl hover:bg-gray-100 transition-colors duration-200 opacity-75 shadow-sm" 
+                 data-notification-id="${notif.id}">
+                <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                    <div class="flex-1 min-w-0">
+                        <div class="flex flex-wrap items-center gap-2 mb-3">
+                            <span class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">
+                                <i class="fas fa-check mr-1"></i>
+                                ${notif.type_notification}
+                            </span>
+                            <span class="px-3 py-1 bg-gray-200 text-gray-700 rounded-full text-xs font-medium">
+                                <i class="fas fa-project-diagram mr-1"></i>
+                                ${projectInfo}
+                            </span>
+                            <span class="text-xs text-gray-500">
+                                <i class="fas fa-clock mr-1"></i>
+                                ${timeAgo}
+                            </span>
+                            <span class="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">
+                                <i class="fas fa-check-circle mr-1"></i>
+                                Lue
+                            </span>
+                        </div>
+                        <p class="text-gray-700 leading-relaxed">
+                            ${notif.message}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+// Changer d'onglet
+function showTab(tab) {
+    currentTab = tab;
+    
+    const btnUnread = document.getElementById('btnUnread');
+    const btnRead = document.getElementById('btnRead');
+    const tabUnread = document.getElementById('tabUnread');
+    const tabRead = document.getElementById('tabRead');
+    
+    if (tab === 'unread') {
+        btnUnread.className = 'py-4 px-1 border-b-2 border-blue-500 font-medium text-sm text-blue-600 whitespace-nowrap transition-all duration-200';
+        btnRead.className = 'py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap transition-all duration-200';
+        tabUnread.classList.remove('hidden');
+        tabRead.classList.add('hidden');
+    } else {
+        btnRead.className = 'py-4 px-1 border-b-2 border-blue-500 font-medium text-sm text-blue-600 whitespace-nowrap transition-all duration-200';
+        btnUnread.className = 'py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap transition-all duration-200';
+        tabRead.classList.remove('hidden');
+        tabUnread.classList.add('hidden');
+    }
+}
+
+// Marquer comme lu
+function markRead(id) {
+    fetch(`/api/notifications/${id}/mark-read/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            loadData(); // Recharger
+        } else {
+            alert('Erreur: ' + (data.error || 'Erreur inconnue'));
+        }
+    })
+    .catch(error => {
+        alert('Erreur de connexion: ' + error.message);
+    });
+}
+
+// Initialisation
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Page chargée, initialisation...');
+    loadData();
+});
+</script>
+
+<style>
+/* Styles modernes pour les notifications */
+.tab-content {
+    min-height: 400px;
+}
+
+.notification-item {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+/* Animations fluides */
+.transition-colors {
+    transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+}
+
+/* Responsive design */
+@media (max-width: 640px) {
+    .notification-item p {
+        word-break: break-word;
+        hyphens: auto;
+    }
+    
+    .notification-item .flex {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+    
+    .notification-item .flex-1 {
+        width: 100%;
+    }
+}
+
+/* Hover effects */
+.hover\:bg-red-100:hover {
+    background-color: #fef2f2;
+}
+
+.hover\:bg-gray-100:hover {
+    background-color: #f3f4f6;
+}
+
+/* Shadow effects */
+.shadow-sm {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+</style>
+{% endblock %}
+
+// Marquer toutes les notifications comme lues
+function markAllAsRead() {
+    if (confirm('Marquer toutes les notifications comme lues ?')) {
+        fetch('/api/notifications/mark-all-read/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                loadData(); // Recharger
+                showTab('read'); // Basculer vers l'onglet lues
+            } else {
+                alert('Erreur: ' + (data.error || 'Erreur inconnue'));
+            }
+        })
+        .catch(error => {
+            alert('Erreur de connexion: ' + error.message);
+        });
+    }
+}
+
+// Formater le temps écoulé
+function formatTimeAgo(dateString) {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now - date) / 1000);
+    
+    if (diffInSeconds < 60) {
+        return 'À l\'instant';
+    } else if (diffInSeconds < 3600) {
+        const minutes = Math.floor(diffInSeconds / 60);
+        return `Il y a ${minutes} min`;
+    } else if (diffInSeconds < 86400) {
+        const hours = Math.floor(diffInSeconds / 3600);
+        return `Il y a ${hours}h`;
+    } else {
+        const days = Math.floor(diffInSeconds / 86400);
+        return `Il y a ${days}j`;
+    }
+}

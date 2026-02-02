@@ -1,0 +1,254 @@
+{% extends 'base.html' %}
+
+{% block title %}Créer un Compte Utilisateur - SI-Gouvernance JCM{% endblock %}
+{% block page_title %}Gestion des Comptes{% endblock %}
+
+{% block content %}
+<div class="bg-gray-50 min-h-screen p-2 md:p-4">
+    <div class="max-w-7xl mx-auto space-y-3 md:space-y-4">
+        
+        <!-- Header Modern -->
+        <div class="bg-white rounded-lg p-3 md:p-4 shadow-md border border-white/20">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-md">
+                    <span class="text-white font-bold text-sm">🔐</span>
+                </div>
+                <div>
+                    <h1 class="text-lg md:text-xl font-bold text-gray-900">Créer un Compte Utilisateur</h1>
+                    <p class="text-xs md:text-sm text-gray-600">Pour {{ membre.get_nom_complet }} ({{ membre.email_personnel }})</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Informations du membre -->
+        <div class="bg-white rounded-lg shadow-md border border-white/20 overflow-hidden">
+            <div class="bg-gradient-to-r from-emerald-500 to-teal-600 p-4">
+                <div class="flex items-center space-x-3 text-white">
+                    <div class="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                        <span class="font-bold text-lg">{{ membre.get_initiales }}</span>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold">{{ membre.get_nom_complet }}</h2>
+                        <p class="text-emerald-100 text-sm">{{ membre.email_personnel }}</p>
+                        {% if membre.poste %}
+                        <p class="text-emerald-200 text-xs">{{ membre.poste }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-4 md:p-6">
+                <form method="post" id="createCompteForm" class="space-y-4 md:space-y-6">
+                    {% csrf_token %}
+                    
+                    <!-- Informations de connexion -->
+                    <div>
+                        <h2 class="text-base md:text-lg font-semibold text-gray-900 mb-3 md:mb-4 flex items-center">
+                            <span class="mr-2">🔑</span>
+                            Informations de Connexion
+                        </h2>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                            <div>
+                                <label for="username" class="block text-xs md:text-sm font-semibold text-gray-700 mb-1 md:mb-2">
+                                    Nom d'utilisateur <span class="text-red-500">*</span>
+                                </label>
+                                <input type="text" 
+                                       id="username" 
+                                       name="username" 
+                                       value="{{ username_suggere }}"
+                                       required
+                                       class="w-full px-3 py-2 md:px-4 md:py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 text-sm md:text-base"
+                                       placeholder="nom.prenom">
+                                <p class="text-xs text-gray-500 mt-1">Suggestion basée sur le nom du membre</p>
+                            </div>
+                            
+                            <div>
+                                <label for="role_systeme" class="block text-xs md:text-sm font-semibold text-gray-700 mb-1 md:mb-2">
+                                    Rôle Système <span class="text-red-500">*</span>
+                                </label>
+                                <select id="role_systeme" 
+                                        name="role_systeme" 
+                                        required
+                                        class="w-full px-3 py-2 md:px-4 md:py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 bg-white text-sm md:text-base">
+                                    <option value="">Sélectionner un rôle</option>
+                                    {% for role in roles_systeme %}
+                                    <option value="{{ role.nom }}">{{ role.get_nom_display }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mot de passe -->
+                    <div>
+                        <h2 class="text-base md:text-lg font-semibold text-gray-900 mb-3 md:mb-4 flex items-center">
+                            <span class="mr-2">🔒</span>
+                            Mot de Passe
+                        </h2>
+                        
+                        <div class="space-y-3">
+                            <div class="flex items-center space-x-3">
+                                <input type="radio" 
+                                       id="mot_de_passe_auto" 
+                                       name="mot_de_passe_type" 
+                                       value="auto" 
+                                       checked
+                                       class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500">
+                                <label for="mot_de_passe_auto" class="text-sm font-medium text-gray-700">
+                                    Générer automatiquement (recommandé)
+                                </label>
+                            </div>
+                            
+                            <div class="flex items-center space-x-3">
+                                <input type="radio" 
+                                       id="mot_de_passe_manuel" 
+                                       name="mot_de_passe_type" 
+                                       value="manuel"
+                                       class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500">
+                                <label for="mot_de_passe_manuel" class="text-sm font-medium text-gray-700">
+                                    Définir manuellement
+                                </label>
+                            </div>
+                            
+                            <div id="mot_de_passe_manuel_field" class="hidden">
+                                <label for="mot_de_passe_personnalise" class="block text-xs md:text-sm font-semibold text-gray-700 mb-1 md:mb-2">
+                                    Mot de passe personnalisé
+                                </label>
+                                <input type="password" 
+                                       id="mot_de_passe_personnalise" 
+                                       name="mot_de_passe_personnalise"
+                                       class="w-full px-3 py-2 md:px-4 md:py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 text-sm md:text-base"
+                                       placeholder="Entrez un mot de passe">
+                                <p class="text-xs text-gray-500 mt-1">Minimum 8 caractères recommandés</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Informations sur le rôle sélectionné -->
+                    <div id="role-info" class="hidden">
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                            <div class="flex items-start">
+                                <span class="text-blue-500 mr-2 text-sm">ℹ️</span>
+                                <div class="text-xs md:text-sm text-blue-800">
+                                    <p class="font-medium mb-1" id="role-title">Rôle sélectionné</p>
+                                    <p id="role-description">Description du rôle</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Informations importantes -->
+                    <div class="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                        <div class="flex items-start">
+                            <span class="text-amber-500 mr-2 text-sm">⚠️</span>
+                            <div class="text-xs md:text-sm text-amber-800">
+                                <p class="font-medium mb-1">Création de compte système :</p>
+                                <ul class="list-disc list-inside space-y-1">
+                                    <li>Le compte sera lié au profil membre existant</li>
+                                    <li>Les informations personnelles seront synchronisées automatiquement</li>
+                                    <li>L'utilisateur devra changer son mot de passe lors de sa première connexion</li>
+                                    <li>Le compte sera activé par défaut</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Boutons d'action -->
+                    <div class="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-200">
+                        <a href="{% url 'detail_membre' membre.id %}" 
+                           class="flex-1 bg-white text-gray-700 border border-gray-200 px-4 py-2 rounded-lg font-medium text-sm cursor-pointer transition-all duration-200 hover:border-gray-300 hover:bg-gray-50 flex items-center justify-center">
+                            <span class="mr-2">❌</span>Annuler
+                        </a>
+                        
+                        <button type="submit" 
+                                class="flex-1 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-4 py-2 rounded-lg font-medium text-sm cursor-pointer transition-all duration-200 hover:shadow-lg transform hover:scale-105 flex items-center justify-center">
+                            <span class="mr-2">🔐</span>Créer le Compte
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Gestion des options de mot de passe
+document.querySelectorAll('input[name="mot_de_passe_type"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        const manuelField = document.getElementById('mot_de_passe_manuel_field');
+        if (this.value === 'manuel') {
+            manuelField.classList.remove('hidden');
+            document.getElementById('mot_de_passe_personnalise').required = true;
+        } else {
+            manuelField.classList.add('hidden');
+            document.getElementById('mot_de_passe_personnalise').required = false;
+        }
+    });
+});
+
+// Afficher les informations du rôle sélectionné
+document.getElementById('role_systeme').addEventListener('change', function() {
+    const roleInfo = document.getElementById('role-info');
+    const roleTitle = document.getElementById('role-title');
+    const roleDescription = document.getElementById('role-description');
+    
+    const descriptions = {
+        'DEVELOPPEUR': {
+            title: '👨‍💻 Développeur',
+            description: 'Accès aux projets assignés et fonctionnalités de développement'
+        },
+        'CHEF_PROJET': {
+            title: '📋 Chef de Projet',
+            description: 'Gestion des projets et équipes'
+        },
+        'QA': {
+            title: '✅ Quality Assurance',
+            description: 'Tests, validation et contrôle qualité'
+        },
+        'DIRECTION': {
+            title: '👑 Direction',
+            description: 'Accès complet et supervision générale'
+        }
+    };
+    
+    if (this.value && descriptions[this.value]) {
+        roleTitle.textContent = descriptions[this.value].title;
+        roleDescription.textContent = descriptions[this.value].description;
+        roleInfo.classList.remove('hidden');
+    } else {
+        roleInfo.classList.add('hidden');
+    }
+});
+
+// Animation du bouton de soumission
+document.getElementById('createCompteForm').addEventListener('submit', function(e) {
+    const submitBtn = document.querySelector('button[type="submit"]');
+    const originalContent = submitBtn.innerHTML;
+    
+    // Vérifier que tous les champs requis sont remplis
+    const username = document.getElementById('username').value.trim();
+    const roleSysteme = document.getElementById('role_systeme').value;
+    const motDePasseType = document.querySelector('input[name="mot_de_passe_type"]:checked').value;
+    const motDePassePersonnalise = document.getElementById('mot_de_passe_personnalise').value.trim();
+    
+    if (!username || !roleSysteme) {
+        e.preventDefault();
+        alert('Veuillez remplir tous les champs obligatoires.');
+        return false;
+    }
+    
+    if (motDePasseType === 'manuel' && !motDePassePersonnalise) {
+        e.preventDefault();
+        alert('Veuillez saisir un mot de passe personnalisé.');
+        return false;
+    }
+    
+    // Animation du bouton
+    submitBtn.innerHTML = '<span class="mr-2">⏳</span>Création en cours...';
+    submitBtn.disabled = true;
+    
+    return true;
+});
+</script>
+{% endblock %}

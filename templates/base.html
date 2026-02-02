@@ -1,0 +1,981 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr" class="h-full bg-gray-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SI-Gouvernance JCM{% endblock %}</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'sans': ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    colors: {
+                        'primary': {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                        },
+                        'success': {
+                            50: '#ecfdf5',
+                            500: '#10b981',
+                            600: '#059669',
+                        },
+                        'warning': {
+                            50: '#fffbeb',
+                            500: '#f59e0b',
+                            600: '#d97706',
+                        },
+                        'danger': {
+                            50: '#fef2f2',
+                            500: '#ef4444',
+                            600: '#dc2626',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        .sidebar-transition {
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        /* Custom scrollbar for sidebar */
+        .scrollbar-thin::-webkit-scrollbar {
+            width: 4px;
+        }
+        
+        .scrollbar-thin::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+            background: rgba(156, 163, 175, 0.3);
+            border-radius: 2px;
+        }
+        
+        .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+            background: rgba(156, 163, 175, 0.5);
+        }
+        
+        /* Enhanced glassmorphism effect */
+        .glass-effect {
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        
+        /* Floating animation for sidebar */
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-4px); }
+        }
+        
+        .float-animation {
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        /* Smooth hover animations with enhanced easing */
+        .hover-lift {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .hover-lift:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.15);
+        }
+        
+        /* Gradient text animation */
+        @keyframes gradient-shift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        
+        .gradient-text {
+            background: linear-gradient(-45deg, #3b82f6, #8b5cf6, #06b6d4, #10b981);
+            background-size: 400% 400%;
+            animation: gradient-shift 8s ease infinite;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        /* Enhanced pulse animation for active indicators */
+        @keyframes pulse-glow {
+            0%, 100% { 
+                opacity: 1;
+                box-shadow: 0 0 8px currentColor;
+                transform: scale(1);
+            }
+            50% { 
+                opacity: 0.8;
+                box-shadow: 0 0 25px currentColor;
+                transform: scale(1.1);
+            }
+        }
+        
+        .pulse-glow {
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+        
+        /* Modern button hover effects with shimmer */
+        .modern-button {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .modern-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .modern-button:hover::before {
+            left: 100%;
+        }
+        
+        /* Floating background elements */
+        @keyframes float-bg-1 {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            33% { transform: translate(10px, -10px) rotate(120deg); }
+            66% { transform: translate(-5px, 5px) rotate(240deg); }
+        }
+        
+        @keyframes float-bg-2 {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            50% { transform: translate(-15px, -15px) rotate(180deg); }
+        }
+        
+        @keyframes float-bg-3 {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            25% { transform: translate(8px, 8px) rotate(90deg); }
+            75% { transform: translate(-8px, -8px) rotate(270deg); }
+        }
+        
+        /* Enhanced border radius utilities */
+        .rounded-3xl {
+            border-radius: 1.5rem;
+        }
+        
+        /* Custom shadow utilities */
+        .shadow-float {
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+        
+        /* Backdrop blur support */
+        @supports (backdrop-filter: blur(20px)) {
+            .backdrop-blur-xl {
+                backdrop-filter: blur(20px);
+                -webkit-backdrop-filter: blur(20px);
+            }
+        }
+        
+        /* Mobile responsive adjustments */
+        @media (max-width: 1024px) {
+            .sidebar-transition {
+                transition: transform 0.3s ease-in-out;
+            }
+        }
+        
+        /* Enhanced focus states */
+        .focus-ring:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+        }
+        
+        /* Smooth color transitions */
+        .color-transition {
+            transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
+        }
+        
+        /* Notification specific styles */
+        .notification-tab-content {
+            transition: opacity 0.2s ease-in-out;
+        }
+        
+        .notification-item {
+            position: relative;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        
+        .notification-item:hover {
+            transform: translateX(2px);
+        }
+        
+        /* Mobile responsive notifications */
+        @media (max-width: 640px) {
+            #notificationPanel {
+                width: calc(100vw - 1rem);
+                right: 0.5rem;
+                left: 0.5rem;
+                margin: 0 auto;
+                max-width: none;
+            }
+            
+            .notification-item {
+                padding: 0.75rem;
+            }
+            
+            .notification-item .flex {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+            
+            .notification-item .flex-1 {
+                width: 100%;
+            }
+            
+            /* Prevent horizontal scroll */
+            .notification-item p {
+                word-break: break-word;
+                hyphens: auto;
+                max-width: 100%;
+            }
+        }
+        
+        /* Prevent horizontal overflow */
+        #notificationPanel {
+            overflow-x: hidden;
+        }
+        
+        #notificationList {
+            overflow-x: hidden;
+        }
+        
+        .notification-item {
+            overflow-x: hidden;
+        }
+        
+        /* Smooth animations for notification updates */
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        .notification-item {
+            animation: slideInRight 0.3s ease-out;
+        }
+        
+        /* Badge pulse animation */
+        @keyframes badgePulse {
+            0%, 100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.1);
+                opacity: 0.8;
+            }
+        }
+        
+        #notificationBadge {
+            animation: badgePulse 2s infinite;
+        }
+        
+        /* Responsive text sizing */
+        @media (max-width: 480px) {
+            .notification-item p {
+                font-size: 0.75rem;
+                line-height: 1.4;
+            }
+            
+            .notification-item .text-xs {
+                font-size: 0.6875rem;
+            }
+        }
+    </style>
+</head>
+
+<body class="h-full font-sans antialiased bg-gray-50">
+    <div class="flex h-full">
+        <!-- Sidebar Overlay (Mobile) -->
+        <div id="sidebar-overlay" class="fixed inset-0 bg-gray-600 bg-opacity-75 z-20 lg:hidden hidden"></div>
+        
+        <!-- Ultra-Modern Sidebar - Fixed and Compact -->
+        <div id="sidebar" class="fixed inset-y-0 left-0 z-30 w-72 transform -translate-x-full lg:translate-x-0 sidebar-transition lg:static lg:inset-0">
+            <!-- Main Container - No margins, full height -->
+            <div class="h-full bg-white/95 backdrop-blur-xl shadow-2xl border-r border-gray-200/50 overflow-hidden relative">
+                <!-- Subtle Background Pattern -->
+                <div class="absolute inset-0 opacity-5">
+                    <div class="absolute top-0 left-0 w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full blur-3xl animate-pulse"></div>
+                    <div class="absolute bottom-0 right-0 w-32 h-32 bg-gradient-to-tl from-emerald-500 to-cyan-500 rounded-full blur-3xl animate-pulse" style="animation-delay: 1s;"></div>
+                </div>
+                
+                <!-- Content Container -->
+                <div class="relative z-10 flex flex-col h-full">
+                    <!-- Compact Brand Header -->
+                    <div class="px-6 py-4 border-b border-gray-200/50">
+                        <div class="flex items-center space-x-3">
+                            <!-- Compact Logo -->
+                            <div class="relative">
+                                <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg transform hover:scale-105 transition-all duration-300">
+                                    <i class="fas fa-rocket text-white text-sm"></i>
+                                </div>
+                                <!-- Status Indicator -->
+                                <div class="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full flex items-center justify-center shadow-lg animate-bounce">
+                                    <div class="w-1.5 h-1.5 bg-white rounded-full"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Compact Brand Text -->
+                            <div class="flex-1 min-w-0">
+                                <h1 class="text-lg font-black bg-gradient-to-r from-gray-900 via-gray-700 to-gray-900 bg-clip-text text-transparent truncate">SI-Gouvernance</h1>
+                                <p class="text-xs font-medium text-gray-500 tracking-wide">JCONSULT MY</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Compact Navigation -->
+                    <nav class="flex-1 px-4 py-4 space-y-1 overflow-y-auto scrollbar-thin">
+                        <!-- Main Navigation -->
+                        <div class="space-y-1">
+                            <!-- Dashboard - Accessible à tous -->
+                            <a href="{% url 'dashboard' %}" class="group relative flex items-center px-3 py-2.5 rounded-xl transition-all duration-300 hover:scale-[1.02] {% if request.resolver_match.url_name == 'dashboard' %}bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg{% else %}text-gray-700 hover:bg-gray-100/80{% endif %}">
+                                <!-- Compact Icon Container -->
+                                <div class="relative">
+                                    <div class="w-8 h-8 rounded-lg flex items-center justify-center {% if request.resolver_match.url_name == 'dashboard' %}bg-white/20{% else %}bg-gradient-to-br from-blue-100 to-indigo-100 group-hover:from-blue-200 group-hover:to-indigo-200{% endif %} transition-all duration-300">
+                                        <i class="fas fa-home {% if request.resolver_match.url_name == 'dashboard' %}text-white{% else %}text-blue-600{% endif %} text-sm"></i>
+                                    </div>
+                                    {% if request.resolver_match.url_name == 'dashboard' %}
+                                    <div class="absolute -top-0.5 -right-0.5 w-3 h-3 bg-yellow-400 rounded-full animate-ping"></div>
+                                    <div class="absolute -top-0.5 -right-0.5 w-3 h-3 bg-yellow-500 rounded-full"></div>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Compact Text -->
+                                <div class="ml-3 flex-1">
+                                    <span class="font-semibold text-sm">Tableau de bord</span>
+                                </div>
+                                
+                                <!-- Arrow Indicator -->
+                                {% if request.resolver_match.url_name == 'dashboard' %}
+                                <i class="fas fa-chevron-right text-white/60 text-xs"></i>
+                                {% endif %}
+                            </a>
+                            
+                            <!-- Projets - Accessible à tous -->
+                            <a href="{% url 'projets_list' %}" class="group relative flex items-center px-3 py-2.5 rounded-xl transition-all duration-300 hover:scale-[1.02] {% if 'projets' in request.resolver_match.url_name %}bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg{% else %}text-gray-700 hover:bg-gray-100/80{% endif %}">
+                                <div class="relative">
+                                    <div class="w-8 h-8 rounded-lg flex items-center justify-center {% if 'projets' in request.resolver_match.url_name %}bg-white/20{% else %}bg-gradient-to-br from-blue-100 to-indigo-100 group-hover:from-blue-200 group-hover:to-indigo-200{% endif %} transition-all duration-300">
+                                        <i class="fas fa-project-diagram {% if 'projets' in request.resolver_match.url_name %}text-white{% else %}text-blue-600{% endif %} text-sm"></i>
+                                    </div>
+                                    {% if 'projets' in request.resolver_match.url_name %}
+                                    <div class="absolute -top-0.5 -right-0.5 w-3 h-3 bg-yellow-400 rounded-full animate-ping"></div>
+                                    <div class="absolute -top-0.5 -right-0.5 w-3 h-3 bg-yellow-500 rounded-full"></div>
+                                    {% endif %}
+                                </div>
+                                <div class="ml-3 flex-1">
+                                    <span class="font-semibold text-sm">{% if user.est_super_admin %}Projets{% else %}Mes Projets{% endif %}</span>
+                                </div>
+                                {% if 'projets' in request.resolver_match.url_name %}
+                                <i class="fas fa-chevron-right text-white/60 text-xs"></i>
+                                {% endif %}
+                            </a>
+                            
+                            <!-- Notifications - Accessible à tous -->
+                            <a href="{% url 'notifications_taches' %}" class="group relative flex items-center px-3 py-2.5 rounded-xl transition-all duration-300 hover:scale-[1.02] {% if 'notifications' in request.resolver_match.url_name %}bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg{% else %}text-gray-700 hover:bg-gray-100/80{% endif %}">
+                                <div class="relative">
+                                    <div class="w-8 h-8 rounded-lg flex items-center justify-center {% if 'notifications' in request.resolver_match.url_name %}bg-white/20{% else %}bg-gradient-to-br from-blue-100 to-indigo-100 group-hover:from-blue-200 group-hover:to-indigo-200{% endif %} transition-all duration-300">
+                                        <i class="fas fa-bell {% if 'notifications' in request.resolver_match.url_name %}text-white{% else %}text-blue-600{% endif %} text-sm"></i>
+                                    </div>
+                                    {% if 'notifications' in request.resolver_match.url_name %}
+                                    <div class="absolute -top-0.5 -right-0.5 w-3 h-3 bg-yellow-400 rounded-full animate-ping"></div>
+                                    <div class="absolute -top-0.5 -right-0.5 w-3 h-3 bg-yellow-500 rounded-full"></div>
+                                    {% endif %}
+                                </div>
+                                <div class="ml-3 flex-1">
+                                    <span class="font-semibold text-sm">Notifications</span>
+                                </div>
+                                {% if 'notifications' in request.resolver_match.url_name %}
+                                <i class="fas fa-chevron-right text-white/60 text-xs"></i>
+                                {% endif %}
+                            </a>
+                            
+                            {% if user.est_super_admin %}
+                            <!-- Coming Soon Items - Seulement pour les admins -->
+                            <div class="group relative flex items-center px-3 py-2.5 rounded-xl text-gray-400 cursor-not-allowed opacity-60">
+                                <div class="w-8 h-8 rounded-lg flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 transition-all duration-300">
+                                    <i class="fas fa-users text-gray-500 text-sm"></i>
+                                </div>
+                                <div class="ml-3 flex-1">
+                                    <span class="font-semibold text-sm">Équipes</span>
+                                </div>
+                                <span class="bg-gradient-to-r from-orange-400 to-pink-500 text-white text-xs px-2 py-0.5 rounded-full font-medium shadow-sm">Bientôt</span>
+                            </div>
+                            
+                            <div class="group relative flex items-center px-3 py-2.5 rounded-xl text-gray-400 cursor-not-allowed opacity-60">
+                                <div class="w-8 h-8 rounded-lg flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 transition-all duration-300">
+                                    <i class="fas fa-chart-line text-gray-500 text-sm"></i>
+                                </div>
+                                <div class="ml-3 flex-1">
+                                    <span class="font-semibold text-sm">Analytics</span>
+                                </div>
+                                <span class="bg-gradient-to-r from-orange-400 to-pink-500 text-white text-xs px-2 py-0.5 rounded-full font-medium shadow-sm">Bientôt</span>
+                            </div>
+                            
+                            <div class="group relative flex items-center px-3 py-2.5 rounded-xl text-gray-400 cursor-not-allowed opacity-60">
+                                <div class="w-8 h-8 rounded-lg flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 transition-all duration-300">
+                                    <i class="fas fa-euro-sign text-gray-500 text-sm"></i>
+                                </div>
+                                <div class="ml-3 flex-1">
+                                    <span class="font-semibold text-sm">Finance</span>
+                                </div>
+                                <span class="bg-gradient-to-r from-orange-400 to-pink-500 text-white text-xs px-2 py-0.5 rounded-full font-medium shadow-sm">Bientôt</span>
+                            </div>
+                            
+                            <!-- Audit - Seulement pour les admins -->
+                            <a href="{% url 'audit' %}" class="group relative flex items-center px-3 py-2.5 rounded-xl transition-all duration-300 hover:scale-[1.02] {% if request.resolver_match.url_name == 'audit' %}bg-gradient-to-r from-orange-500 to-red-600 text-white shadow-lg{% else %}text-gray-700 hover:bg-gray-100/80{% endif %}">
+                                <div class="relative">
+                                    <div class="w-8 h-8 rounded-lg flex items-center justify-center {% if request.resolver_match.url_name == 'audit' %}bg-white/20{% else %}bg-gradient-to-br from-orange-100 to-red-100 group-hover:from-orange-200 group-hover:to-red-200{% endif %} transition-all duration-300">
+                                        <i class="fas fa-shield-alt {% if request.resolver_match.url_name == 'audit' %}text-white{% else %}text-orange-600{% endif %} text-sm"></i>
+                                    </div>
+                                    {% if request.resolver_match.url_name == 'audit' %}
+                                    <div class="absolute -top-0.5 -right-0.5 w-3 h-3 bg-yellow-400 rounded-full animate-ping"></div>
+                                    <div class="absolute -top-0.5 -right-0.5 w-3 h-3 bg-yellow-500 rounded-full"></div>
+                                    {% endif %}
+                                </div>
+                                <div class="ml-3 flex-1">
+                                    <span class="font-semibold text-sm">Audit & Sécurité</span>
+                                </div>
+                                {% if request.resolver_match.url_name == 'audit' %}
+                                <i class="fas fa-chevron-right text-white/60 text-xs"></i>
+                                {% endif %}
+                            </a>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Administration Section - More Compact -->
+                        {% if user.est_super_admin %}
+                        <div class="pt-4 mt-4 border-t border-gray-200/50">
+                            <!-- Compact Section Divider -->
+                            <div class="flex items-center mb-3">
+                                <div class="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
+                                <span class="px-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Admin</span>
+                                <div class="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
+                            </div>
+                            
+                            <div class="space-y-1">
+                                <!-- Gestion des Membres (Profils RH) -->
+                                <a href="{% url 'gestion_membres' %}" class="group relative flex items-center px-3 py-2.5 rounded-xl transition-all duration-300 hover:scale-[1.02] {% if 'gestion_membres' in request.resolver_match.url_name or 'creer_membre' in request.resolver_match.url_name or 'modifier_membre' in request.resolver_match.url_name or 'detail_membre' in request.resolver_match.url_name %}bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg{% else %}text-gray-700 hover:bg-gray-100/80{% endif %}">
+                                    <div class="relative">
+                                        <div class="w-8 h-8 rounded-lg flex items-center justify-center {% if 'gestion_membres' in request.resolver_match.url_name or 'creer_membre' in request.resolver_match.url_name or 'modifier_membre' in request.resolver_match.url_name or 'detail_membre' in request.resolver_match.url_name %}bg-white/20{% else %}bg-gradient-to-br from-emerald-100 to-teal-100 group-hover:from-emerald-200 group-hover:to-teal-200{% endif %} transition-all duration-300">
+                                            <span class="{% if 'gestion_membres' in request.resolver_match.url_name or 'creer_membre' in request.resolver_match.url_name or 'modifier_membre' in request.resolver_match.url_name or 'detail_membre' in request.resolver_match.url_name %}text-white{% else %}text-emerald-600{% endif %} text-sm">👥</span>
+                                        </div>
+                                        {% if 'gestion_membres' in request.resolver_match.url_name or 'creer_membre' in request.resolver_match.url_name or 'modifier_membre' in request.resolver_match.url_name or 'detail_membre' in request.resolver_match.url_name %}
+                                        <div class="absolute -top-0.5 -right-0.5 w-3 h-3 bg-yellow-400 rounded-full animate-ping"></div>
+                                        <div class="absolute -top-0.5 -right-0.5 w-3 h-3 bg-yellow-500 rounded-full"></div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="ml-3 flex-1">
+                                        <span class="font-semibold text-sm">Membres</span>
+                                        <div class="text-xs opacity-75">Profils RH</div>
+                                    </div>
+                                    {% if 'gestion_membres' in request.resolver_match.url_name or 'creer_membre' in request.resolver_match.url_name or 'modifier_membre' in request.resolver_match.url_name or 'detail_membre' in request.resolver_match.url_name %}
+                                    <i class="fas fa-chevron-right text-white/60 text-xs"></i>
+                                    {% endif %}
+                                </a>
+
+                                <!-- Gestion des Comptes (Accès Système) -->
+                                <a href="{% url 'gestion_comptes' %}" class="group relative flex items-center px-3 py-2.5 rounded-xl transition-all duration-300 hover:scale-[1.02] {% if 'gestion_comptes' in request.resolver_match.url_name or 'creer_compte_utilisateur' in request.resolver_match.url_name or 'modifier_compte' in request.resolver_match.url_name %}bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg{% else %}text-gray-700 hover:bg-gray-100/80{% endif %}">
+                                    <div class="relative">
+                                        <div class="w-8 h-8 rounded-lg flex items-center justify-center {% if 'gestion_comptes' in request.resolver_match.url_name or 'creer_compte_utilisateur' in request.resolver_match.url_name or 'modifier_compte' in request.resolver_match.url_name %}bg-white/20{% else %}bg-gradient-to-br from-blue-100 to-indigo-100 group-hover:from-blue-200 group-hover:to-indigo-200{% endif %} transition-all duration-300">
+                                            <span class="{% if 'gestion_comptes' in request.resolver_match.url_name or 'creer_compte_utilisateur' in request.resolver_match.url_name or 'modifier_compte' in request.resolver_match.url_name %}text-white{% else %}text-blue-600{% endif %} text-sm">🔐</span>
+                                        </div>
+                                        {% if 'gestion_comptes' in request.resolver_match.url_name or 'creer_compte_utilisateur' in request.resolver_match.url_name or 'modifier_compte' in request.resolver_match.url_name %}
+                                        <div class="absolute -top-0.5 -right-0.5 w-3 h-3 bg-yellow-400 rounded-full animate-ping"></div>
+                                        <div class="absolute -top-0.5 -right-0.5 w-3 h-3 bg-yellow-500 rounded-full"></div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="ml-3 flex-1">
+                                        <span class="font-semibold text-sm">Comptes</span>
+                                        <div class="text-xs opacity-75">Accès système</div>
+                                    </div>
+                                    {% if 'gestion_comptes' in request.resolver_match.url_name or 'creer_compte_utilisateur' in request.resolver_match.url_name or 'modifier_compte' in request.resolver_match.url_name %}
+                                    <i class="fas fa-chevron-right text-white/60 text-xs"></i>
+                                    {% endif %}
+                                </a>
+
+                                <!-- Ancien lien utilisateurs (pour compatibilité temporaire) -->
+                                <a href="{% url 'gestion_utilisateurs' %}" class="group relative flex items-center px-3 py-2.5 rounded-xl transition-all duration-300 hover:scale-[1.02] {% if 'gestion_utilisateurs' in request.resolver_match.url_name or 'creer_utilisateur' in request.resolver_match.url_name or 'modifier_utilisateur' in request.resolver_match.url_name %}bg-gradient-to-r from-purple-500 to-pink-600 text-white shadow-lg{% else %}text-gray-700 hover:bg-gray-100/80{% endif %} opacity-60">
+                                    <div class="relative">
+                                        <div class="w-8 h-8 rounded-lg flex items-center justify-center {% if 'gestion_utilisateurs' in request.resolver_match.url_name or 'creer_utilisateur' in request.resolver_match.url_name or 'modifier_utilisateur' in request.resolver_match.url_name %}bg-white/20{% else %}bg-gradient-to-br from-purple-100 to-pink-100 group-hover:from-purple-200 group-hover:to-pink-200{% endif %} transition-all duration-300">
+                                            <i class="fas fa-users-cog {% if 'gestion_utilisateurs' in request.resolver_match.url_name or 'creer_utilisateur' in request.resolver_match.url_name or 'modifier_utilisateur' in request.resolver_match.url_name %}text-white{% else %}text-purple-600{% endif %} text-sm"></i>
+                                        </div>
+                                    </div>
+                                    <div class="ml-3 flex-1">
+                                        <span class="font-semibold text-sm">Utilisateurs</span>
+                                        <div class="text-xs opacity-75">Ancien système</div>
+                                    </div>
+                                </a>
+                                
+                                <a href="{% url 'test_robustesse' %}" class="group relative flex items-center px-3 py-2.5 rounded-xl transition-all duration-300 hover:scale-[1.02] {% if request.resolver_match.url_name == 'test_robustesse' %}bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg{% else %}text-gray-700 hover:bg-gray-100/80{% endif %}">
+                                    <div class="relative">
+                                        <div class="w-8 h-8 rounded-lg flex items-center justify-center {% if request.resolver_match.url_name == 'test_robustesse' %}bg-white/20{% else %}bg-gradient-to-br from-cyan-100 to-blue-100 group-hover:from-cyan-200 group-hover:to-blue-200{% endif %} transition-all duration-300">
+                                            <i class="fas fa-cogs {% if request.resolver_match.url_name == 'test_robustesse' %}text-white{% else %}text-cyan-600{% endif %} text-sm"></i>
+                                        </div>
+                                        {% if request.resolver_match.url_name == 'test_robustesse' %}
+                                        <div class="absolute -top-0.5 -right-0.5 w-3 h-3 bg-yellow-400 rounded-full animate-ping"></div>
+                                        <div class="absolute -top-0.5 -right-0.5 w-3 h-3 bg-yellow-500 rounded-full"></div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="ml-3 flex-1">
+                                        <span class="font-semibold text-sm">Tests Système</span>
+                                    </div>
+                                    {% if request.resolver_match.url_name == 'test_robustesse' %}
+                                    <i class="fas fa-chevron-right text-white/60 text-xs"></i>
+                                    {% endif %}
+                                </a>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </nav>
+                    
+                    <!-- Compact User Profile Card -->
+                    <div class="p-4 border-t border-gray-200/50">
+                        <div class="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-3 hover:from-gray-100 hover:to-gray-200 transition-all duration-300 cursor-pointer group">
+                            <div class="flex items-center space-x-3">
+                                <!-- Compact Avatar -->
+                                <div class="relative">
+                                    <div class="w-9 h-9 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-all duration-300">
+                                        <span class="text-xs font-bold text-white">{{ user.first_name.0 }}{{ user.last_name.0 }}</span>
+                                    </div>
+                                    <!-- Compact Status Indicator -->
+                                    <div class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
+                                        <div class="w-1 h-1 bg-white rounded-full animate-pulse"></div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Compact User Info -->
+                                <div class="flex-1 min-w-0">
+                                    <p class="font-semibold text-gray-900 truncate text-sm">{{ user.get_full_name }}</p>
+                                    <div class="flex items-center mt-0.5">
+                                        {% if user.est_super_admin %}
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium bg-gradient-to-r from-yellow-400 to-orange-500 text-white shadow-sm">
+                                            <i class="fas fa-crown mr-1"></i>
+                                            Administrateur
+                                        </span>
+                                        {% else %}
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-sm">
+                                            <i class="fas fa-user mr-1"></i>
+                                            Utilisateur
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <!-- Compact Action Buttons -->
+                                <div class="flex items-center space-x-1">
+                                    {% if not user.est_super_admin %}
+                                    <a href="{% url 'profil' %}" class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-300 transform hover:scale-110" title="Mon Profil">
+                                        <i class="fas fa-user-cog text-xs"></i>
+                                    </a>
+                                    {% else %}
+                                    <button class="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-white/80 rounded-lg transition-all duration-300 transform hover:scale-110" title="Paramètres Admin">
+                                        <i class="fas fa-cog text-xs"></i>
+                                    </button>
+                                    {% endif %}
+                                    <a href="{% url 'logout' %}" class="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all duration-300 transform hover:scale-110" title="Déconnexion">
+                                        <i class="fas fa-sign-out-alt text-xs"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Top Header -->
+            <header class="bg-white/90 backdrop-blur-xl shadow-sm border-b border-gray-200/50 sticky top-0 z-20">
+                <div class="flex items-center justify-between h-16 px-6">
+                    <div class="flex items-center">
+                        <button onclick="toggleSidebar()" class="lg:hidden p-2 rounded-xl text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all duration-300 transform hover:scale-105">
+                            <i class="fas fa-bars text-lg"></i>
+                        </button>
+                        <h1 class="ml-2 lg:ml-0 text-xl font-bold text-gray-900">{% block page_title %}{% endblock %}</h1>
+                    </div>
+                    
+                    <div class="flex items-center space-x-3">
+                        <!-- Search -->
+                        <div class="hidden md:block relative">
+                            <input type="text" placeholder="Rechercher..." class="w-64 pl-10 pr-4 py-2.5 bg-gray-50/80 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 backdrop-blur-sm">
+                            <i class="fas fa-search absolute left-3 top-3.5 text-gray-400"></i>
+                        </div>
+                        
+                        <!-- Notifications -->
+                        <div class="relative" id="notificationDropdown">
+                            <button onclick="toggleNotifications()" class="relative p-2.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100/80 rounded-2xl transition-all duration-300 transform hover:scale-105" id="notificationButton">
+                                <i class="fas fa-bell text-lg"></i>
+                                <span id="notificationBadge" class="absolute -top-1 -right-1 h-5 w-5 bg-gradient-to-r from-red-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg animate-pulse hidden">
+                                    <span id="notificationCount" class="text-xs text-white font-bold">0</span>
+                                </span>
+                            </button>
+                            
+                            <!-- Dropdown des notifications - Seulement non lues -->
+                            <div id="notificationPanel" class="absolute right-0 mt-2 w-80 sm:w-96 max-w-[calc(100vw-1rem)] bg-white rounded-2xl shadow-2xl border border-gray-200/50 backdrop-blur-xl z-50 hidden">
+                                <!-- Header du dropdown -->
+                                <div class="px-4 sm:px-6 py-4 border-b border-gray-200/50 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-2xl">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center space-x-2">
+                                            <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
+                                                <i class="fas fa-bell text-white text-sm"></i>
+                                            </div>
+                                            <h3 class="text-base sm:text-lg font-bold text-gray-900">Nouvelles notifications</h3>
+                                        </div>
+                                        <button onclick="markAllAsRead()" class="px-2 sm:px-3 py-1.5 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-100 rounded-lg font-medium transition-colors duration-200">
+                                            <i class="fas fa-check-double mr-1"></i>
+                                            <span class="hidden sm:inline">Tout marquer</span>
+                                            <span class="sm:hidden">Marquer</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Liste des notifications non lues -->
+                                <div id="notificationList" class="max-h-80 overflow-y-auto">
+                                    <div class="p-6 text-center text-gray-500">
+                                        <i class="fas fa-spinner fa-spin text-2xl mb-3"></i>
+                                        <p class="text-sm font-medium">Chargement...</p>
+                                    </div>
+                                </div>
+                                
+                                <!-- Footer du dropdown -->
+                                <div class="px-4 sm:px-6 py-4 border-t border-gray-200/50 bg-gray-50/50 rounded-b-2xl">
+                                    <a href="{% url 'notifications_taches' %}" class="flex items-center justify-center space-x-2 w-full py-2 text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors duration-200">
+                                        <i class="fas fa-external-link-alt text-xs"></i>
+                                        <span>Voir toutes les notifications</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Quick Actions -->
+                        <button class="p-2.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100/80 rounded-2xl transition-all duration-300 transform hover:scale-105" title="Actions rapides">
+                            <i class="fas fa-plus text-lg"></i>
+                        </button>
+                        
+                        <!-- User menu mobile -->
+                        <div class="lg:hidden">
+                            <span class="text-sm font-medium text-gray-700">{{ user.first_name }}</span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+            
+            <!-- Messages -->
+            {% if messages %}
+            <div class="px-6 py-4">
+                {% for message in messages %}
+                <div class="mb-4 p-4 rounded-lg {% if message.tags == 'error' %}bg-danger-50 border border-danger-200 text-danger-700{% elif message.tags == 'success' %}bg-success-50 border border-success-200 text-success-700{% elif message.tags == 'warning' %}bg-warning-50 border border-warning-200 text-warning-700{% else %}bg-primary-50 border border-primary-200 text-primary-700{% endif %}">
+                    <div class="flex items-center">
+                        <i class="{% if message.tags == 'error' %}fas fa-exclamation-circle text-danger-500{% elif message.tags == 'success' %}fas fa-check-circle text-success-500{% elif message.tags == 'warning' %}fas fa-exclamation-triangle text-warning-500{% else %}fas fa-info-circle text-primary-500{% endif %} mr-2"></i>
+                        <span class="text-sm font-medium">{{ message }}</span>
+                        <button onclick="this.parentElement.parentElement.remove()" class="ml-auto text-gray-400 hover:text-gray-600">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            <!-- Page Content -->
+            <main class="flex-1 overflow-y-auto">
+                {% block content %}
+                {% endblock %}
+            </main>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        // Sidebar toggle functionality
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            
+            if (sidebar.classList.contains('-translate-x-full')) {
+                sidebar.classList.remove('-translate-x-full');
+                overlay.classList.remove('hidden');
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                overlay.classList.add('hidden');
+            }
+        }
+        
+        // Close sidebar when clicking overlay
+        document.getElementById('sidebar-overlay')?.addEventListener('click', function() {
+            toggleSidebar();
+        });
+        
+        // Notification functionality
+        let notificationPanel = null;
+        let notificationButton = null;
+        let notificationBadge = null;
+        let notificationCount = null;
+        let notificationList = null;
+        
+        // Initialize notification elements
+        document.addEventListener('DOMContentLoaded', function() {
+            notificationPanel = document.getElementById('notificationPanel');
+            notificationButton = document.getElementById('notificationButton');
+            notificationBadge = document.getElementById('notificationBadge');
+            notificationCount = document.getElementById('notificationCount');
+            notificationList = document.getElementById('notificationList');
+            
+            // Load initial notifications
+            loadNotifications();
+            
+            // Refresh notifications every 30 seconds
+            setInterval(loadNotifications, 30000);
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(event) {
+                if (!document.getElementById('notificationDropdown').contains(event.target)) {
+                    closeNotifications();
+                }
+            });
+        });
+        
+        // Toggle notification dropdown
+        function toggleNotifications() {
+            if (notificationPanel.classList.contains('hidden')) {
+                openNotifications();
+            } else {
+                closeNotifications();
+            }
+        }
+        
+        // Open notification dropdown
+        function openNotifications() {
+            notificationPanel.classList.remove('hidden');
+            loadNotifications(); // Refresh when opening
+        }
+        
+        // Close notification dropdown
+        function closeNotifications() {
+            notificationPanel.classList.add('hidden');
+        }
+        
+        // Load notifications from server
+        function loadNotifications() {
+            fetch('/api/notifications/')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        updateNotificationBadge(data.total_non_lues);
+                        renderNotifications(data.notifications);
+                    } else {
+                        showErrorMessage();
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur lors du chargement des notifications:', error);
+                    showErrorMessage();
+                });
+        }
+        
+        // Update notification badge
+        function updateNotificationBadge(count) {
+            if (count > 0) {
+                notificationBadge.classList.remove('hidden');
+                notificationCount.textContent = count > 99 ? '99+' : count;
+            } else {
+                notificationBadge.classList.add('hidden');
+            }
+        }
+        
+        // Render notifications (seulement non lues pour l'icône)
+        function renderNotifications(notifications) {
+            if (notifications.length === 0) {
+                notificationList.innerHTML = `
+                    <div class="p-6 sm:p-8 text-center text-gray-500">
+                        <div class="w-16 h-16 mx-auto mb-4 bg-green-100 rounded-full flex items-center justify-center">
+                            <i class="fas fa-check text-2xl text-green-500"></i>
+                        </div>
+                        <p class="text-sm font-medium text-gray-700">Aucune nouvelle notification</p>
+                        <p class="text-xs text-gray-500 mt-1">Vous êtes à jour !</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            notifications.forEach(notification => {
+                const timeAgo = formatTimeAgo(notification.date_creation);
+                const projectInfo = notification.projet_nom ? `<span class="text-xs text-blue-600 font-medium">${notification.projet_nom}</span>` : '';
+                
+                html += `
+                    <div class="notification-item p-3 sm:p-4 border-b border-gray-100 hover:bg-blue-50 transition-all duration-200 cursor-pointer bg-blue-50/30" 
+                         data-id="${notification.id}" onclick="handleNotificationClick(${notification.id})">
+                        <div class="flex items-start space-x-3">
+                            <div class="flex-shrink-0 relative">
+                                <div class="w-8 sm:w-10 h-8 sm:h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
+                                    <i class="fas fa-tasks text-white text-xs sm:text-sm"></i>
+                                </div>
+                                <div class="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></div>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-xs sm:text-sm text-gray-900 font-medium leading-relaxed break-words">${notification.message}</p>
+                                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-2 space-y-1 sm:space-y-0">
+                                    <div class="flex flex-col space-y-1">
+                                        ${projectInfo}
+                                        <span class="text-xs text-gray-500">${timeAgo}</span>
+                                    </div>
+                                    <button onclick="event.stopPropagation(); markAsRead(${notification.id})" 
+                                            class="self-start sm:self-auto px-2 py-1 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-100 rounded-md font-medium transition-colors duration-200">
+                                        <i class="fas fa-check mr-1"></i>Marquer
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            notificationList.innerHTML = html;
+        }
+        
+        // Handle notification click (redirection vers page complète)
+        function handleNotificationClick(notificationId) {
+            // Marquer comme lu automatiquement
+            markAsRead(notificationId, false);
+            
+            // Fermer le dropdown
+            closeNotifications();
+            
+            // Rediriger vers la page complète des notifications
+            window.location.href = '/notifications/taches/';
+        }
+        
+        // Show error message
+        function showErrorMessage() {
+            notificationList.innerHTML = `
+                <div class="p-6 text-center text-red-500">
+                    <i class="fas fa-exclamation-triangle text-2xl mb-3"></i>
+                    <p class="text-sm font-medium">Erreur de chargement</p>
+                    <button onclick="loadNotifications()" class="mt-2 px-3 py-1 text-xs bg-red-100 text-red-600 rounded-md hover:bg-red-200 transition-colors duration-200">
+                        Réessayer
+                    </button>
+                </div>
+            `;
+        }
+        
+        // Mark single notification as read
+        function markAsRead(notificationId, shouldReload = true) {
+            fetch(`/api/notifications/${notificationId}/mark-read/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCsrfToken(),
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && shouldReload) {
+                    loadNotifications(); // Refresh notifications
+                }
+            })
+            .catch(error => {
+                console.error('Erreur lors du marquage comme lu:', error);
+            });
+        }
+        
+        // Mark all notifications as read
+        function markAllAsRead() {
+            fetch('/api/notifications/mark-all-read/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCsrfToken(),
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    loadNotifications(); // Refresh notifications
+                }
+            })
+            .catch(error => {
+                console.error('Erreur lors du marquage de toutes les notifications:', error);
+            });
+        }
+        
+        // Get CSRF token
+        function getCsrfToken() {
+            return document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+                   document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || '';
+        }
+        
+        // Format time ago
+        function formatTimeAgo(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diffInSeconds = Math.floor((now - date) / 1000);
+            
+            if (diffInSeconds < 60) {
+                return 'À l\'instant';
+            } else if (diffInSeconds < 3600) {
+                const minutes = Math.floor(diffInSeconds / 60);
+                return `Il y a ${minutes} min`;
+            } else if (diffInSeconds < 86400) {
+                const hours = Math.floor(diffInSeconds / 3600);
+                return `Il y a ${hours}h`;
+            } else {
+                const days = Math.floor(diffInSeconds / 86400);
+                return `Il y a ${days}j`;
+            }
+        }
+        
+        // Auto-hide messages after 5 seconds
+        setTimeout(function() {
+            const messages = document.querySelectorAll('[class*="bg-danger-50"], [class*="bg-success-50"], [class*="bg-warning-50"], [class*="bg-primary-50"]');
+            messages.forEach(function(message) {
+                message.style.transition = 'opacity 0.5s ease-out';
+                message.style.opacity = '0';
+                setTimeout(function() {
+                    if (message.parentNode) {
+                        message.remove();
+                    }
+                }, 500);
+            });
+        }, 5000);
+    </script>
+    
+    {% block extra_js %}
+    {% endblock %}
+</body>
+</html>

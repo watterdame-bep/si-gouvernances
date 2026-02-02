@@ -1,0 +1,253 @@
+{% extends 'base.html' %}
+
+{% block title %}Gestion des Étapes - {{ projet.nom }} - SI-Gouvernance JCM{% endblock %}
+{% block page_title %}Gestion des Étapes - {{ projet.nom }}{% endblock %}
+
+{% block content %}
+<div class="bg-gray-50 min-h-screen p-2 md:p-4">
+    <div class="max-w-6xl mx-auto space-y-3">
+        
+        <!-- Header Compact -->
+        <div class="bg-white rounded-lg p-3 shadow-md border border-white/20">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center shadow-md">
+                        <span class="text-white text-sm">⏱️</span>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-bold text-gray-900">Gestion des Étapes</h1>
+                        <p class="text-xs text-gray-600">{{ projet.nom }}</p>
+                    </div>
+                </div>
+                <a href="{% url 'projet_detail' projet.id %}" class="inline-flex items-center px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium text-sm">
+                    <span class="mr-1">←</span>Retour
+                </a>
+            </div>
+        </div>
+
+        <!-- Timeline Simplifiée -->
+        <div class="bg-white rounded-lg p-3 md:p-4 shadow-md border border-white/20">
+            <div class="mb-4">
+                <h2 class="text-base font-bold text-gray-900 mb-1">Timeline du Projet</h2>
+                <p class="text-xs text-gray-600">Gérez les étapes du cycle de vie du projet</p>
+            </div>
+            
+            {% if timeline.passees or timeline.courante or timeline.futures %}
+            <div class="space-y-3">
+                <!-- Étapes passées -->
+                {% for etape in timeline.passees %}
+                <div class="flex items-center p-3 bg-green-50 rounded-lg border border-green-200">
+                    <div class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-green-500 mr-3">
+                        <span class="text-white text-sm">{{ etape.type_etape.icone_emoji }}</span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between mb-1">
+                            <h3 class="text-sm font-medium text-green-800 truncate">{{ etape.type_etape.get_nom_display }}</h3>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                ✅ Terminée
+                            </span>
+                        </div>
+                        <p class="text-xs text-green-600 mb-2">{{ etape.type_etape.description|truncatechars:80 }}</p>
+                        <div class="flex items-center justify-between">
+                            <div class="text-xs text-green-600">
+                                {% if etape.date_fin_reelle %}
+                                    Terminée le {{ etape.date_fin_reelle|date:"d/m/Y" }}
+                                {% endif %}
+                            </div>
+                            <a href="{% url 'detail_etape' projet.id etape.id %}" class="text-xs text-green-700 hover:text-green-800 font-medium">
+                                Consulter →
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                
+                <!-- Étape courante -->
+                {% if timeline.courante %}
+                <div class="flex items-center p-3 bg-orange-50 rounded-lg border border-orange-200">
+                    <div class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-orange-500 mr-3 animate-pulse">
+                        <span class="text-white text-sm">{{ timeline.courante.type_etape.icone_emoji }}</span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between mb-1">
+                            <h3 class="text-sm font-medium text-orange-800 truncate">{{ timeline.courante.type_etape.get_nom_display }}</h3>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800">
+                                🔄 En cours
+                            </span>
+                        </div>
+                        <p class="text-xs text-orange-600 mb-2">{{ timeline.courante.type_etape.description|truncatechars:80 }}</p>
+                        <div class="flex items-center justify-between">
+                            <div class="text-xs text-orange-600">
+                                {% if timeline.courante.date_debut_reelle %}
+                                    Débutée le {{ timeline.courante.date_debut_reelle|date:"d/m/Y" }}
+                                {% endif %}
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <a href="{% url 'detail_etape' projet.id timeline.courante.id %}" class="text-xs text-orange-700 hover:text-orange-800 font-medium">
+                                    Consulter →
+                                </a>
+                                {% if can_manage %}
+                                <span class="text-gray-300">|</span>
+                                <button onclick="terminerEtape('{{ timeline.courante.id }}')" class="text-xs text-green-600 hover:text-green-700 font-medium">
+                                    Terminer
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Étapes futures -->
+                {% for etape in timeline.futures %}
+                <div class="flex items-center p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    <div class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-gray-300 mr-3">
+                        <span class="text-gray-600 text-sm">{{ etape.type_etape.icone_emoji }}</span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between mb-1">
+                            <h3 class="text-sm font-medium text-gray-700 truncate">{{ etape.type_etape.get_nom_display }}</h3>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
+                                ⏳ À venir
+                            </span>
+                        </div>
+                        <p class="text-xs text-gray-600 mb-2">{{ etape.type_etape.description|truncatechars:80 }}</p>
+                        <div class="flex items-center justify-between">
+                            <div class="text-xs text-gray-500">
+                                {% if etape.date_debut_prevue %}
+                                    Prévue pour le {{ etape.date_debut_prevue|date:"d/m/Y" }}
+                                {% else %}
+                                    Date à définir
+                                {% endif %}
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <a href="{% url 'detail_etape' projet.id etape.id %}" class="text-xs text-gray-600 hover:text-gray-700 font-medium">
+                                    Consulter
+                                </a>
+                                {% if can_manage and not timeline.courante and etape.ordre == 1 %}
+                                <span class="text-gray-300">|</span>
+                                <button onclick="activerEtape('{{ etape.id }}')" class="text-xs text-blue-600 hover:text-blue-700 font-medium">
+                                    Démarrer
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Progression globale -->
+            {% if timeline.passees or timeline.courante %}
+            <div class="mt-4 pt-3 border-t border-gray-200">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-medium text-gray-600">Progression globale</span>
+                    <span class="text-xs font-bold text-gray-900">
+                        {{ timeline.passees|length }} / {{ projet.etapes.count }} étapes
+                    </span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div class="bg-gradient-to-r from-green-500 to-blue-500 h-2 rounded-full" 
+                         style="width: {% widthratio timeline.passees|length projet.etapes.count 100 %}%"></div>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% else %}
+            <div class="text-center py-8">
+                <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <span class="text-gray-400 text-xl">⏱️</span>
+                </div>
+                <p class="text-sm font-medium text-gray-500 mb-1">Aucune étape définie</p>
+                <p class="text-xs text-gray-400">Les étapes seront initialisées automatiquement</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Actions rapides (si autorisé) -->
+        {% if can_manage and timeline.courante %}
+        <div class="bg-white rounded-lg p-3 shadow-md border border-white/20">
+            <h3 class="text-sm font-bold text-gray-900 mb-2">Actions rapides</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button onclick="terminerEtape('{{ timeline.courante.id }}')"
+                        class="flex items-center p-2 bg-green-50 hover:bg-green-100 rounded-lg border border-green-200 transition-colors">
+                    <span class="mr-2">✅</span>
+                    <div>
+                        <div class="text-xs font-medium text-green-800">Terminer l'étape</div>
+                        <div class="text-xs text-green-600">{{ timeline.courante.type_etape.get_nom_display }}</div>
+                    </div>
+                </button>
+                
+                {% if timeline.courante.get_etape_suivante %}
+                <button onclick="activerEtapeSuivante('{{ timeline.courante.get_etape_suivante.id }}')"
+                        class="flex items-center p-2 bg-orange-50 hover:bg-orange-100 rounded-lg border border-orange-200 transition-colors">
+                    <span class="mr-2">⏭️</span>
+                    <div>
+                        <div class="text-xs font-medium text-orange-800">Étape suivante</div>
+                        <div class="text-xs text-orange-600">{{ timeline.courante.get_etape_suivante.type_etape.get_nom_display }}</div>
+                    </div>
+                </button>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Scripts JavaScript -->
+<script>
+function activerEtape(etapeId) {
+    if (confirm('Êtes-vous sûr de vouloir activer cette étape ?')) {
+        fetch(`{% url 'activer_etape' projet.id '00000000-0000-0000-0000-000000000000' %}`.replace('00000000-0000-0000-0000-000000000000', etapeId), {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/x-www-form-urlencoded',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Erreur: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            alert('Une erreur est survenue');
+        });
+    }
+}
+
+function activerEtapeSuivante(etapeId) {
+    if (confirm('Êtes-vous sûr de vouloir passer à l\'étape suivante ? L\'étape actuelle sera automatiquement terminée.')) {
+        activerEtape(etapeId);
+    }
+}
+
+function terminerEtape(etapeId) {
+    if (confirm('Êtes-vous sûr de vouloir terminer cette étape ?')) {
+        fetch(`{% url 'terminer_etape' projet.id '00000000-0000-0000-0000-000000000000' %}`.replace('00000000-0000-0000-0000-000000000000', etapeId), {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/x-www-form-urlencoded',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Erreur: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            alert('Une erreur est survenue');
+        });
+    }
+}
+</script>
+{% endblock %}
