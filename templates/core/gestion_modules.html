@@ -11,195 +11,423 @@
         <div class="bg-white rounded-lg p-4 shadow-md border border-white/20">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center shadow-md">
-                        <span class="text-white font-bold text-sm">🧩</span>
+                    <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-md">
+                        <span class="text-white text-lg">🧩</span>
                     </div>
                     <div>
                         <h1 class="text-xl font-bold text-gray-900">Gestion des Modules</h1>
-                        <p class="text-sm text-gray-600">{{ projet.nom }} - Structure fonctionnelle</p>
+                        <p class="text-sm text-gray-600">{{ projet.nom }} - Phase {{ etape_courante.type_etape.get_nom_display }}</p>
                     </div>
                 </div>
-                <div class="flex items-center space-x-3">
-                    {% if can_manage %}
-                    <a href="{% url 'creer_module' projet.id %}" class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-lg font-medium shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300 text-sm">
-                        <span class="mr-2">➕</span>Créer un module
-                    </a>
-                    {% endif %}
-                    <a href="{% url 'projet_detail' projet.id %}" class="inline-flex items-center px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium shadow-md transition-all duration-300 text-sm">
-                        <span class="mr-2">←</span>Retour au projet
+                <div class="flex items-center space-x-2">
+                    <button onclick="ouvrirModalCreerModule()" 
+                            class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium rounded-lg transition-all transform hover:scale-105 shadow-lg">
+                        <span class="mr-2">➕</span>Nouveau Module
+                    </button>
+                    <a href="{% url 'projet_detail' projet.id %}" 
+                       class="inline-flex items-center px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium">
+                        <span class="mr-1">←</span>Retour
                     </a>
                 </div>
             </div>
         </div>
 
-        <!-- Informations sur l'étape courante -->
-        {% if etape_courante %}
-        <div class="bg-white rounded-lg p-4 shadow-md border border-white/20">
-            <div class="flex items-center space-x-3 mb-3">
-                <div class="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg flex items-center justify-center shadow-md">
-                    <span class="text-white text-sm">{{ etape_courante.type_etape.icone_emoji }}</span>
-                </div>
-                <div>
-                    <h3 class="text-lg font-bold text-gray-900">Étape courante: {{ etape_courante.type_etape.get_nom_display }}</h3>
-                    <p class="text-sm text-gray-600">{{ etape_courante.type_etape.description }}</p>
+        <!-- Statistiques rapides -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="bg-white rounded-lg p-4 shadow-md border border-white/20">
+                <div class="flex items-center">
+                    <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                        <span class="text-blue-600 text-sm">🧩</span>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-600">Total Modules</p>
+                        <p class="text-lg font-bold text-gray-900">{{ modules.count }}</p>
+                    </div>
                 </div>
             </div>
             
-            {% if peut_creer_librement %}
-            <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+            <div class="bg-white rounded-lg p-4 shadow-md border border-white/20">
                 <div class="flex items-center">
-                    <span class="text-green-500 mr-2">✅</span>
-                    <p class="text-sm text-green-800 font-medium">Vous pouvez créer des modules librement dans cette étape.</p>
-                </div>
-            </div>
-            {% else %}
-            <div class="bg-orange-50 border border-orange-200 rounded-lg p-3">
-                <div class="flex items-center">
-                    <span class="text-orange-500 mr-2">⚠️</span>
-                    <p class="text-sm text-orange-800 font-medium">Création tardive de module - Une justification sera requise.</p>
-                </div>
-            </div>
-            {% endif %}
-        </div>
-        {% endif %}
-
-        <!-- Liste des Modules -->
-        <div class="bg-white rounded-lg shadow-md border border-white/20 overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-emerald-50 to-teal-50">
-                <div class="flex items-center justify-between">
+                    <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                        <span class="text-green-600 text-sm">👥</span>
+                    </div>
                     <div>
-                        <h2 class="text-lg font-bold text-gray-900">Modules Fonctionnels</h2>
-                        <p class="text-sm text-gray-600">{{ modules.count }} module{{ modules.count|pluralize }} défini{{ modules.count|pluralize }}</p>
-                    </div>
-                    <div class="text-sm text-gray-500">
-                        Structure du produit
+                        <p class="text-xs text-gray-600">Équipe Projet</p>
+                        <p class="text-lg font-bold text-gray-900">{{ equipe.count }}</p>
                     </div>
                 </div>
+            </div>
+            
+            <div class="bg-white rounded-lg p-4 shadow-md border border-white/20">
+                <div class="flex items-center">
+                    <div class="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center mr-3">
+                        <span class="text-orange-600 text-sm">📋</span>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-600">Tâches Totales</p>
+                        <p class="text-lg font-bold text-gray-900">
+                            {% for module in modules %}{{ module.taches.count|add:0 }}{% empty %}0{% endfor %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg p-4 shadow-md border border-white/20">
+                <div class="flex items-center">
+                    <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
+                        <span class="text-purple-600 text-sm">⚡</span>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-600">Phase Active</p>
+                        <p class="text-sm font-bold text-purple-600">{{ etape_courante.type_etape.get_nom_display }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Liste des modules -->
+        <div class="bg-white rounded-lg shadow-md border border-white/20">
+            <div class="p-4 border-b border-gray-200">
+                <h2 class="text-lg font-bold text-gray-900">Modules du Projet</h2>
+                <p class="text-sm text-gray-600">Gérez les modules et leurs affectations</p>
             </div>
             
             {% if modules %}
-            <div class="p-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {% for module in modules %}
-                    <div class="bg-gray-50 rounded-lg border border-gray-200 hover:shadow-lg transition-all duration-300 overflow-hidden">
-                        <!-- Header du module -->
-                        <div class="p-4 border-b border-gray-200" style="background: linear-gradient(135deg, {{ module.couleur }}20, {{ module.couleur }}10);">
-                            <div class="flex items-start justify-between mb-3">
-                                <div class="flex items-center space-x-3 flex-1 min-w-0">
-                                    <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 shadow-md" style="background-color: {{ module.couleur }};">
-                                        <span class="text-white text-lg">{{ module.icone_emoji }}</span>
-                                    </div>
-                                    <div class="flex-1 min-w-0">
-                                        <h3 class="font-bold text-gray-900 text-lg truncate">{{ module.nom }}</h3>
-                                        <p class="text-sm text-gray-600 line-clamp-2">{{ module.description }}</p>
-                                    </div>
-                                </div>
+            <div class="divide-y divide-gray-200">
+                {% for module in modules %}
+                <div class="p-4">
+                    <div class="flex items-start justify-between mb-3">
+                        <div class="flex items-start space-x-3">
+                            <div class="w-10 h-10 rounded-lg flex items-center justify-center shadow-sm" 
+                                 style="background-color: {{ module.couleur }}20; border: 1px solid {{ module.couleur }}40;">
+                                <span class="text-lg">{{ module.icone_emoji }}</span>
                             </div>
-                            
-                            <!-- Badges -->
-                            <div class="flex items-center space-x-2 mb-3">
-                                {% if module.est_creation_tardive %}
-                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                                    ⚠️ Création tardive
-                                </span>
-                                {% endif %}
-                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                    {{ module.etape_creation.type_etape.get_nom_display }}
-                                </span>
+                            <div class="flex-1">
+                                <h3 class="text-lg font-bold text-gray-900">{{ module.nom }}</h3>
+                                <p class="text-sm text-gray-600 mb-2">{{ module.description }}</p>
+                                <div class="flex items-center space-x-4 text-xs text-gray-500">
+                                    <span>📅 Créé le {{ module.date_creation|date:"d/m/Y" }}</span>
+                                    <span>👤 Par {{ module.createur.get_full_name }}</span>
+                                    <span>📋 {{ module.taches.count }} tâche{{ module.taches.count|pluralize }}</span>
+                                </div>
                             </div>
                         </div>
-                        
-                        <!-- Contenu du module -->
-                        <div class="p-4">
-                            <!-- Statistiques des tâches -->
-                            <div class="mb-4">
-                                <div class="flex items-center justify-between mb-2">
-                                    <span class="text-sm font-medium text-gray-600">Progression</span>
-                                    <span class="text-sm font-bold text-emerald-600">{{ module.get_progression_taches }}%</span>
-                                </div>
-                                <div class="w-full bg-gray-200 rounded-full h-2">
-                                    <div class="bg-gradient-to-r from-emerald-500 to-teal-600 h-2 rounded-full transition-all duration-300" style="width: {{ module.get_progression_taches }}%"></div>
-                                </div>
-                            </div>
-                            
-                            <!-- Statistiques détaillées -->
-                            <div class="grid grid-cols-2 gap-3 mb-4">
-                                <div class="text-center p-2 bg-blue-50 rounded-lg">
-                                    <div class="text-lg font-bold text-blue-600">{{ module.taches.count }}</div>
-                                    <div class="text-xs text-blue-800">Tâche{{ module.taches.count|pluralize }}</div>
-                                </div>
-                                <div class="text-center p-2 bg-green-50 rounded-lg">
-                                    <div class="text-lg font-bold text-green-600">{{ module.taches.filter.statut='TERMINEE'.count }}</div>
-                                    <div class="text-xs text-green-800">Terminée{{ module.taches.filter.statut='TERMINEE'.count|pluralize }}</div>
-                                </div>
-                            </div>
-                            
-                            <!-- Métadonnées -->
-                            <div class="text-xs text-gray-500 mb-4">
-                                <div>Créé par {{ module.createur.get_full_name }}</div>
-                                <div>Le {{ module.date_creation|date:"d/m/Y à H:i" }}</div>
-                            </div>
-                            
-                            <!-- Actions -->
-                            <div class="flex items-center space-x-2">
-                                <a href="{% url 'detail_module' projet.id module.id %}" class="flex-1 text-center px-3 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-lg font-medium shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300 text-sm">
-                                    <span class="mr-1">👁️</span>Voir détails
-                                </a>
-                                {% if can_manage %}
-                                <a href="{% url 'gestion_taches' module.id %}" class="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium shadow-md transition-all duration-300 text-sm">
-                                    <span>⚙️</span>
-                                </a>
-                                {% endif %}
-                            </div>
+                        <div class="flex items-center space-x-2">
+                            <button onclick="ouvrirModalAffecterModule('{{ module.id }}', '{{ module.nom }}')"
+                                    class="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-sm font-medium transition-colors">
+                                👥 Affecter
+                            </button>
+                            <button onclick="voirDetailsModule('{{ module.id }}')"
+                                    class="px-3 py-1.5 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg text-sm font-medium transition-colors">
+                                👁️ Détails
+                            </button>
                         </div>
                     </div>
-                    {% endfor %}
+                    
+                    <!-- Affectations du module -->
+                    {% if module.affectations.all %}
+                    <div class="bg-gray-50 rounded-lg p-3">
+                        <h4 class="text-sm font-medium text-gray-700 mb-2">Équipe affectée :</h4>
+                        <div class="flex flex-wrap gap-2">
+                            {% for affectation in module.affectations.all %}
+                            {% if affectation.est_active %}
+                            <div class="inline-flex items-center px-3 py-1 bg-white rounded-full border border-gray-200 text-sm">
+                                <div class="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mr-2">
+                                    <span class="text-white text-xs font-bold">
+                                        {{ affectation.utilisateur.first_name.0 }}{{ affectation.utilisateur.last_name.0 }}
+                                    </span>
+                                </div>
+                                <span class="font-medium text-gray-900">{{ affectation.utilisateur.get_full_name }}</span>
+                                <span class="ml-2 px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs">
+                                    {{ affectation.get_role_module_display }}
+                                </span>
+                                {% if affectation.peut_creer_taches %}
+                                <span class="ml-1 text-green-600" title="Peut créer des tâches">✏️</span>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                        <p class="text-sm text-yellow-800">
+                            <span class="mr-2">⚠️</span>Aucun membre affecté à ce module
+                        </p>
+                    </div>
+                    {% endif %}
                 </div>
+                {% endfor %}
             </div>
             {% else %}
-            <div class="p-12 text-center">
+            <div class="p-8 text-center">
                 <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <span class="text-gray-400 text-2xl">🧩</span>
                 </div>
-                <p class="text-lg font-medium text-gray-500 mb-2">Aucun module défini</p>
-                <p class="text-sm text-gray-400 mb-6">Les modules structurent les fonctionnalités de votre projet</p>
-                {% if can_manage %}
-                <a href="{% url 'creer_module' projet.id %}" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-lg font-medium shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300">
-                    <span class="mr-2">🧩</span>Créer le premier module
-                </a>
-                {% endif %}
+                <h3 class="text-lg font-medium text-gray-500 mb-2">Aucun module créé</h3>
+                <p class="text-sm text-gray-400 mb-4">Créez votre premier module pour structurer le développement</p>
+                <button onclick="ouvrirModalCreerModule()" 
+                        class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium rounded-lg transition-all">
+                    <span class="mr-2">➕</span>Créer un Module
+                </button>
             </div>
             {% endif %}
         </div>
+    </div>
+</div>
 
-        <!-- Informations sur les modules -->
-        <div class="bg-white rounded-lg p-6 shadow-md border border-white/20">
-            <div class="flex items-center space-x-3 mb-4">
-                <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-md">
-                    <span class="text-white text-sm">ℹ️</span>
+<!-- Modal Créer Module -->
+<div id="modalCreerModule" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl max-w-md w-full transform transition-all">
+        <div class="p-6">
+            <div class="flex items-center mb-4">
+                <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mr-3">
+                    <span class="text-white text-lg">🧩</span>
                 </div>
-                <h3 class="text-lg font-bold text-gray-900">À propos des modules</h3>
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900">Nouveau Module</h3>
+                    <p class="text-sm text-gray-600">Créer un module pour le projet</p>
+                </div>
             </div>
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="space-y-3">
-                    <h4 class="font-medium text-gray-900">Logique fonctionnelle</h4>
-                    <ul class="text-sm text-gray-600 space-y-1">
-                        <li>• Les modules représentent les parties fonctionnelles du projet</li>
-                        <li>• Ils structurent le produit final (ex: Authentification, Stock, Rapports)</li>
-                        <li>• Chaque module contient des tâches spécifiques</li>
-                    </ul>
+            <form id="formCreerModule" class="space-y-4">
+                {% csrf_token %}
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Nom du module *</label>
+                    <input type="text" name="nom" required 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                           placeholder="Ex: Interface utilisateur">
                 </div>
-                <div class="space-y-3">
-                    <h4 class="font-medium text-gray-900">Bonnes pratiques</h4>
-                    <ul class="text-sm text-gray-600 space-y-1">
-                        <li>• Créez les modules principalement en phase de Conception</li>
-                        <li>• Utilisez des noms clairs et descriptifs</li>
-                        <li>• Organisez les tâches par module pour une meilleure lisibilité</li>
-                    </ul>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Description *</label>
+                    <textarea name="description" required rows="3"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              placeholder="Décrivez les fonctionnalités de ce module..."></textarea>
                 </div>
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Couleur</label>
+                        <input type="color" name="couleur" value="#10B981"
+                               class="w-full h-10 border border-gray-300 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Icône</label>
+                        <input type="text" name="icone_emoji" value="🧩" maxlength="10"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="🧩">
+                    </div>
+                </div>
+            </form>
+            
+            <div class="flex items-center justify-end space-x-3 mt-6">
+                <button onclick="fermerModalCreerModule()" 
+                        class="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium transition-colors">
+                    Annuler
+                </button>
+                <button onclick="confirmerCreerModule()" 
+                        class="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium rounded-lg transition-all transform hover:scale-105 shadow-lg">
+                    Créer
+                </button>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Modal Affecter Module -->
+<div id="modalAffecterModule" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl max-w-md w-full transform transition-all">
+        <div class="p-6">
+            <div class="flex items-center mb-4">
+                <div class="w-10 h-10 bg-gradient-to-br from-green-500 to-blue-600 rounded-full flex items-center justify-center mr-3">
+                    <span class="text-white text-lg">👥</span>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900">Affecter au Module</h3>
+                    <p class="text-sm text-gray-600" id="nomModuleAffectation"></p>
+                </div>
+            </div>
+            
+            <form id="formAffecterModule" class="space-y-4">
+                {% csrf_token %}
+                <input type="hidden" name="module_id" id="moduleIdAffectation">
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Membre de l'équipe *</label>
+                    <select name="utilisateur_id" required 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Sélectionner un membre...</option>
+                        {% for membre in equipe %}
+                        <option value="{{ membre.id }}">{{ membre.get_full_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Rôle sur le module</label>
+                    <select name="role_module" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="CONTRIBUTEUR">Contributeur</option>
+                        <option value="RESPONSABLE">Responsable</option>
+                        <option value="CONSULTANT">Consultant</option>
+                    </select>
+                </div>
+                
+                <div class="space-y-2">
+                    <label class="flex items-center">
+                        <input type="checkbox" name="peut_creer_taches" checked 
+                               class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                        <span class="ml-2 text-sm text-gray-700">Peut créer des tâches</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="checkbox" name="peut_voir_toutes_taches" 
+                               class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                        <span class="ml-2 text-sm text-gray-700">Peut voir toutes les tâches du module</span>
+                    </label>
+                </div>
+            </form>
+            
+            <div class="flex items-center justify-end space-x-3 mt-6">
+                <button onclick="fermerModalAffecterModule()" 
+                        class="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium transition-colors">
+                    Annuler
+                </button>
+                <button onclick="confirmerAffecterModule()" 
+                        class="px-6 py-2 bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white font-medium rounded-lg transition-all transform hover:scale-105 shadow-lg">
+                    Affecter
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Variables globales
+let moduleIdEnCours = null;
+
+// Fonctions pour le modal de création de module
+function ouvrirModalCreerModule() {
+    document.getElementById('modalCreerModule').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function fermerModalCreerModule() {
+    document.getElementById('modalCreerModule').classList.add('hidden');
+    document.body.style.overflow = 'auto';
+    document.getElementById('formCreerModule').reset();
+}
+
+function confirmerCreerModule() {
+    const form = document.getElementById('formCreerModule');
+    const formData = new FormData(form);
+    
+    const btnConfirmer = event.target;
+    btnConfirmer.disabled = true;
+    btnConfirmer.textContent = 'Création...';
+    
+    fetch(`{% url 'creer_module' projet.id %}`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            fermerModalCreerModule();
+            location.reload();
+        } else {
+            alert('Erreur: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        alert('Une erreur est survenue');
+    })
+    .finally(() => {
+        btnConfirmer.disabled = false;
+        btnConfirmer.textContent = 'Créer';
+    });
+}
+
+// Fonctions pour le modal d'affectation
+function ouvrirModalAffecterModule(moduleId, nomModule) {
+    moduleIdEnCours = moduleId;
+    document.getElementById('moduleIdAffectation').value = moduleId;
+    document.getElementById('nomModuleAffectation').textContent = nomModule;
+    document.getElementById('modalAffecterModule').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function fermerModalAffecterModule() {
+    document.getElementById('modalAffecterModule').classList.add('hidden');
+    document.body.style.overflow = 'auto';
+    document.getElementById('formAffecterModule').reset();
+    moduleIdEnCours = null;
+}
+
+function confirmerAffecterModule() {
+    if (!moduleIdEnCours) return;
+    
+    const form = document.getElementById('formAffecterModule');
+    const formData = new FormData(form);
+    
+    const btnConfirmer = event.target;
+    btnConfirmer.disabled = true;
+    btnConfirmer.textContent = 'Affectation...';
+    
+    fetch(`{% url 'affecter_module' projet.id '00000000-0000-0000-0000-000000000000' %}`.replace('00000000-0000-0000-0000-000000000000', moduleIdEnCours), {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            fermerModalAffecterModule();
+            location.reload();
+        } else {
+            alert('Erreur: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        alert('Une erreur est survenue');
+    })
+    .finally(() => {
+        btnConfirmer.disabled = false;
+        btnConfirmer.textContent = 'Affecter';
+    });
+}
+
+function voirDetailsModule(moduleId) {
+    // TODO: Implémenter la vue détaillée du module
+    alert('Fonctionnalité à venir : Vue détaillée du module');
+}
+
+// Fermer les modals en cliquant à l'extérieur
+document.getElementById('modalCreerModule').addEventListener('click', function(e) {
+    if (e.target === this) fermerModalCreerModule();
+});
+
+document.getElementById('modalAffecterModule').addEventListener('click', function(e) {
+    if (e.target === this) fermerModalAffecterModule();
+});
+
+// Fermer les modals avec la touche Échap
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        if (!document.getElementById('modalCreerModule').classList.contains('hidden')) {
+            fermerModalCreerModule();
+        }
+        if (!document.getElementById('modalAffecterModule').classList.contains('hidden')) {
+            fermerModalAffecterModule();
+        }
+    }
+});
+</script>
 {% endblock %}

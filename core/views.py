@@ -4084,3 +4084,375 @@ def changer_mot_de_passe_view(request):
             request=request
         )
         return JsonResponse({'success': False, 'error': 'Une erreur est survenue lors du changement de mot de passe'})
+
+# ===== GESTION DES MODULES EN PHASE DÉVELOPPEMENT =====
+
+@login_required
+def gestion_modules_view(request, projet_id):
+    """Interface de gestion des modules pour la phase développement"""
+    user = request.user
+    projet = get_object_or_404(Projet, id=projet_id)
+    
+    # Vérifier les permissions
+    can_manage = user.est_super_admin() or projet.createur == user
+    if not can_manage:
+        # Vérifier si l'utilisateur est responsable principal du projet
+        affectation_user = projet.affectations.filter(
+            utilisateur=user, 
+            est_responsable_principal=True,
+            date_fin__isnull=True
+        ).first()
+        can_manage = affectation_user is not None
+    
+    if not can_manage:
+        messages.error(request, 'Vous n\'avez pas les permissions pour gérer les modules de ce projet.')
+        return redirect('projet_detail', projet_id=projet_id)
+    
+    # Vérifier que le projet est en phase développement
+    etape_courante = projet.etapes.filter(statut='EN_COURS').first()
+    if not etape_courante or etape_courante.type_etape.nom != 'DEVELOPPEMENT':
+        messages.warning(request, 'La gestion des modules n\'est disponible qu\'en phase de développement.')
+        return redirect('projet_detail', projet_id=projet_id)
+    
+    # Récupérer les modules du projet
+    modules = projet.modules.all().prefetch_related('affectations__utilisateur', 'taches')
+    
+    # Récupérer l'équipe du projet pour les affectations
+    equipe = []
+    for aff in projet.affectations.filter(date_fin__isnull=True).select_related('utilisateur'):
+        try:
+            equipe.append(aff.utilisateur)
+        except:
+            aff.delete()  # Nettoyer les affectations invalides
+    
+    context = {
+        'projet': projet,
+        'modules': modules,
+        'equipe': equipe,
+        'etape_courante': etape_courante,
+        'can_create_modules': True,
+        'is_super_admin': user.est_super_admin(),
+    }
+    
+    return render(request, 'core/gestion_modules.html', context)
+
+@login_required
+@require_http_methods(["POST"])
+def creer_module_view(request, projet_id):
+    """Créer un nouveau module"""
+    user = request.user
+    projet = get_object_or_404(Projet, id=projet_id)
+    
+    # Vérifier les permissions
+    can_manage = user.est_super_admin() or projet.createur == user
+    if not can_manage:
+        affectation_user = projet.affectations.filter(
+            utilisateur=user, 
+            est_responsable_principal=True,
+            date_fin__isnull=True
+        ).first()
+        can_manage = affectation_user is not None
+    
+    if not can_manage:
+        return JsonResponse({'success': False, 'error': 'Permission refusée'})
+    
+    # Vérifier que le projet est en phase développement
+    etape_courante = projet.etapes.filter(statut='EN_COURS').first()
+    if not etape_courante or etape_courante.type_etape.nom != 'DEVELOPPEMENT':
+        return JsonResponse({'success': False, 'error': 'Création de modules disponible uniquement en phase développement'})
+    
+    try:
+        nom = request.POST.get('nom', '').strip()
+        description = request.POST.get('description', '').strip()
+        couleur = request.POST.get('couleur', '#10B981')
+        icone_emoji = request.POST.get('icone_emoji', '🧩')
+        
+        if not nom:
+            return JsonResponse({'success': False, 'error': 'Le nom du module est obligatoire'})
+        
+        if not description:
+            return JsonResponse({'success': False, 'error': 'La description du module est obligatoire'})
+        
+        # Vérifier l'unicité du nom
+        if projet.modules.filter(nom=nom).exists():
+            return JsonResponse({'success': False, 'error': 'Ce nom de module existe déjà pour ce projet'})
+        
+        # Créer le module
+        module = ModuleProjet.objects.create(
+            projet=projet,
+            nom=nom,
+            description=description,
+            couleur=couleur,
+            icone_emoji=icone_emoji,
+            etape_creation=etape_courante,
+            createur=user
+        )
+        
+        # Audit
+        enregistrer_audit(
+            utilisateur=user,
+            type_action='CREATION_MODULE',
+            description=f'Création du module "{module.nom}" pour le projet {projet.nom}',
+            projet=projet,
+            donnees_apres={
+                'module': module.nom,
+                'description': description,
+                'etape_creation': etape_courante.type_etape.nom
+            },
+            request=request
+        )
+        
+        messages.success(request, f'Module "{module.nom}" créé avec succès !')
+        return JsonResponse({
+            'success': True,
+            'module': {
+                'id': str(module.id),
+                'nom': module.nom,
+                'description': module.description,
+                'couleur': module.couleur,
+                'icone_emoji': module.icone_emoji
+            }
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@login_required
+@require_http_methods(["POST"])
+def affecter_module_view(request, projet_id, module_id):
+    """Affecter un module à un membre de l'équipe"""
+    user = request.user
+    projet = get_object_or_404(Projet, id=projet_id)
+    module = get_object_or_404(ModuleProjet, id=module_id, projet=projet)
+    
+    # Vérifier les permissions
+    can_manage = user.est_super_admin() or projet.createur == user
+    if not can_manage:
+        affectation_user = projet.affectations.filter(
+            utilisateur=user, 
+            est_responsable_principal=True,
+            date_fin__isnull=True
+        ).first()
+        can_manage = affectation_user is not None
+    
+    if not can_manage:
+        return JsonResponse({'success': False, 'error': 'Permission refusée'})
+    
+    try:
+        utilisateur_id = request.POST.get('utilisateur_id')
+        role_module = request.POST.get('role_module', 'CONTRIBUTEUR')
+        peut_creer_taches = request.POST.get('peut_creer_taches') == 'true'
+        peut_voir_toutes_taches = request.POST.get('peut_voir_toutes_taches') == 'true'
+        
+        if not utilisateur_id:
+            return JsonResponse({'success': False, 'error': 'Utilisateur requis'})
+        
+        utilisateur = get_object_or_404(Utilisateur, id=utilisateur_id)
+        
+        # Vérifier que l'utilisateur fait partie de l'équipe
+        if not projet.affectations.filter(utilisateur=utilisateur, date_fin__isnull=True).exists():
+            return JsonResponse({'success': False, 'error': 'L\'utilisateur doit faire partie de l\'équipe du projet'})
+        
+        # Vérifier s'il n'y a pas déjà une affectation active
+        if module.affectations.filter(utilisateur=utilisateur, date_fin_affectation__isnull=True).exists():
+            return JsonResponse({'success': False, 'error': 'Cet utilisateur est déjà affecté à ce module'})
+        
+        # Créer l'affectation
+        affectation = AffectationModule.objects.create(
+            module=module,
+            utilisateur=utilisateur,
+            role_module=role_module,
+            peut_creer_taches=peut_creer_taches,
+            peut_voir_toutes_taches=peut_voir_toutes_taches,
+            affecte_par=user
+        )
+        
+        # Audit
+        enregistrer_audit(
+            utilisateur=user,
+            type_action='AFFECTATION_MODULE',
+            description=f'Affectation de {utilisateur.get_full_name()} au module "{module.nom}" avec le rôle {role_module}',
+            projet=projet,
+            donnees_apres={
+                'module': module.nom,
+                'utilisateur_affecte': utilisateur.get_full_name(),
+                'role': role_module,
+                'peut_creer_taches': peut_creer_taches,
+                'peut_voir_toutes_taches': peut_voir_toutes_taches
+            },
+            request=request
+        )
+        
+        messages.success(request, f'{utilisateur.get_full_name()} affecté au module "{module.nom}" avec succès !')
+        return JsonResponse({
+            'success': True,
+            'affectation': {
+                'id': affectation.id,
+                'utilisateur': utilisateur.get_full_name(),
+                'role': affectation.get_role_module_display(),
+                'peut_creer_taches': peut_creer_taches
+            }
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@login_required
+def mes_modules_view(request, projet_id):
+    """Interface pour voir les modules affectés à l'utilisateur connecté"""
+    user = request.user
+    projet = get_object_or_404(Projet, id=projet_id)
+    
+    # Vérifier que l'utilisateur fait partie du projet
+    if not user.est_super_admin() and not projet.affectations.filter(utilisateur=user, date_fin__isnull=True).exists():
+        messages.error(request, 'Vous n\'avez pas accès à ce projet.')
+        return redirect('projets_list')
+    
+    # Récupérer les modules affectés à l'utilisateur
+    mes_affectations = AffectationModule.objects.filter(
+        utilisateur=user,
+        module__projet=projet,
+        date_fin_affectation__isnull=True
+    ).select_related('module').prefetch_related('module__taches')
+    
+    # Récupérer les tâches privées de l'utilisateur dans ces modules
+    mes_taches = TacheModule.objects.filter(
+        module__projet=projet,
+        createur=user
+    ).select_related('module')
+    
+    context = {
+        'projet': projet,
+        'mes_affectations': mes_affectations,
+        'mes_taches': mes_taches,
+        'peut_creer_taches': True,
+    }
+    
+    return render(request, 'core/mes_modules.html', context)
+
+@login_required
+@require_http_methods(["POST"])
+def creer_tache_module_view(request, projet_id, module_id):
+    """Créer une tâche privée dans un module"""
+    user = request.user
+    projet = get_object_or_404(Projet, id=projet_id)
+    module = get_object_or_404(ModuleProjet, id=module_id, projet=projet)
+    
+    # Vérifier que l'utilisateur est affecté au module avec permission de créer des tâches
+    affectation = module.affectations.filter(
+        utilisateur=user,
+        date_fin_affectation__isnull=True,
+        peut_creer_taches=True
+    ).first()
+    
+    if not affectation and not user.est_super_admin():
+        return JsonResponse({'success': False, 'error': 'Vous n\'avez pas la permission de créer des tâches dans ce module'})
+    
+    try:
+        nom = request.POST.get('nom', '').strip()
+        description = request.POST.get('description', '').strip()
+        priorite = request.POST.get('priorite', 'MOYENNE')
+        duree_estimee_heures = request.POST.get('duree_estimee_heures')
+        
+        if not nom:
+            return JsonResponse({'success': False, 'error': 'Le nom de la tâche est obligatoire'})
+        
+        if not description:
+            return JsonResponse({'success': False, 'error': 'La description de la tâche est obligatoire'})
+        
+        # Convertir la durée estimée
+        duree_estimee = None
+        if duree_estimee_heures:
+            try:
+                heures = float(duree_estimee_heures)
+                duree_estimee = timezone.timedelta(hours=heures)
+            except ValueError:
+                return JsonResponse({'success': False, 'error': 'Durée estimée invalide'})
+        
+        # Créer la tâche (privée par défaut)
+        tache = TacheModule.objects.create(
+            module=module,
+            nom=nom,
+            description=description,
+            priorite=priorite,
+            duree_estimee=duree_estimee,
+            responsable=user,  # L'utilisateur se l'assigne automatiquement
+            est_privee=True,  # Tâche privée par défaut
+            createur=user
+        )
+        
+        # Audit
+        enregistrer_audit(
+            utilisateur=user,
+            type_action='CREATION_TACHE',
+            description=f'Création de la tâche privée "{tache.nom}" dans le module "{module.nom}"',
+            projet=projet,
+            donnees_apres={
+                'tache': tache.nom,
+                'module': module.nom,
+                'priorite': priorite,
+                'est_privee': True
+            },
+            request=request
+        )
+        
+        messages.success(request, f'Tâche "{tache.nom}" créée avec succès !')
+        return JsonResponse({
+            'success': True,
+            'tache': {
+                'id': str(tache.id),
+                'nom': tache.nom,
+                'description': tache.description,
+                'priorite': tache.get_priorite_display(),
+                'statut': tache.get_statut_display()
+            }
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@login_required
+@require_http_methods(["POST"])
+def modifier_statut_tache_module_view(request, projet_id, tache_id):
+    """Modifier le statut d'une tâche de module"""
+    user = request.user
+    projet = get_object_or_404(Projet, id=projet_id)
+    tache = get_object_or_404(TacheModule, id=tache_id, module__projet=projet)
+    
+    # Vérifier les permissions
+    if not tache.peut_modifier_tache(user):
+        return JsonResponse({'success': False, 'error': 'Vous n\'avez pas la permission de modifier cette tâche'})
+    
+    try:
+        nouveau_statut = request.POST.get('statut')
+        if nouveau_statut not in ['A_FAIRE', 'EN_COURS', 'TERMINEE', 'BLOQUEE']:
+            return JsonResponse({'success': False, 'error': 'Statut invalide'})
+        
+        ancien_statut = tache.statut
+        tache.statut = nouveau_statut
+        
+        # Si la tâche est terminée, enregistrer la date
+        if nouveau_statut == 'TERMINEE':
+            tache.date_fin = timezone.now().date()
+        
+        tache.save()
+        
+        # Audit
+        enregistrer_audit(
+            utilisateur=user,
+            type_action='MODIFICATION_TACHE',
+            description=f'Changement de statut de la tâche "{tache.nom}" : {ancien_statut} → {nouveau_statut}',
+            projet=projet,
+            donnees_avant={'statut': ancien_statut},
+            donnees_apres={'statut': nouveau_statut},
+            request=request
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'nouveau_statut': tache.get_statut_display(),
+            'message': f'Statut mis à jour : {tache.get_statut_display()}'
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})

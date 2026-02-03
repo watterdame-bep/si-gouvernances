@@ -250,6 +250,77 @@
                         {% endif %}
                     </div>
                 </div>
+                {% else %}
+                <!-- Message pour la phase développement sans modules -->
+                {% with etape_courante=projet.etapes.all|first %}
+                {% if etape_courante.statut == 'EN_COURS' and etape_courante.type_etape.nom == 'DEVELOPPEMENT' and can_manage %}
+                <div class="bg-white rounded-lg shadow-md border border-white/20 overflow-hidden">
+                    <div class="px-3 md:px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-emerald-50 to-teal-50">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center shadow-md">
+                                    <span class="text-white text-sm">🧩</span>
+                                </div>
+                                <div>
+                                    <h3 class="text-sm md:text-lg font-bold text-gray-900">Modules Fonctionnels</h3>
+                                    <p class="text-xs md:text-sm text-gray-600">Phase développement activée</p>
+                                </div>
+                            </div>
+                            <a href="{% url 'gestion_modules' projet.id %}" class="text-xs text-emerald-600 hover:text-emerald-700 font-medium">
+                                Créer →
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div class="p-3 md:p-4 text-center">
+                        <div class="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <span class="text-emerald-600 text-xl">🧩</span>
+                        </div>
+                        <h4 class="text-sm font-medium text-gray-900 mb-2">Modules disponibles !</h4>
+                        <p class="text-xs text-gray-600 mb-3">
+                            La phase développement est active. Vous pouvez maintenant créer des modules pour structurer le développement.
+                        </p>
+                        <a href="{% url 'gestion_modules' projet.id %}" 
+                           class="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-lg font-medium text-xs transition-all transform hover:scale-105 shadow-md">
+                            <span class="mr-1">➕</span>Créer des Modules
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+                {% endwith %}
+                {% endif %}
+                
+                <!-- Section Mes Modules pour les membres affectés -->
+                {% if user_affectation and not can_manage %}
+                {% with mes_modules=user.modules_affectes.filter|first %}
+                {% if mes_modules %}
+                <div class="bg-white rounded-lg shadow-md border border-white/20 overflow-hidden">
+                    <div class="px-3 md:px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-md">
+                                    <span class="text-white text-sm">👤</span>
+                                </div>
+                                <div>
+                                    <h3 class="text-sm md:text-lg font-bold text-gray-900">Mes Modules</h3>
+                                    <p class="text-xs md:text-sm text-gray-600">Modules qui me sont affectés</p>
+                                </div>
+                            </div>
+                            <a href="{% url 'mes_modules' projet.id %}" class="text-xs text-blue-600 hover:text-blue-700 font-medium">
+                                Voir →
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div class="p-3 md:p-4 text-center">
+                        <a href="{% url 'mes_modules' projet.id %}" 
+                           class="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-lg font-medium text-xs transition-all transform hover:scale-105 shadow-md">
+                            <span class="mr-1">🧩</span>Accéder à Mes Modules
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+                {% endwith %}
                 {% endif %}
             </div>
 

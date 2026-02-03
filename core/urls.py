@@ -103,4 +103,12 @@ urlpatterns = [
     path('profil/', views.profil_view, name='profil'),
     path('profil/modifier/', views.modifier_profil_view, name='modifier_profil'),
     path('profil/changer-mot-de-passe/', views.changer_mot_de_passe_view, name='changer_mot_de_passe'),
+    
+    # Gestion des modules (Phase développement)
+    path('projets/<uuid:projet_id>/modules/', views.gestion_modules_view, name='gestion_modules'),
+    path('projets/<uuid:projet_id>/modules/creer/', views.creer_module_view, name='creer_module'),
+    path('projets/<uuid:projet_id>/modules/<uuid:module_id>/affecter/', views.affecter_module_view, name='affecter_module'),
+    path('projets/<uuid:projet_id>/mes-modules/', views.mes_modules_view, name='mes_modules'),
+    path('projets/<uuid:projet_id>/modules/<uuid:module_id>/taches/creer/', views.creer_tache_module_view, name='creer_tache_module'),
+    path('projets/<uuid:projet_id>/taches-module/<uuid:tache_id>/statut/', views.modifier_statut_tache_module_view, name='modifier_statut_tache_module'),
 ]

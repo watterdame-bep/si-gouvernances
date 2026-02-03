@@ -1,0 +1,371 @@
+{% extends 'base.html' %}
+
+{% block title %}Mes Modules - {{ projet.nom }} - SI-Gouvernance JCM{% endblock %}
+{% block page_title %}Mes Modules - {{ projet.nom }}{% endblock %}
+
+{% block content %}
+<div class="bg-gray-50 min-h-screen p-2 md:p-4">
+    <div class="max-w-6xl mx-auto space-y-4">
+        
+        <!-- Header -->
+        <div class="bg-white rounded-lg p-4 shadow-md border border-white/20">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-green-500 to-blue-600 rounded-lg flex items-center justify-center shadow-md">
+                        <span class="text-white text-lg">👤</span>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-900">Mes Modules</h1>
+                        <p class="text-sm text-gray-600">{{ projet.nom }} - Modules qui me sont affectés</p>
+                    </div>
+                </div>
+                <a href="{% url 'projet_detail' projet.id %}" 
+                   class="inline-flex items-center px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium">
+                    <span class="mr-1">←</span>Retour
+                </a>
+            </div>
+        </div>
+
+        <!-- Statistiques rapides -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-white rounded-lg p-4 shadow-md border border-white/20">
+                <div class="flex items-center">
+                    <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                        <span class="text-blue-600 text-sm">🧩</span>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-600">Modules Affectés</p>
+                        <p class="text-lg font-bold text-gray-900">{{ mes_affectations.count }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg p-4 shadow-md border border-white/20">
+                <div class="flex items-center">
+                    <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                        <span class="text-green-600 text-sm">📋</span>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-600">Mes Tâches</p>
+                        <p class="text-lg font-bold text-gray-900">{{ mes_taches.count }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg p-4 shadow-md border border-white/20">
+                <div class="flex items-center">
+                    <div class="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center mr-3">
+                        <span class="text-orange-600 text-sm">✅</span>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-600">Tâches Terminées</p>
+                        <p class="text-lg font-bold text-gray-900">
+                            {{ mes_taches|length|add:0 }}
+                            {% comment %}TODO: Calculer les tâches terminées{% endcomment %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mes modules affectés -->
+        {% if mes_affectations %}
+        <div class="bg-white rounded-lg shadow-md border border-white/20">
+            <div class="p-4 border-b border-gray-200">
+                <h2 class="text-lg font-bold text-gray-900">Modules Affectés</h2>
+                <p class="text-sm text-gray-600">Modules sur lesquels vous travaillez</p>
+            </div>
+            
+            <div class="divide-y divide-gray-200">
+                {% for affectation in mes_affectations %}
+                <div class="p-4">
+                    <div class="flex items-start justify-between mb-3">
+                        <div class="flex items-start space-x-3">
+                            <div class="w-10 h-10 rounded-lg flex items-center justify-center shadow-sm" 
+                                 style="background-color: {{ affectation.module.couleur }}20; border: 1px solid {{ affectation.module.couleur }}40;">
+                                <span class="text-lg">{{ affectation.module.icone_emoji }}</span>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center space-x-2 mb-1">
+                                    <h3 class="text-lg font-bold text-gray-900">{{ affectation.module.nom }}</h3>
+                                    <span class="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+                                        {{ affectation.get_role_module_display }}
+                                    </span>
+                                </div>
+                                <p class="text-sm text-gray-600 mb-2">{{ affectation.module.description }}</p>
+                                <div class="flex items-center space-x-4 text-xs text-gray-500">
+                                    <span>📅 Affecté le {{ affectation.date_affectation|date:"d/m/Y" }}</span>
+                                    {% if affectation.peut_creer_taches %}
+                                    <span class="text-green-600">✏️ Peut créer des tâches</span>
+                                    {% endif %}
+                                    {% if affectation.peut_voir_toutes_taches %}
+                                    <span class="text-blue-600">👁️ Voit toutes les tâches</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% if affectation.peut_creer_taches %}
+                        <button onclick="ouvrirModalCreerTache('{{ affectation.module.id }}', '{{ affectation.module.nom }}')"
+                                class="px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-sm font-medium transition-colors">
+                            ➕ Nouvelle Tâche
+                        </button>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Mes tâches dans ce module -->
+                    {% with module_taches=mes_taches|dictsort:"module.id" %}
+                    {% for tache in module_taches %}
+                    {% if tache.module.id == affectation.module.id %}
+                    <div class="bg-gray-50 rounded-lg p-3 mb-2">
+                        <div class="flex items-center justify-between">
+                            <div class="flex-1">
+                                <div class="flex items-center space-x-2 mb-1">
+                                    <h4 class="font-medium text-gray-900">{{ tache.nom }}</h4>
+                                    <span class="px-2 py-0.5 rounded text-xs font-medium
+                                        {% if tache.statut == 'TERMINEE' %}bg-green-100 text-green-800
+                                        {% elif tache.statut == 'EN_COURS' %}bg-orange-100 text-orange-800
+                                        {% elif tache.statut == 'BLOQUEE' %}bg-red-100 text-red-800
+                                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                        {{ tache.get_statut_display }}
+                                    </span>
+                                    <span class="px-2 py-0.5 bg-purple-100 text-purple-800 rounded text-xs font-medium">
+                                        {{ tache.get_priorite_display }}
+                                    </span>
+                                    {% if tache.est_privee %}
+                                    <span class="text-gray-500 text-xs" title="Tâche privée">🔒</span>
+                                    {% endif %}
+                                </div>
+                                <p class="text-sm text-gray-600 mb-1">{{ tache.description|truncatechars:100 }}</p>
+                                <div class="flex items-center space-x-3 text-xs text-gray-500">
+                                    <span>📅 {{ tache.date_creation|date:"d/m/Y" }}</span>
+                                    {% if tache.duree_estimee %}
+                                    <span>⏱️ {{ tache.duree_estimee }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                {% if tache.statut != 'TERMINEE' %}
+                                <select onchange="changerStatutTache('{{ tache.id }}', this.value)" 
+                                        class="text-xs border border-gray-300 rounded px-2 py-1">
+                                    <option value="A_FAIRE" {% if tache.statut == 'A_FAIRE' %}selected{% endif %}>À faire</option>
+                                    <option value="EN_COURS" {% if tache.statut == 'EN_COURS' %}selected{% endif %}>En cours</option>
+                                    <option value="TERMINEE" {% if tache.statut == 'TERMINEE' %}selected{% endif %}>Terminée</option>
+                                    <option value="BLOQUEE" {% if tache.statut == 'BLOQUEE' %}selected{% endif %}>Bloquée</option>
+                                </select>
+                                {% endif %}
+                                <button onclick="voirDetailsTache('{{ tache.id }}')"
+                                        class="text-xs text-gray-600 hover:text-gray-800">
+                                    👁️
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                    {% endwith %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% else %}
+        <div class="bg-white rounded-lg shadow-md border border-white/20 p-8 text-center">
+            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span class="text-gray-400 text-2xl">🧩</span>
+            </div>
+            <h3 class="text-lg font-medium text-gray-500 mb-2">Aucun module affecté</h3>
+            <p class="text-sm text-gray-400">Vous n'êtes affecté à aucun module pour le moment</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal Créer Tâche -->
+<div id="modalCreerTache" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl max-w-md w-full transform transition-all">
+        <div class="p-6">
+            <div class="flex items-center mb-4">
+                <div class="w-10 h-10 bg-gradient-to-br from-green-500 to-blue-600 rounded-full flex items-center justify-center mr-3">
+                    <span class="text-white text-lg">📋</span>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900">Nouvelle Tâche</h3>
+                    <p class="text-sm text-gray-600" id="nomModuleTache"></p>
+                </div>
+            </div>
+            
+            <form id="formCreerTache" class="space-y-4">
+                {% csrf_token %}
+                <input type="hidden" name="module_id" id="moduleIdTache">
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Nom de la tâche *</label>
+                    <input type="text" name="nom" required 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                           placeholder="Ex: Créer la page de connexion">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Description *</label>
+                    <textarea name="description" required rows="3"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              placeholder="Décrivez ce qui doit être fait..."></textarea>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Priorité</label>
+                        <select name="priorite" 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="BASSE">Basse</option>
+                            <option value="MOYENNE" selected>Moyenne</option>
+                            <option value="HAUTE">Haute</option>
+                            <option value="CRITIQUE">Critique</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Durée (heures)</label>
+                        <input type="number" name="duree_estimee_heures" step="0.5" min="0"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="Ex: 2.5">
+                    </div>
+                </div>
+                
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <div class="flex items-start">
+                        <span class="text-blue-500 mr-2">ℹ️</span>
+                        <div class="text-sm text-blue-800">
+                            <p class="font-medium mb-1">Tâche privée</p>
+                            <p class="text-xs">Cette tâche ne sera visible que par vous. Vous pourrez la partager plus tard si nécessaire.</p>
+                        </div>
+                    </div>
+                </div>
+            </form>
+            
+            <div class="flex items-center justify-end space-x-3 mt-6">
+                <button onclick="fermerModalCreerTache()" 
+                        class="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium transition-colors">
+                    Annuler
+                </button>
+                <button onclick="confirmerCreerTache()" 
+                        class="px-6 py-2 bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white font-medium rounded-lg transition-all transform hover:scale-105 shadow-lg">
+                    Créer
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Variables globales
+let moduleIdEnCours = null;
+
+// Fonctions pour le modal de création de tâche
+function ouvrirModalCreerTache(moduleId, nomModule) {
+    moduleIdEnCours = moduleId;
+    document.getElementById('moduleIdTache').value = moduleId;
+    document.getElementById('nomModuleTache').textContent = nomModule;
+    document.getElementById('modalCreerTache').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function fermerModalCreerTache() {
+    document.getElementById('modalCreerTache').classList.add('hidden');
+    document.body.style.overflow = 'auto';
+    document.getElementById('formCreerTache').reset();
+    moduleIdEnCours = null;
+}
+
+function confirmerCreerTache() {
+    if (!moduleIdEnCours) return;
+    
+    const form = document.getElementById('formCreerTache');
+    const formData = new FormData(form);
+    
+    const btnConfirmer = event.target;
+    btnConfirmer.disabled = true;
+    btnConfirmer.textContent = 'Création...';
+    
+    fetch(`{% url 'creer_tache_module' projet.id '00000000-0000-0000-0000-000000000000' %}`.replace('00000000-0000-0000-0000-000000000000', moduleIdEnCours), {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            fermerModalCreerTache();
+            location.reload();
+        } else {
+            alert('Erreur: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        alert('Une erreur est survenue');
+    })
+    .finally(() => {
+        btnConfirmer.disabled = false;
+        btnConfirmer.textContent = 'Créer';
+    });
+}
+
+function changerStatutTache(tacheId, nouveauStatut) {
+    const formData = new FormData();
+    formData.append('statut', nouveauStatut);
+    
+    fetch(`{% url 'modifier_statut_tache_module' projet.id '00000000-0000-0000-0000-000000000000' %}`.replace('00000000-0000-0000-0000-000000000000', tacheId), {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Afficher un message de succès temporaire
+            const successDiv = document.createElement('div');
+            successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+            successDiv.textContent = data.message;
+            document.body.appendChild(successDiv);
+            
+            setTimeout(() => {
+                successDiv.remove();
+            }, 3000);
+            
+            // Recharger la page après un court délai
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
+        } else {
+            alert('Erreur: ' + data.error);
+            location.reload(); // Recharger pour remettre l'ancien statut
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        alert('Une erreur est survenue');
+        location.reload();
+    });
+}
+
+function voirDetailsTache(tacheId) {
+    // TODO: Implémenter la vue détaillée de la tâche
+    alert('Fonctionnalité à venir : Vue détaillée de la tâche');
+}
+
+// Fermer le modal en cliquant à l'extérieur
+document.getElementById('modalCreerTache').addEventListener('click', function(e) {
+    if (e.target === this) fermerModalCreerTache();
+});
+
+// Fermer le modal avec la touche Échap
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && !document.getElementById('modalCreerTache').classList.contains('hidden')) {
+        fermerModalCreerTache();
+    }
+});
+</script>
+{% endblock %}

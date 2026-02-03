@@ -549,6 +549,8 @@ class ActionAudit(models.Model):
         ('COMPLETION_TACHE', 'Completion de tâche'),
         ('CREATION_MODULE_TARDIVE', 'Création tardive de module'),
         ('ACTIVATION_MODULES_AUTOMATIQUE', 'Activation automatique des modules'),
+        ('AFFECTATION_MODULE', 'Affectation de module'),
+        ('RETRAIT_MODULE', 'Retrait de module'),
     ]
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -867,6 +869,73 @@ class ModuleProjet(models.Model):
         return round((taches_terminees / taches.count()) * 100)
 
 
+class AffectationModule(models.Model):
+    """Affectation d'un module à un ou plusieurs membres de l'équipe"""
+    module = models.ForeignKey(ModuleProjet, on_delete=models.CASCADE, related_name='affectations')
+    utilisateur = models.ForeignKey(Utilisateur, on_delete=models.CASCADE, related_name='modules_affectes')
+    
+    # Rôle sur le module
+    ROLE_MODULE_CHOICES = [
+        ('RESPONSABLE', 'Responsable'),
+        ('CONTRIBUTEUR', 'Contributeur'),
+        ('CONSULTANT', 'Consultant'),
+    ]
+    role_module = models.CharField(max_length=20, choices=ROLE_MODULE_CHOICES, default='CONTRIBUTEUR')
+    
+    # Métadonnées
+    date_affectation = models.DateTimeField(auto_now_add=True)
+    date_fin_affectation = models.DateTimeField(null=True, blank=True)
+    affecte_par = models.ForeignKey(
+        Utilisateur, 
+        on_delete=models.PROTECT, 
+        related_name='affectations_modules_creees'
+    )
+    
+    # Permissions spécifiques
+    peut_creer_taches = models.BooleanField(default=True, help_text="Peut créer des tâches dans ce module")
+    peut_voir_toutes_taches = models.BooleanField(default=False, help_text="Peut voir toutes les tâches du module")
+    
+    class Meta:
+        verbose_name = "Affectation de Module"
+        verbose_name_plural = "Affectations de Module"
+        unique_together = [['module', 'utilisateur', 'date_fin_affectation']]
+        ordering = ['module', 'role_module', 'date_affectation']
+    
+    def clean(self):
+        """Validation métier"""
+        # Vérifier que l'utilisateur fait partie de l'équipe du projet
+        if not self.module.projet.affectations.filter(
+            utilisateur=self.utilisateur,
+            date_fin__isnull=True
+        ).exists():
+            raise ValidationError({
+                'utilisateur': 'L\'utilisateur doit faire partie de l\'équipe du projet.'
+            })
+        
+        # Vérifier qu'il n'y a pas déjà une affectation active
+        if self.date_fin_affectation is None:
+            affectation_existante = AffectationModule.objects.filter(
+                module=self.module,
+                utilisateur=self.utilisateur,
+                date_fin_affectation__isnull=True
+            ).exclude(pk=self.pk)
+            
+            if affectation_existante.exists():
+                raise ValidationError('Cet utilisateur a déjà une affectation active sur ce module.')
+    
+    def __str__(self):
+        return f"{self.utilisateur.get_full_name()} → {self.module.nom} ({self.get_role_module_display()})"
+    
+    def est_active(self):
+        """Vérifie si l'affectation est active"""
+        return self.date_fin_affectation is None
+    
+    def terminer_affectation(self):
+        """Termine l'affectation"""
+        self.date_fin_affectation = timezone.now()
+        self.save()
+
+
 class TacheModule(models.Model):
     """Tâches d'un module"""
     STATUT_CHOICES = [
@@ -894,6 +963,18 @@ class TacheModule(models.Model):
         null=True, 
         blank=True,
         related_name='taches_assignees'
+    )
+    
+    # Visibilité des tâches
+    est_privee = models.BooleanField(
+        default=True, 
+        help_text="Si True, seul le créateur peut voir cette tâche"
+    )
+    visible_par = models.ManyToManyField(
+        Utilisateur,
+        blank=True,
+        related_name='taches_visibles',
+        help_text="Utilisateurs autorisés à voir cette tâche (en plus du créateur)"
     )
     
     # Planification
@@ -970,6 +1051,35 @@ class TacheModule(models.Model):
             return False  # Aucune étape active
         
         return etape_courante.ordre >= self.etape_execution.ordre
+    
+    def peut_voir_tache(self, utilisateur):
+        """Vérifie si un utilisateur peut voir cette tâche"""
+        # Le créateur peut toujours voir sa tâche
+        if self.createur == utilisateur:
+            return True
+        
+        # Si la tâche n'est pas privée, tous les membres du projet peuvent la voir
+        if not self.est_privee:
+            return self.module.projet.affectations.filter(
+                utilisateur=utilisateur,
+                date_fin__isnull=True
+            ).exists()
+        
+        # Pour les tâches privées, vérifier les permissions spéciales
+        return self.visible_par.filter(id=utilisateur.id).exists()
+    
+    def peut_modifier_tache(self, utilisateur):
+        """Vérifie si un utilisateur peut modifier cette tâche"""
+        # Le créateur peut toujours modifier sa tâche
+        if self.createur == utilisateur:
+            return True
+        
+        # Les responsables du module peuvent modifier les tâches
+        return self.module.affectations.filter(
+            utilisateur=utilisateur,
+            role_module='RESPONSABLE',
+            date_fin_affectation__isnull=True
+        ).exists()
     
     def assigner_responsable(self, responsable, utilisateur_assigneur):
         """Assigne un responsable à la tâche avec audit"""
