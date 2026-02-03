@@ -548,6 +548,7 @@ class ActionAudit(models.Model):
         ('ASSIGNATION_TACHE', 'Assignation de tâche'),
         ('COMPLETION_TACHE', 'Completion de tâche'),
         ('CREATION_MODULE_TARDIVE', 'Création tardive de module'),
+        ('ACTIVATION_MODULES_AUTOMATIQUE', 'Activation automatique des modules'),
     ]
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -740,7 +741,7 @@ class EtapeProjet(models.Model):
         self.save()
         
         # Audit de clôture
-        from .utils import enregistrer_audit
+        from .utils import enregistrer_audit, envoyer_notification_etape_terminee
         enregistrer_audit(
             utilisateur=utilisateur,
             type_action='CLOTURE_ETAPE',
@@ -753,6 +754,14 @@ class EtapeProjet(models.Model):
                 'etape_suivante': etape_suivante.type_etape.nom if etape_suivante else None
             }
         )
+        
+        # Envoyer les notifications par email aux administrateurs et chefs de projet
+        try:
+            resultat_notification = envoyer_notification_etape_terminee(self, utilisateur)
+            if resultat_notification.get('success'):
+                print(f"Notifications envoyées : {resultat_notification.get('emails_envoyes')}/{resultat_notification.get('total_destinataires')}")
+        except Exception as e:
+            print(f"Erreur lors de l'envoi des notifications : {e}")
         
         # Activer automatiquement l'étape suivante si elle existe
         if etape_suivante and etape_suivante.statut == 'A_VENIR':
@@ -773,6 +782,21 @@ class EtapeProjet(models.Model):
                     'date_activation': etape_suivante.date_debut_reelle.isoformat()
                 }
             )
+            
+            # Si l'étape suivante est DEVELOPPEMENT, activer automatiquement la création de modules
+            if etape_suivante.type_etape.nom == 'DEVELOPPEMENT':
+                # Audit spécial pour l'activation des modules
+                enregistrer_audit(
+                    utilisateur=utilisateur,
+                    type_action='ACTIVATION_MODULES_AUTOMATIQUE',
+                    description=f'Activation automatique de la création de modules pour l\'étape développement du projet {self.projet.nom}',
+                    projet=self.projet,
+                    donnees_apres={
+                        'etape_developpement': etape_suivante.type_etape.nom,
+                        'modules_actives': True,
+                        'date_activation': etape_suivante.date_debut_reelle.isoformat()
+                    }
+                )
             
             return etape_suivante  # Retourner l'étape activée
         
@@ -1545,6 +1569,49 @@ class NotificationTache(models.Model):
             self.lue = True
             self.date_lecture = timezone.now()
             self.save()
+
+
+class NotificationEtape(models.Model):
+    """Notifications liées aux étapes de projet"""
+    
+    TYPE_NOTIFICATION_CHOICES = [
+        ('ETAPE_TERMINEE', 'Étape terminée'),
+        ('ETAPE_ACTIVEE', 'Étape activée'),
+        ('MODULES_DISPONIBLES', 'Modules disponibles'),
+        ('RETARD_ETAPE', 'Retard d\'étape'),
+        ('CHANGEMENT_STATUT', 'Changement de statut'),
+    ]
+    
+    destinataire = models.ForeignKey(Utilisateur, on_delete=models.CASCADE, related_name='notifications_etapes')
+    etape = models.ForeignKey(EtapeProjet, on_delete=models.CASCADE, related_name='notifications')
+    type_notification = models.CharField(max_length=20, choices=TYPE_NOTIFICATION_CHOICES)
+    titre = models.CharField(max_length=200, help_text="Titre de la notification")
+    message = models.TextField(help_text="Contenu de la notification")
+    
+    # État
+    lue = models.BooleanField(default=False)
+    date_creation = models.DateTimeField(auto_now_add=True)
+    date_lecture = models.DateTimeField(null=True, blank=True)
+    
+    # Métadonnées
+    emetteur = models.ForeignKey(
+        Utilisateur, 
+        on_delete=models.PROTECT, 
+        related_name='notifications_etapes_emises',
+        null=True, 
+        blank=True
+    )
+    donnees_contexte = models.JSONField(null=True, blank=True, help_text="Données contextuelles")
+    
+    class Meta:
+        verbose_name = "Notification d'Étape"
+        verbose_name_plural = "Notifications d'Étapes"
+        ordering = ['-date_creation']
+    
+    def __str__(self):
+        return f"{self.titre} - {self.destinataire.get_full_name()}"
+    
+    def marquer_comme_lue(self):
         """Marque la notification comme lue"""
         if not self.lue:
             self.lue = True

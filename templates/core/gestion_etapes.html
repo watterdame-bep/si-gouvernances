@@ -88,7 +88,7 @@
                                 </a>
                                 {% if can_manage %}
                                 <span class="text-gray-300">|</span>
-                                <button onclick="terminerEtape('{{ timeline.courante.id }}')" class="text-xs text-green-600 hover:text-green-700 font-medium">
+                                <button onclick="ouvrirModalTerminerEtape('{{ timeline.courante.id }}', '{{ timeline.courante.type_etape.get_nom_display }}')" class="text-xs text-green-600 hover:text-green-700 font-medium">
                                     Terminer
                                 </button>
                                 {% endif %}
@@ -169,7 +169,7 @@
         <div class="bg-white rounded-lg p-3 shadow-md border border-white/20">
             <h3 class="text-sm font-bold text-gray-900 mb-2">Actions rapides</h3>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <button onclick="terminerEtape('{{ timeline.courante.id }}')"
+                <button onclick="ouvrirModalTerminerEtape('{{ timeline.courante.id }}', '{{ timeline.courante.type_etape.get_nom_display }}')"
                         class="flex items-center p-2 bg-green-50 hover:bg-green-100 rounded-lg border border-green-200 transition-colors">
                     <span class="mr-2">✅</span>
                     <div>
@@ -194,8 +194,144 @@
     </div>
 </div>
 
+<!-- Modal de confirmation pour terminer une étape -->
+<div id="modalTerminerEtape" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl max-w-md w-full transform transition-all">
+        <div class="p-6">
+            <!-- Header du modal -->
+            <div class="flex items-center mb-4">
+                <div class="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center mr-3">
+                    <span class="text-white text-lg">✅</span>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900">Terminer l'étape</h3>
+                    <p class="text-sm text-gray-600">Confirmation requise</p>
+                </div>
+            </div>
+            
+            <!-- Contenu du modal -->
+            <div class="mb-6">
+                <p class="text-gray-700 mb-3">
+                    Êtes-vous sûr de vouloir terminer l'étape <strong id="nomEtapeModal"></strong> ?
+                </p>
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <div class="flex items-start">
+                        <span class="text-blue-500 mr-2">ℹ️</span>
+                        <div class="text-sm text-blue-800">
+                            <p class="font-medium mb-1">Cette action va :</p>
+                            <ul class="list-disc list-inside space-y-1 text-xs">
+                                <li>Marquer l'étape comme terminée</li>
+                                <li>Activer automatiquement l'étape suivante</li>
+                                <li>Envoyer des notifications aux administrateurs</li>
+                                <li id="infoModules" class="hidden">Activer la création de modules (étape développement)</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Boutons d'action -->
+            <div class="flex items-center justify-end space-x-3">
+                <button onclick="fermerModalTerminerEtape()" 
+                        class="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium transition-colors">
+                    Annuler
+                </button>
+                <button onclick="confirmerTerminerEtape()" 
+                        class="px-6 py-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-medium rounded-lg transition-all transform hover:scale-105 shadow-lg">
+                    Confirmer
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Scripts JavaScript -->
 <script>
+let etapeIdATerminer = null;
+
+function ouvrirModalTerminerEtape(etapeId, nomEtape) {
+    etapeIdATerminer = etapeId;
+    document.getElementById('nomEtapeModal').textContent = nomEtape;
+    
+    // Afficher l'info sur les modules si c'est l'étape de conception qui se termine
+    // (car cela activera l'étape développement)
+    const infoModules = document.getElementById('infoModules');
+    if (nomEtape.toLowerCase().includes('conception') || nomEtape.toLowerCase().includes('planification')) {
+        infoModules.classList.remove('hidden');
+    } else {
+        infoModules.classList.add('hidden');
+    }
+    
+    document.getElementById('modalTerminerEtape').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function fermerModalTerminerEtape() {
+    document.getElementById('modalTerminerEtape').classList.add('hidden');
+    document.body.style.overflow = 'auto';
+    etapeIdATerminer = null;
+}
+
+function confirmerTerminerEtape() {
+    if (!etapeIdATerminer) return;
+    
+    // Désactiver le bouton pour éviter les double-clics
+    const btnConfirmer = document.querySelector('#modalTerminerEtape button[onclick="confirmerTerminerEtape()"]');
+    btnConfirmer.disabled = true;
+    btnConfirmer.textContent = 'Traitement...';
+    
+    fetch(`{% url 'terminer_etape' projet.id '00000000-0000-0000-0000-000000000000' %}`.replace('00000000-0000-0000-0000-000000000000', etapeIdATerminer), {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/x-www-form-urlencoded',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        fermerModalTerminerEtape();
+        
+        if (data.success) {
+            // Afficher un message de succès avec animation
+            const successDiv = document.createElement('div');
+            successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 transform translate-x-full transition-transform';
+            successDiv.innerHTML = `
+                <div class="flex items-center">
+                    <span class="mr-2">✅</span>
+                    <div>
+                        <div class="font-medium">Étape terminée !</div>
+                        <div class="text-sm opacity-90">${data.message}</div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(successDiv);
+            
+            // Animation d'entrée
+            setTimeout(() => {
+                successDiv.classList.remove('translate-x-full');
+            }, 100);
+            
+            // Supprimer après 5 secondes
+            setTimeout(() => {
+                successDiv.classList.add('translate-x-full');
+                setTimeout(() => successDiv.remove(), 300);
+            }, 5000);
+            
+            // Recharger la page après un court délai
+            setTimeout(() => {
+                location.reload();
+            }, 1500);
+        } else {
+            alert('Erreur: ' + data.error);
+        }
+    })
+    .catch(error => {
+        fermerModalTerminerEtape();
+        console.error('Erreur:', error);
+        alert('Une erreur est survenue');
+    });
+}
+
 function activerEtape(etapeId) {
     if (confirm('Êtes-vous sûr de vouloir activer cette étape ?')) {
         fetch(`{% url 'activer_etape' projet.id '00000000-0000-0000-0000-000000000000' %}`.replace('00000000-0000-0000-0000-000000000000', etapeId), {
@@ -226,28 +362,18 @@ function activerEtapeSuivante(etapeId) {
     }
 }
 
-function terminerEtape(etapeId) {
-    if (confirm('Êtes-vous sûr de vouloir terminer cette étape ?')) {
-        fetch(`{% url 'terminer_etape' projet.id '00000000-0000-0000-0000-000000000000' %}`.replace('00000000-0000-0000-0000-000000000000', etapeId), {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}',
-                'Content-Type': 'application/x-www-form-urlencoded',
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                location.reload();
-            } else {
-                alert('Erreur: ' + data.error);
-            }
-        })
-        .catch(error => {
-            console.error('Erreur:', error);
-            alert('Une erreur est survenue');
-        });
+// Fermer le modal en cliquant à l'extérieur
+document.getElementById('modalTerminerEtape').addEventListener('click', function(e) {
+    if (e.target === this) {
+        fermerModalTerminerEtape();
     }
-}
+});
+
+// Fermer le modal avec la touche Échap
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && !document.getElementById('modalTerminerEtape').classList.contains('hidden')) {
+        fermerModalTerminerEtape();
+    }
+});
 </script>
 {% endblock %}

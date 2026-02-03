@@ -426,3 +426,256 @@ Ceci est un email automatique, merci de ne pas y répondre.
         # Log l'erreur pour le débogage
         print(f"Erreur lors de l'envoi de l'email de notification : {str(e)}")
         return False
+
+
+def creer_notification_etape(etape, type_notification, utilisateur_emetteur, titre_personnalise=None, message_personnalise=None):
+    """
+    Crée des notifications d'étape pour les administrateurs et chefs de projet
+    
+    Args:
+        etape: Instance EtapeProjet
+        type_notification: Type de notification (ETAPE_TERMINEE, ETAPE_ACTIVEE, etc.)
+        utilisateur_emetteur: Utilisateur qui a déclenché l'action
+        titre_personnalise: Titre personnalisé (optionnel)
+        message_personnalise: Message personnalisé (optionnel)
+    
+    Returns:
+        int: Nombre de notifications créées
+    """
+    try:
+        from .models import Utilisateur, RoleSysteme, NotificationEtape
+        
+        # Récupérer les destinataires
+        destinataires = []
+        
+        # 1. Tous les super admins actifs
+        super_admins = Utilisateur.objects.filter(
+            is_superuser=True,
+            statut_actif=True
+        )
+        destinataires.extend(super_admins)
+        
+        # 2. Tous les chefs de projet système actifs
+        try:
+            role_chef_projet = RoleSysteme.objects.get(nom='CHEF_PROJET')
+            chefs_projet = Utilisateur.objects.filter(
+                role_systeme=role_chef_projet,
+                statut_actif=True
+            )
+            destinataires.extend(chefs_projet)
+        except RoleSysteme.DoesNotExist:
+            pass
+        
+        # 3. Le responsable principal du projet (s'il n'est pas déjà dans la liste)
+        responsable = etape.projet.get_responsable_principal()
+        if responsable and responsable not in destinataires:
+            destinataires.append(responsable)
+        
+        # Éviter les doublons
+        destinataires = list(set(destinataires))
+        
+        # Exclure l'utilisateur émetteur des notifications
+        if utilisateur_emetteur in destinataires:
+            destinataires.remove(utilisateur_emetteur)
+        
+        if not destinataires:
+            return 0
+        
+        # Préparer le titre et message par défaut
+        if not titre_personnalise:
+            if type_notification == 'ETAPE_TERMINEE':
+                titre_personnalise = f"Étape terminée : {etape.type_etape.get_nom_display()}"
+            elif type_notification == 'ETAPE_ACTIVEE':
+                titre_personnalise = f"Étape activée : {etape.type_etape.get_nom_display()}"
+            elif type_notification == 'MODULES_DISPONIBLES':
+                titre_personnalise = f"Modules disponibles : {etape.type_etape.get_nom_display()}"
+            else:
+                titre_personnalise = f"Notification étape : {etape.type_etape.get_nom_display()}"
+        
+        if not message_personnalise:
+            if type_notification == 'ETAPE_TERMINEE':
+                etape_suivante_info = ""
+                etape_suivante = etape.get_etape_suivante()
+                if etape_suivante:
+                    etape_suivante_info = f" L'étape suivante '{etape_suivante.type_etape.get_nom_display()}' a été automatiquement activée."
+                
+                message_personnalise = f"L'étape '{etape.type_etape.get_nom_display()}' du projet '{etape.projet.nom}' a été terminée par {utilisateur_emetteur.get_full_name()}.{etape_suivante_info}"
+            
+            elif type_notification == 'MODULES_DISPONIBLES':
+                message_personnalise = f"L'étape de développement a été activée pour le projet '{etape.projet.nom}'. Vous pouvez maintenant créer des modules pour ce projet."
+            
+            else:
+                message_personnalise = f"Notification concernant l'étape '{etape.type_etape.get_nom_display()}' du projet '{etape.projet.nom}'."
+        
+        # Créer les notifications
+        notifications_creees = 0
+        for destinataire in destinataires:
+            try:
+                NotificationEtape.objects.create(
+                    destinataire=destinataire,
+                    etape=etape,
+                    type_notification=type_notification,
+                    titre=titre_personnalise,
+                    message=message_personnalise,
+                    emetteur=utilisateur_emetteur,
+                    donnees_contexte={
+                        'projet_id': str(etape.projet.id),
+                        'projet_nom': etape.projet.nom,
+                        'etape_id': str(etape.id),
+                        'etape_nom': etape.type_etape.get_nom_display(),
+                        'etape_ordre': etape.ordre,
+                        'date_action': timezone.now().isoformat(),
+                        'emetteur_nom': utilisateur_emetteur.get_full_name(),
+                    }
+                )
+                notifications_creees += 1
+            except Exception as e:
+                print(f"Erreur lors de la création de notification pour {destinataire.get_full_name()}: {e}")
+                continue
+        
+        return notifications_creees
+        
+    except Exception as e:
+        print(f"Erreur lors de la création des notifications d'étape : {e}")
+        return 0
+
+
+def envoyer_notification_etape_terminee(etape, utilisateur_terminant, request=None):
+    """
+    Envoie une notification par email aux administrateurs et chefs de projet
+    lorsqu'une étape est terminée
+    
+    Args:
+        etape: Instance EtapeProjet qui a été terminée
+        utilisateur_terminant: Utilisateur qui a terminé l'étape
+        request: Objet request Django (optionnel)
+    
+    Returns:
+        dict: Résultat de l'envoi avec le nombre d'emails envoyés
+    """
+    try:
+        from .models import Utilisateur, RoleSysteme
+        
+        # Récupérer les destinataires
+        destinataires = []
+        
+        # 1. Tous les super admins
+        super_admins = Utilisateur.objects.filter(
+            is_superuser=True,
+            statut_actif=True,
+            email__isnull=False
+        ).exclude(email='')
+        
+        for admin in super_admins:
+            destinataires.append({
+                'email': admin.email,
+                'nom': admin.get_full_name(),
+                'role': 'Administrateur'
+            })
+        
+        # 2. Tous les chefs de projet système
+        try:
+            role_chef_projet = RoleSysteme.objects.get(nom='CHEF_PROJET')
+            chefs_projet = Utilisateur.objects.filter(
+                role_systeme=role_chef_projet,
+                statut_actif=True,
+                email__isnull=False
+            ).exclude(email='')
+            
+            for chef in chefs_projet:
+                destinataires.append({
+                    'email': chef.email,
+                    'nom': chef.get_full_name(),
+                    'role': 'Chef de Projet'
+                })
+        except RoleSysteme.DoesNotExist:
+            pass
+        
+        # 3. Le responsable principal du projet (s'il n'est pas déjà dans la liste)
+        responsable = etape.projet.get_responsable_principal()
+        if responsable and responsable.email:
+            emails_existants = [d['email'] for d in destinataires]
+            if responsable.email not in emails_existants:
+                destinataires.append({
+                    'email': responsable.email,
+                    'nom': responsable.get_full_name(),
+                    'role': 'Responsable Principal'
+                })
+        
+        if not destinataires:
+            return {'success': False, 'error': 'Aucun destinataire trouvé'}
+        
+        # Récupérer les informations de contexte
+        adresse_ip = '127.0.0.1'
+        if request:
+            adresse_ip = get_client_ip(request)
+        
+        # Préparer le contexte pour l'email
+        context = {
+            'etape': etape,
+            'projet': etape.projet,
+            'utilisateur_terminant': utilisateur_terminant,
+            'date_completion': etape.date_fin_reelle,
+            'etape_suivante': etape.get_etape_suivante(),
+            'site_name': 'SI-Gouvernance JCM',
+            'adresse_ip': adresse_ip,
+        }
+        
+        # Sujet de l'email
+        sujet = f"[SI-Gouvernance] Étape terminée : {etape.type_etape.get_nom_display()} - {etape.projet.nom}"
+        
+        # Corps de l'email en texte brut
+        etape_suivante_info = ""
+        if etape.get_etape_suivante():
+            etape_suivante_info = f"\n\nÉtape suivante activée : {etape.get_etape_suivante().type_etape.get_nom_display()}"
+        
+        emails_envoyes = 0
+        
+        for destinataire in destinataires:
+            message_text = f"""
+Bonjour {destinataire['nom']},
+
+Une étape du projet "{etape.projet.nom}" vient d'être terminée.
+
+Détails de l'étape :
+- Étape : {etape.type_etape.get_nom_display()}
+- Projet : {etape.projet.nom}
+- Client : {etape.projet.client}
+- Terminée par : {utilisateur_terminant.get_full_name()}
+- Date de completion : {etape.date_fin_reelle.strftime('%d/%m/%Y à %H:%M')}
+- Statut du projet : {etape.projet.statut.get_nom_display()}{etape_suivante_info}
+
+Vous recevez cette notification en tant que {destinataire['role']}.
+
+Connectez-vous à SI-Gouvernance pour consulter les détails du projet.
+
+Cordialement,
+L'équipe SI-Gouvernance JCM
+
+---
+Ceci est un email automatique, merci de ne pas y répondre.
+            """.strip()
+            
+            try:
+                send_mail(
+                    subject=sujet,
+                    message=message_text,
+                    from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@si-gouvernance.com'),
+                    recipient_list=[destinataire['email']],
+                    fail_silently=False,
+                )
+                emails_envoyes += 1
+                
+            except Exception as e:
+                print(f"Erreur lors de l'envoi à {destinataire['email']}: {e}")
+                continue
+        
+        return {
+            'success': True,
+            'emails_envoyes': emails_envoyes,
+            'total_destinataires': len(destinataires)
+        }
+        
+    except Exception as e:
+        print(f"Erreur lors de l'envoi des notifications d'étape terminée : {e}")
+        return {'success': False, 'error': str(e)}

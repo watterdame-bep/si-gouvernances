@@ -2222,12 +2222,15 @@ def terminer_etape(request, projet_id, etape_id):
         return JsonResponse({'success': False, 'error': 'Permission refusée'})
     
     try:
-        # Terminer l'étape (qui active automatiquement la suivante)
+        # Terminer l'étape (qui active automatiquement la suivante et envoie les notifications)
         etape_suivante = etape.terminer_etape(user)
         
         # Message de succès avec information sur l'étape suivante
         if etape_suivante:
-            message = f'Étape "{etape.type_etape.get_nom_display()}" terminée avec succès ! L\'étape "{etape_suivante.type_etape.get_nom_display()}" a été automatiquement activée.'
+            if etape_suivante.type_etape.nom == 'DEVELOPPEMENT':
+                message = f'Étape "{etape.type_etape.get_nom_display()}" terminée avec succès ! L\'étape "{etape_suivante.type_etape.get_nom_display()}" a été automatiquement activée. Vous pouvez maintenant créer des modules pour ce projet.'
+            else:
+                message = f'Étape "{etape.type_etape.get_nom_display()}" terminée avec succès ! L\'étape "{etape_suivante.type_etape.get_nom_display()}" a été automatiquement activée.'
         else:
             message = f'Étape "{etape.type_etape.get_nom_display()}" terminée avec succès ! C\'était la dernière étape du projet.'
         
@@ -2237,8 +2240,10 @@ def terminer_etape(request, projet_id, etape_id):
             'message': message,
             'etape_suivante': {
                 'nom': etape_suivante.type_etape.get_nom_display(),
-                'id': str(etape_suivante.id)
-            } if etape_suivante else None
+                'id': str(etape_suivante.id),
+                'permet_modules': etape_suivante.type_etape.nom == 'DEVELOPPEMENT'
+            } if etape_suivante else None,
+            'notifications_envoyees': True
         })
         
     except ValidationError as e:
