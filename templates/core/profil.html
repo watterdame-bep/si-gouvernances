@@ -1,0 +1,615 @@
+{% extends 'base.html' %}
+
+{% block title %}Mon Profil - SI-Gouvernance JCM{% endblock %}
+{% block page_title %}Mon Profil{% endblock %}
+
+{% block content %}
+<div class="bg-gray-50 min-h-screen p-2 md:p-4">
+    <div class="max-w-4xl mx-auto space-y-4">
+        
+        <!-- Header Professional -->
+        <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
+                        <span class="text-white font-bold text-lg">{{ user.first_name.0|upper }}{{ user.last_name.0|upper }}</span>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-semibold text-gray-900">Mon Profil</h1>
+                        <p class="text-sm text-gray-600">{{ user.get_full_name }}</p>
+                    </div>
+                </div>
+                
+                <a href="{% url 'dashboard' %}" 
+                   class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md text-sm font-medium transition-colors">
+                    <i class="fas fa-arrow-left mr-2"></i>
+                    Retour au tableau de bord
+                </a>
+            </div>
+        </div>
+
+        <!-- Statistiques personnelles -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div class="bg-white rounded-lg p-3 shadow-sm border border-gray-200">
+                <div class="text-center">
+                    <p class="text-xs text-gray-600 mb-1">Projets actifs</p>
+                    <p class="text-lg font-bold text-blue-600">{{ stats.projets_actifs }}</p>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg p-3 shadow-sm border border-gray-200">
+                <div class="text-center">
+                    <p class="text-xs text-gray-600 mb-1">Tâches en cours</p>
+                    <p class="text-lg font-bold text-orange-600">{{ stats.taches_en_cours }}</p>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg p-3 shadow-sm border border-gray-200">
+                <div class="text-center">
+                    <p class="text-xs text-gray-600 mb-1">Tâches terminées</p>
+                    <p class="text-lg font-bold text-green-600">{{ stats.taches_terminees }}</p>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg p-3 shadow-sm border border-gray-200">
+                <div class="text-center">
+                    <p class="text-xs text-gray-600 mb-1">Membre depuis</p>
+                    <p class="text-sm font-bold text-gray-900">{{ stats.membre_depuis|date:"M Y" }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Informations du compte et Sécurité - Layout optimisé -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            
+            <!-- Informations personnelles - Compact -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="bg-gray-50 p-3 border-b border-gray-200">
+                    <h2 class="text-sm font-semibold text-gray-900 flex items-center">
+                        <i class="fas fa-user mr-2 text-blue-600"></i>
+                        Informations du compte
+                    </h2>
+                </div>
+                
+                <div class="p-3">
+                    <form id="profilForm" class="space-y-2">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label for="first_name" class="block text-xs font-medium text-gray-700 mb-1">Prénom</label>
+                                <input type="text" id="first_name" name="first_name" value="{{ user.first_name }}" 
+                                       class="w-full px-2 py-1 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            
+                            <div>
+                                <label for="last_name" class="block text-xs font-medium text-gray-700 mb-1">Nom</label>
+                                <input type="text" id="last_name" name="last_name" value="{{ user.last_name }}" 
+                                       class="w-full px-2 py-1 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label for="email" class="block text-xs font-medium text-gray-700 mb-1">Email</label>
+                            <input type="email" id="email" value="{{ user.email }}" disabled
+                                   class="w-full px-2 py-1 border border-gray-300 rounded bg-gray-50 text-gray-500 text-xs">
+                        </div>
+                        
+                        <div class="flex justify-end pt-1">
+                            <button type="submit" 
+                                    class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-medium transition-colors">
+                                <i class="fas fa-save mr-1"></i>Sauvegarder
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Informations de connexion - Compact -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="bg-gray-50 p-3 border-b border-gray-200">
+                    <h2 class="text-sm font-semibold text-gray-900 flex items-center">
+                        <i class="fas fa-info-circle mr-2 text-green-600"></i>
+                        Informations système
+                    </h2>
+                </div>
+                
+                <div class="p-3">
+                    <div class="space-y-2 text-xs text-gray-600">
+                        <div class="flex justify-between items-center">
+                            <span class="flex items-center">
+                                <i class="fas fa-user-tag mr-1 text-gray-400"></i>
+                                Utilisateur:
+                            </span>
+                            <span class="font-medium text-gray-900">{{ user.username }}</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="flex items-center">
+                                <i class="fas fa-shield-alt mr-1 text-gray-400"></i>
+                                Rôle:
+                            </span>
+                            <span class="font-medium text-gray-900">{{ user.role_systeme.get_nom_display|default:'Aucun' }}</span>
+                        </div>
+                        {% if stats.derniere_connexion %}
+                        <div class="flex justify-between items-center">
+                            <span class="flex items-center">
+                                <i class="fas fa-clock mr-1 text-gray-400"></i>
+                                Dernière connexion:
+                            </span>
+                            <span class="font-medium text-gray-900">{{ stats.derniere_connexion|date:"d/m/Y" }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sécurité - Changement de mot de passe -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="bg-gray-50 p-3 border-b border-gray-200">
+                    <h2 class="text-sm font-semibold text-gray-900 flex items-center">
+                        <i class="fas fa-lock mr-2 text-red-600"></i>
+                        Sécurité
+                    </h2>
+                </div>
+                
+                <div class="p-3">
+                    <button onclick="ouvrirModalMotDePasse()" 
+                            class="w-full px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded text-sm font-medium transition-colors">
+                        <i class="fas fa-key mr-2"></i>Changer le mot de passe
+                    </button>
+                    <p class="text-xs text-gray-500 mt-2 text-center">
+                        <i class="fas fa-shield-alt mr-1"></i>
+                        Sécurisez votre compte
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+            <!-- Informations du membre (Profil RH) -->
+            {% if membre %}
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="bg-gray-50 p-4 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <i class="fas fa-id-card mr-2 text-green-600"></i>
+                        Profil RH
+                    </h2>
+                </div>
+                
+                <div class="p-4 space-y-4">
+                    <!-- Informations personnelles RH -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Nom complet</label>
+                            <input type="text" value="{{ membre.get_nom_complet }}" disabled
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500 text-sm">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Email personnel</label>
+                            <input type="email" value="{{ membre.email_personnel }}" disabled
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500 text-sm">
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
+                            <input type="tel" value="{{ membre.telephone|default:'Non renseigné' }}" disabled
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500 text-sm">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Téléphone d'urgence</label>
+                            <input type="tel" value="{{ membre.telephone_urgence|default:'Non renseigné' }}" disabled
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500 text-sm">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Adresse</label>
+                        <textarea disabled class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500 text-sm" rows="2">{{ membre.adresse|default:'Non renseignée' }}</textarea>
+                    </div>
+                    
+                    <!-- Informations professionnelles -->
+                    <div class="border-t border-gray-200 pt-4">
+                        <h3 class="text-sm font-semibold text-gray-900 mb-3 flex items-center">
+                            <i class="fas fa-briefcase mr-2 text-gray-600"></i>
+                            Informations professionnelles
+                        </h3>
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Poste</label>
+                                <input type="text" value="{{ membre.poste|default:'Non renseigné' }}" disabled
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500 text-sm">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Département</label>
+                                <input type="text" value="{{ membre.departement|default:'Non renseigné' }}" disabled
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500 text-sm">
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Niveau d'expérience</label>
+                                <input type="text" value="{{ membre.get_niveau_experience_display|default:'Non renseigné' }}" disabled
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500 text-sm">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Date d'embauche</label>
+                                <input type="text" value="{% if membre.date_embauche %}{{ membre.date_embauche|date:'d/m/Y' }}{% else %}Non renseignée{% endif %}" disabled
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500 text-sm">
+                            </div>
+                        </div>
+                        
+                        {% if membre.competences_techniques %}
+                        <div class="mt-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Compétences techniques</label>
+                            <textarea disabled class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500 text-sm" rows="3">{{ membre.competences_techniques }}</textarea>
+                        </div>
+                        {% endif %}
+                        
+                        {% if membre.specialites %}
+                        <div class="mt-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Spécialités</label>
+                            <textarea disabled class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500 text-sm" rows="3">{{ membre.specialites }}</textarea>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Note informative -->
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-4">
+                        <div class="flex items-start">
+                            <i class="fas fa-info-circle text-blue-600 mt-0.5 mr-2"></i>
+                            <div>
+                                <p class="text-sm text-blue-800 font-medium">Informations RH</p>
+                                <p class="text-xs text-blue-700 mt-1">Ces informations sont gérées par les ressources humaines. Pour toute modification, contactez votre administrateur.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <!-- Pas de profil membre associé -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="bg-gray-50 p-4 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <i class="fas fa-id-card mr-2 text-gray-600"></i>
+                        Profil RH
+                    </h2>
+                </div>
+                
+                <div class="p-6 text-center">
+                    <div class="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-user-times text-gray-400 text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Aucun profil RH associé</h3>
+                    <p class="text-gray-600 text-sm mb-4">
+                        Votre compte n'est pas encore lié à un profil membre dans le système RH.
+                    </p>
+                    <p class="text-xs text-gray-500">
+                        Contactez votre administrateur pour associer votre compte à votre profil RH.
+                    </p>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Mes projets récents - Déplacé à droite du Profil RH -->
+            {% if mes_projets %}
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="bg-gray-50 p-4 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <i class="fas fa-folder-open mr-2 text-green-600"></i>
+                        Mes projets récents
+                    </h2>
+                </div>
+                
+                <div class="p-4">
+                    <div class="space-y-3">
+                        {% for projet in mes_projets %}
+                        <div class="border border-gray-200 rounded-lg p-3 hover:bg-gray-50 transition-colors">
+                            <div class="flex items-center justify-between">
+                                <div class="flex-1 min-w-0">
+                                    <h3 class="font-medium text-gray-900 truncate flex items-center">
+                                        <i class="fas fa-project-diagram mr-2 text-blue-600"></i>
+                                        {{ projet.nom }}
+                                    </h3>
+                                    <p class="text-sm text-gray-600 truncate flex items-center mt-1">
+                                        <i class="fas fa-building mr-2 text-gray-400"></i>
+                                        {{ projet.client }}
+                                    </p>
+                                    <div class="flex items-center mt-2">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
+                                            {% if projet.statut.nom == 'EN_COURS' %}bg-green-100 text-green-800
+                                            {% elif projet.statut.nom == 'PLANIFIE' %}bg-blue-100 text-blue-800
+                                            {% elif projet.statut.nom == 'TERMINE' %}bg-gray-100 text-gray-800
+                                            {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                                            {% if projet.statut.nom == 'EN_COURS' %}<i class="fas fa-play mr-1"></i>
+                                            {% elif projet.statut.nom == 'PLANIFIE' %}<i class="fas fa-calendar mr-1"></i>
+                                            {% elif projet.statut.nom == 'TERMINE' %}<i class="fas fa-check-circle mr-1"></i>
+                                            {% else %}<i class="fas fa-clock mr-1"></i>{% endif %}
+                                            {{ projet.statut.get_nom_display }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <a href="{% url 'projet_detail' projet.id %}" 
+                                   class="ml-2 p-2 text-gray-400 hover:text-blue-600 transition-colors">
+                                    <i class="fas fa-arrow-right"></i>
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    {% if stats.projets_actifs > mes_projets|length %}
+                    <div class="mt-3 text-center">
+                        <a href="{% url 'projets_list' %}" 
+                           class="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center justify-center">
+                            <i class="fas fa-eye mr-2"></i>
+                            Voir tous mes projets ({{ stats.projets_actifs }})
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% else %}
+            <!-- Espace vide si pas de projets -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="bg-gray-50 p-4 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <i class="fas fa-folder-open mr-2 text-gray-600"></i>
+                        Mes projets récents
+                    </h2>
+                </div>
+                
+                <div class="p-6 text-center">
+                    <div class="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-folder-open text-gray-400 text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Aucun projet récent</h3>
+                    <p class="text-gray-600 text-sm">
+                        Vos projets récents apparaîtront ici.
+                    </p>
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+
+<!-- Modal de changement de mot de passe -->
+<div id="motDePasseModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-lg p-6 max-w-md mx-auto shadow-xl">
+        <div class="flex items-center mb-4">
+            <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center mr-3">
+                <i class="fas fa-key text-red-600"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900">Changer le mot de passe</h3>
+        </div>
+        
+        <form id="motDePasseForm" class="space-y-4">
+            <div>
+                <label for="ancien_mot_de_passe" class="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                    <i class="fas fa-lock mr-2 text-gray-400"></i>
+                    Ancien mot de passe
+                </label>
+                <input type="password" id="ancien_mot_de_passe" name="ancien_mot_de_passe" required
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm">
+            </div>
+            
+            <div>
+                <label for="nouveau_mot_de_passe" class="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                    <i class="fas fa-key mr-2 text-gray-400"></i>
+                    Nouveau mot de passe
+                </label>
+                <input type="password" id="nouveau_mot_de_passe" name="nouveau_mot_de_passe" required
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm">
+                <p class="text-xs text-gray-500 mt-1 flex items-center">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    Minimum 8 caractères
+                </p>
+            </div>
+            
+            <div>
+                <label for="confirmer_mot_de_passe" class="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                    <i class="fas fa-check-circle mr-2 text-gray-400"></i>
+                    Confirmer le nouveau mot de passe
+                </label>
+                <input type="password" id="confirmer_mot_de_passe" name="confirmer_mot_de_passe" required
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm">
+            </div>
+            
+            <div class="flex justify-end space-x-3 pt-4">
+                <button type="button" onclick="fermerModalMotDePasse()" 
+                        class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md font-medium text-sm flex items-center">
+                    <i class="fas fa-times mr-2"></i>
+                    Annuler
+                </button>
+                <button type="submit" 
+                        class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md font-medium text-sm flex items-center">
+                    <i class="fas fa-save mr-2"></i>
+                    Changer le mot de passe
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Gestion du formulaire de profil
+document.getElementById('profilForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    
+    submitBtn.textContent = 'Sauvegarde...';
+    submitBtn.disabled = true;
+    
+    fetch('{% url "modifier_profil" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            afficherMessage(data.message, 'success');
+            // Mettre à jour l'affichage du nom si nécessaire
+            if (data.nom_complet) {
+                document.querySelector('h1 + p').textContent = data.nom_complet;
+            }
+        } else {
+            afficherMessage('Erreur: ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        afficherMessage('Une erreur est survenue.', 'error');
+    })
+    .finally(() => {
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+    });
+});
+
+// Gestion du modal de mot de passe
+function ouvrirModalMotDePasse() {
+    const modal = document.getElementById('motDePasseModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+function fermerModalMotDePasse() {
+    const modal = document.getElementById('motDePasseModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    // Réinitialiser le formulaire
+    document.getElementById('motDePasseForm').reset();
+}
+
+// Gestion du formulaire de changement de mot de passe
+document.getElementById('motDePasseForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    
+    submitBtn.textContent = 'Changement...';
+    submitBtn.disabled = true;
+    
+    fetch('{% url "changer_mot_de_passe" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            afficherMessage(data.message, 'success');
+            fermerModalMotDePasse();
+            
+            // Afficher une information supplémentaire sur l'email
+            if (data.email_envoye) {
+                setTimeout(() => {
+                    afficherMessage('Email de confirmation envoyé à votre adresse', 'info');
+                }, 1500);
+            } else {
+                setTimeout(() => {
+                    afficherMessage('Email de confirmation non envoyé (vérifiez la configuration)', 'warning');
+                }, 1500);
+            }
+            
+            // Si redirection vers login nécessaire
+            if (data.redirect_to_login) {
+                setTimeout(() => {
+                    window.location.href = '{% url "login" %}';
+                }, 3000);
+            }
+        } else {
+            afficherMessage('Erreur: ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        afficherMessage('Une erreur est survenue.', 'error');
+    })
+    .finally(() => {
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+    });
+});
+
+// Fermer le modal en cliquant à l'extérieur
+document.getElementById('motDePasseModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        fermerModalMotDePasse();
+    }
+});
+
+// Fonction d'affichage des messages
+function afficherMessage(message, type) {
+    const div = document.createElement('div');
+    let bgColor, icon;
+    
+    switch(type) {
+        case 'success':
+            bgColor = 'bg-green-500';
+            icon = 'fas fa-check-circle';
+            break;
+        case 'error':
+            bgColor = 'bg-red-500';
+            icon = 'fas fa-times-circle';
+            break;
+        case 'warning':
+            bgColor = 'bg-yellow-500';
+            icon = 'fas fa-exclamation-triangle';
+            break;
+        case 'info':
+            bgColor = 'bg-blue-500';
+            icon = 'fas fa-info-circle';
+            break;
+        default:
+            bgColor = 'bg-gray-500';
+            icon = 'fas fa-info-circle';
+    }
+    
+    div.className = `fixed top-4 right-4 ${bgColor} text-white px-6 py-3 rounded-lg shadow-lg z-50 transform translate-x-full transition-transform duration-300`;
+    div.innerHTML = `
+        <div class="flex items-center">
+            <i class="${icon} mr-2"></i>
+            <span>${message}</span>
+        </div>
+    `;
+    
+    document.body.appendChild(div);
+    
+    // Animation d'entrée
+    setTimeout(() => {
+        div.classList.remove('translate-x-full');
+    }, 100);
+    
+    // Supprimer après 4 secondes
+    setTimeout(() => {
+        div.classList.add('translate-x-full');
+        setTimeout(() => {
+            if (document.body.contains(div)) {
+                document.body.removeChild(div);
+            }
+        }, 300);
+    }, 4000);
+}
+</script>
+
+{% csrf_token %}
+{% endblock %}

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Changement de mot de passe - {{ site_name }}</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8fafc;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e2e8f0;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #f1f5f9;
+        }
+        .logo {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+        .logo-text {
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .title {
+            color: #1e293b;
+            font-size: 24px;
+            font-weight: 700;
+            margin: 0;
+        }
+        .subtitle {
+            color: #64748b;
+            font-size: 16px;
+            margin: 5px 0 0 0;
+        }
+        .alert-box {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border: 1px solid #f59e0b;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 25px 0;
+            text-align: center;
+        }
+        .alert-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        .alert-title {
+            color: #92400e;
+            font-size: 18px;
+            font-weight: 600;
+            margin: 0 0 8px 0;
+        }
+        .alert-message {
+            color: #b45309;
+            font-size: 14px;
+            margin: 0;
+        }
+        .info-section {
+            background-color: #f8fafc;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 25px 0;
+        }
+        .info-title {
+            color: #1e293b;
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0 0 15px 0;
+            display: flex;
+            align-items: center;
+        }
+        .info-icon {
+            margin-right: 8px;
+            font-size: 18px;
+        }
+        .info-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .info-item:last-child {
+            border-bottom: none;
+        }
+        .info-label {
+            color: #64748b;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .info-value {
+            color: #1e293b;
+            font-size: 14px;
+            font-weight: 600;
+            text-align: right;
+            max-width: 60%;
+            word-break: break-word;
+        }
+        .security-tips {
+            background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+            border: 1px solid #3b82f6;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 25px 0;
+        }
+        .security-title {
+            color: #1e40af;
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0 0 15px 0;
+            display: flex;
+            align-items: center;
+        }
+        .security-list {
+            color: #1e40af;
+            font-size: 14px;
+            margin: 0;
+            padding-left: 20px;
+        }
+        .security-list li {
+            margin-bottom: 8px;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+            color: #64748b;
+            font-size: 12px;
+        }
+        .footer-logo {
+            color: #3b82f6;
+            font-weight: 600;
+            text-decoration: none;
+        }
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            .container {
+                padding: 20px;
+            }
+            .info-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .info-value {
+                text-align: left;
+                max-width: 100%;
+                margin-top: 4px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">
+                <i class="fas fa-rocket"></i>
+            </div>
+            <h1 class="title">Changement de mot de passe confirmé</h1>
+            <p class="subtitle">{{ site_name }}</p>
+        </div>
+
+        <!-- Greeting -->
+        <p>Bonjour <strong>{{ nom_complet }}</strong>,</p>
+
+        <!-- Alert Box -->
+        <div class="alert-box">
+            <div class="alert-icon">🔐</div>
+            <h2 class="alert-title">Mot de passe modifié avec succès</h2>
+            <p class="alert-message">Votre mot de passe a été changé le {{ date_changement|date:"d/m/Y à H:i" }}</p>
+        </div>
+
+        <!-- Security Information -->
+        <div class="info-section">
+            <h3 class="info-title">
+                <i class="fas fa-clipboard mr-1"></i>
+                Détails de la modification
+            </h3>
+            <ul class="info-list">
+                <li class="info-item">
+                    <span class="info-label">Date et heure</span>
+                    <span class="info-value">{{ date_changement|date:"d/m/Y à H:i" }}</span>
+                </li>
+                <li class="info-item">
+                    <span class="info-label">Adresse IP</span>
+                    <span class="info-value">{{ adresse_ip }}</span>
+                </li>
+                <li class="info-item">
+                    <span class="info-label">Navigateur</span>
+                    <span class="info-value">{{ navigateur|truncatechars:50 }}</span>
+                </li>
+                <li class="info-item">
+                    <span class="info-label">Compte concerné</span>
+                    <span class="info-value">{{ email }}</span>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Security Alert -->
+        <p><strong><i class="fas fa-exclamation-triangle mr-1"></i>Important :</strong> Si vous n'êtes pas à l'origine de cette modification, contactez immédiatement votre administrateur système.</p>
+
+        <!-- Security Tips -->
+        <div class="security-tips">
+            <h3 class="security-title">
+                <span class="info-icon">🛡️</span>
+                Conseils de sécurité
+            </h3>
+            <ul class="security-list">
+                <li>Ne partagez jamais votre mot de passe avec qui que ce soit</li>
+                <li>Utilisez un mot de passe unique et complexe pour chaque service</li>
+                <li>Déconnectez-vous toujours après chaque session de travail</li>
+                <li>Vérifiez régulièrement l'activité de votre compte</li>
+                <li>Signalez immédiatement toute activité suspecte</li>
+            </ul>
+        </div>
+
+        <!-- Closing -->
+        <p>Cordialement,<br>
+        <strong>L'équipe {{ site_name }}</strong></p>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>
+                Ceci est un email automatique de sécurité envoyé par 
+                <a href="#" class="footer-logo">{{ site_name }}</a>
+            </p>
+            <p>Merci de ne pas répondre à cet email.</p>
+        </div>
+    </div>
+</body>
+</html>

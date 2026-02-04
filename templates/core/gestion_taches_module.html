@@ -1,0 +1,584 @@
+{% extends 'base.html' %}
+
+{% block title %}Tâches - {{ module.nom }} - {{ projet.nom }} - SI-Gouvernance JCM{% endblock %}
+{% block page_title %}Gestion des Tâches - {{ module.nom }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.status-badge {
+    @apply inline-flex items-center px-2 py-1 rounded-full text-xs font-medium;
+}
+
+.status-en-attente { @apply bg-gray-100 text-gray-800; }
+.status-en-cours { @apply bg-blue-100 text-blue-800; }
+.status-terminee { @apply bg-green-100 text-green-800; }
+.status-bloquee { @apply bg-red-100 text-red-800; }
+
+.priority-haute { @apply bg-red-100 text-red-800; }
+.priority-moyenne { @apply bg-yellow-100 text-yellow-800; }
+.priority-basse { @apply bg-green-100 text-green-800; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="bg-gray-50 min-h-screen p-4">
+    <div class="max-w-7xl mx-auto space-y-4">
+        
+        <!-- Header professionnel -->
+        <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 rounded-lg flex items-center justify-center shadow-sm" 
+                         style="background-color: {{ module.couleur }}20; border: 1px solid {{ module.couleur }}40;">
+                        <i class="fas fa-tasks text-sm" style="color: {{ module.couleur }};"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-semibold text-gray-900">Tâches du Module</h1>
+                        <p class="text-sm text-gray-600">
+                            <i class="fas fa-cube mr-1"></i>
+                            {{ module.nom }} • {{ projet.nom }}
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                    {% if peut_gerer_taches %}
+                    <button onclick="ouvrirModalCreerTache()" 
+                            class="inline-flex items-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md text-sm transition-colors">
+                        <i class="fas fa-plus mr-2"></i>Nouvelle Tâche
+                    </button>
+                    {% endif %}
+                    <a href="{% url 'gestion_modules' projet.id %}" 
+                       class="inline-flex items-center px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md font-medium text-sm transition-colors">
+                        <i class="fas fa-arrow-left mr-2"></i>Retour
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistiques -->
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Total</p>
+                        <p class="text-2xl font-bold text-gray-900">{{ stats.total_taches }}</p>
+                    </div>
+                    <div class="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-tasks text-gray-600"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">En Attente</p>
+                        <p class="text-2xl font-bold text-gray-600">{{ stats.taches_en_attente }}</p>
+                    </div>
+                    <div class="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-clock text-gray-500"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">En Cours</p>
+                        <p class="text-2xl font-bold text-blue-600">{{ stats.taches_en_cours }}</p>
+                    </div>
+                    <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-play text-blue-600"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Terminées</p>
+                        <p class="text-2xl font-bold text-green-600">{{ stats.taches_terminees }}</p>
+                    </div>
+                    <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-check text-green-600"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Progression</p>
+                        <p class="text-2xl font-bold text-purple-600">{{ stats.progression }}%</p>
+                    </div>
+                    <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-chart-line text-purple-600"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Liste des tâches -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div class="p-4 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <i class="fas fa-list text-gray-600 mr-2"></i>
+                        <h2 class="text-lg font-semibold text-gray-900">Tâches du Module</h2>
+                    </div>
+                    <span class="text-sm text-gray-500">{{ taches.count }} tâche{{ taches.count|pluralize }}</span>
+                </div>
+            </div>
+            
+            {% if taches %}
+            <div class="divide-y divide-gray-200">
+                {% for tache in taches %}
+                <div class="p-4 hover:bg-gray-50 transition-colors">
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1 min-w-0">
+                            <!-- Titre et statut -->
+                            <div class="flex items-center space-x-3 mb-2">
+                                <h3 class="text-sm font-semibold text-gray-900 truncate">{{ tache.nom }}</h3>
+                                <span class="status-badge status-{{ tache.statut|lower }}">
+                                    {% if tache.statut == 'EN_ATTENTE' %}
+                                        <i class="fas fa-clock mr-1"></i>En Attente
+                                    {% elif tache.statut == 'EN_COURS' %}
+                                        <i class="fas fa-play mr-1"></i>En Cours
+                                    {% elif tache.statut == 'TERMINEE' %}
+                                        <i class="fas fa-check mr-1"></i>Terminée
+                                    {% elif tache.statut == 'BLOQUEE' %}
+                                        <i class="fas fa-exclamation-triangle mr-1"></i>Bloquée
+                                    {% endif %}
+                                </span>
+                                {% if tache.priorite %}
+                                <span class="status-badge priority-{{ tache.priorite|lower }}">
+                                    {% if tache.priorite == 'HAUTE' %}
+                                        <i class="fas fa-arrow-up mr-1"></i>Haute
+                                    {% elif tache.priorite == 'MOYENNE' %}
+                                        <i class="fas fa-minus mr-1"></i>Moyenne
+                                    {% else %}
+                                        <i class="fas fa-arrow-down mr-1"></i>Basse
+                                    {% endif %}
+                                </span>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Description -->
+                            {% if tache.description %}
+                            <p class="text-sm text-gray-600 mb-2 line-clamp-2">{{ tache.description }}</p>
+                            {% endif %}
+                            
+                            <!-- Responsable et dates -->
+                            <div class="flex items-center space-x-4 text-xs text-gray-500">
+                                {% if tache.responsable %}
+                                <span>
+                                    <i class="fas fa-user mr-1"></i>{{ tache.responsable.get_full_name }}
+                                </span>
+                                {% else %}
+                                <span class="text-orange-600">
+                                    <i class="fas fa-exclamation-triangle mr-1"></i>Non assignée
+                                </span>
+                                {% endif %}
+                                
+                                <span>
+                                    <i class="fas fa-calendar-alt mr-1"></i>{{ tache.date_creation|date:"d/m/Y" }}
+                                </span>
+                                
+                                {% if tache.date_echeance %}
+                                <span class="{% if tache.est_en_retard %}text-red-600{% endif %}">
+                                    <i class="fas fa-flag mr-1"></i>{{ tache.date_echeance|date:"d/m/Y" }}
+                                </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Actions -->
+                        <div class="flex items-center space-x-1 ml-4">
+                            {% if peut_gerer_taches %}
+                            <!-- Bouton Assigner -->
+                            {% if not tache.responsable %}
+                            <button onclick="ouvrirModalAssignerTache('{{ tache.id }}', '{{ tache.nom|escapejs }}')"
+                                    class="inline-flex items-center px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-medium transition-colors"
+                                    title="Assigner">
+                                <i class="fas fa-user-plus"></i>
+                            </button>
+                            {% endif %}
+                            
+                            <!-- Bouton Modifier Statut -->
+                            <button onclick="ouvrirModalModifierStatut('{{ tache.id }}', '{{ tache.nom|escapejs }}', '{{ tache.statut }}')"
+                                    class="inline-flex items-center px-2 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded text-xs font-medium transition-colors"
+                                    title="Modifier statut">
+                                <i class="fas fa-flag"></i>
+                            </button>
+                            {% endif %}
+                            
+                            <!-- Bouton Détails -->
+                            <button onclick="voirDetailsTache('{{ tache.id }}', '{{ tache.nom|escapejs }}')"
+                                    class="inline-flex items-center px-2 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-xs font-medium transition-colors"
+                                    title="Détails">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <!-- État vide -->
+            <div class="p-8 text-center">
+                <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-tasks text-gray-400 text-xl"></i>
+                </div>
+                <h3 class="text-base font-medium text-gray-500 mb-2">Aucune tâche créée</h3>
+                <p class="text-sm text-gray-400 mb-4">Créez votre première tâche pour organiser le travail sur ce module</p>
+                {% if peut_gerer_taches %}
+                <button onclick="ouvrirModalCreerTache()" 
+                        class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md text-sm transition-colors">
+                    <i class="fas fa-plus mr-2"></i>Créer une Tâche
+                </button>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal Créer Tâche -->
+<div id="modalCreerTache" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div class="bg-blue-600 rounded-t-lg px-4 py-3 text-white">
+            <h3 class="text-lg font-semibold">
+                <i class="fas fa-plus mr-2"></i>Nouvelle Tâche
+            </h3>
+        </div>
+        
+        <form id="formCreerTache" class="p-4 space-y-4">
+            {% csrf_token %}
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                    Nom de la tâche <span class="text-red-500">*</span>
+                </label>
+                <input type="text" name="nom" required 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                       placeholder="Ex: Développer l'authentification">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                    Description
+                </label>
+                <textarea name="description" rows="3"
+                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          placeholder="Description détaillée de la tâche..."></textarea>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Priorité
+                    </label>
+                    <select name="priorite" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="MOYENNE">Moyenne</option>
+                        <option value="HAUTE">Haute</option>
+                        <option value="BASSE">Basse</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Responsable
+                    </label>
+                    <select name="responsable_id" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">À assigner plus tard</option>
+                        {% for membre in equipe_module %}
+                        <option value="{{ membre.utilisateur.id }}">
+                            {{ membre.utilisateur.get_full_name }} ({{ membre.role }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </form>
+        
+        <div class="bg-gray-50 rounded-b-lg px-4 py-3 flex items-center justify-end space-x-3">
+            <button onclick="fermerModalCreerTache()" 
+                    class="px-3 py-1.5 text-gray-600 hover:text-gray-800 font-medium text-sm transition-colors">
+                Annuler
+            </button>
+            <button onclick="confirmerCreerTache()" 
+                    class="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md text-sm transition-colors">
+                <i class="fas fa-plus mr-1"></i>Créer
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Assigner Tâche -->
+<div id="modalAssignerTache" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div class="bg-green-600 rounded-t-lg px-4 py-3 text-white">
+            <h3 class="text-lg font-semibold">
+                <i class="fas fa-user-plus mr-2"></i>Assigner la Tâche
+            </h3>
+            <p class="text-green-100 text-sm" id="nomTacheAssigner">Tâche sélectionnée</p>
+        </div>
+        
+        <form id="formAssignerTache" class="p-4 space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="tache_id" id="tacheIdAssigner">
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                    <i class="fas fa-user text-green-600 mr-1"></i>
+                    Responsable
+                </label>
+                <select name="responsable_id" required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                    <option value="">Sélectionner un responsable...</option>
+                    {% for membre in equipe_module %}
+                    <option value="{{ membre.utilisateur.id }}">
+                        {{ membre.utilisateur.get_full_name }} ({{ membre.role }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </form>
+        
+        <div class="bg-gray-50 rounded-b-lg px-4 py-3 flex items-center justify-end space-x-3">
+            <button onclick="fermerModalAssignerTache()" 
+                    class="px-3 py-1.5 text-gray-600 hover:text-gray-800 font-medium text-sm transition-colors">
+                Annuler
+            </button>
+            <button onclick="confirmerAssignerTache()" 
+                    class="px-4 py-1.5 bg-green-600 hover:bg-green-700 text-white font-medium rounded-md text-sm transition-colors">
+                <i class="fas fa-check mr-1"></i>Assigner
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Modifier Statut -->
+<div id="modalModifierStatut" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div class="bg-purple-600 rounded-t-lg px-4 py-3 text-white">
+            <h3 class="text-lg font-semibold">
+                <i class="fas fa-edit mr-2"></i>Modifier le Statut
+            </h3>
+            <p class="text-purple-100 text-sm" id="nomTacheStatut">Tâche sélectionnée</p>
+        </div>
+        
+        <form id="formModifierStatut" class="p-4 space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="tache_id" id="tacheIdStatut">
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                    <i class="fas fa-flag text-purple-600 mr-1"></i>
+                    Nouveau statut
+                </label>
+                <select name="statut" required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                    <option value="EN_ATTENTE">En Attente</option>
+                    <option value="EN_COURS">En Cours</option>
+                    <option value="TERMINEE">Terminée</option>
+                    <option value="BLOQUEE">Bloquée</option>
+                </select>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                    Commentaire (optionnel)
+                </label>
+                <textarea name="commentaire" rows="2"
+                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                          placeholder="Raison du changement de statut..."></textarea>
+            </div>
+        </form>
+        
+        <div class="bg-gray-50 rounded-b-lg px-4 py-3 flex items-center justify-end space-x-3">
+            <button onclick="fermerModalModifierStatut()" 
+                    class="px-3 py-1.5 text-gray-600 hover:text-gray-800 font-medium text-sm transition-colors">
+                Annuler
+            </button>
+            <button onclick="confirmerModifierStatut()" 
+                    class="px-4 py-1.5 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-md text-sm transition-colors">
+                <i class="fas fa-save mr-1"></i>Modifier
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+// Fonctions pour les modals
+function ouvrirModalCreerTache() {
+    document.getElementById('modalCreerTache').classList.remove('hidden');
+}
+
+function fermerModalCreerTache() {
+    document.getElementById('modalCreerTache').classList.add('hidden');
+    document.getElementById('formCreerTache').reset();
+}
+
+function confirmerCreerTache() {
+    const form = document.getElementById('formCreerTache');
+    const formData = new FormData(form);
+    
+    const url = `/projets/{{ projet.id }}/modules/{{ module.id }}/taches/creer/`;
+    
+    fetch(url, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            fermerModalCreerTache();
+            afficherMessage('success', data.message || 'Tâche créée avec succès !');
+            setTimeout(() => {
+                location.reload();
+            }, 1500);
+        } else {
+            afficherMessage('error', data.error || 'Erreur lors de la création de la tâche');
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        afficherMessage('error', 'Erreur de communication avec le serveur');
+    });
+}
+
+// Modal Assigner Tâche
+function ouvrirModalAssignerTache(tacheId, nomTache) {
+    document.getElementById('tacheIdAssigner').value = tacheId;
+    document.getElementById('nomTacheAssigner').textContent = nomTache;
+    document.getElementById('modalAssignerTache').classList.remove('hidden');
+}
+
+function fermerModalAssignerTache() {
+    document.getElementById('modalAssignerTache').classList.add('hidden');
+    document.getElementById('formAssignerTache').reset();
+}
+
+function confirmerAssignerTache() {
+    const form = document.getElementById('formAssignerTache');
+    const formData = new FormData(form);
+    
+    const tacheId = formData.get('tache_id');
+    const url = `/projets/{{ projet.id }}/modules/{{ module.id }}/taches/${tacheId}/assigner/`;
+    
+    fetch(url, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            fermerModalAssignerTache();
+            afficherMessage('success', data.message || 'Tâche assignée avec succès !');
+            setTimeout(() => {
+                location.reload();
+            }, 1500);
+        } else {
+            afficherMessage('error', data.error || 'Erreur lors de l\'assignation');
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        afficherMessage('error', 'Erreur de communication avec le serveur');
+    });
+}
+
+// Modal Modifier Statut
+function ouvrirModalModifierStatut(tacheId, nomTache, statutActuel) {
+    document.getElementById('tacheIdStatut').value = tacheId;
+    document.getElementById('nomTacheStatut').textContent = nomTache;
+    
+    // Sélectionner le statut actuel
+    const selectStatut = document.querySelector('#formModifierStatut select[name="statut"]');
+    selectStatut.value = statutActuel;
+    
+    document.getElementById('modalModifierStatut').classList.remove('hidden');
+}
+
+function fermerModalModifierStatut() {
+    document.getElementById('modalModifierStatut').classList.add('hidden');
+    document.getElementById('formModifierStatut').reset();
+}
+
+function confirmerModifierStatut() {
+    const form = document.getElementById('formModifierStatut');
+    const formData = new FormData(form);
+    
+    const tacheId = formData.get('tache_id');
+    const url = `/projets/{{ projet.id }}/modules/{{ module.id }}/taches/${tacheId}/statut/`;
+    
+    fetch(url, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            fermerModalModifierStatut();
+            afficherMessage('success', data.message || 'Statut modifié avec succès !');
+            setTimeout(() => {
+                location.reload();
+            }, 1500);
+        } else {
+            afficherMessage('error', data.error || 'Erreur lors de la modification');
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        afficherMessage('error', 'Erreur de communication avec le serveur');
+    });
+}
+
+// Fonction pour afficher les messages
+function afficherMessage(type, message) {
+    // Créer un élément de notification
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 z-50 px-4 py-3 rounded-md shadow-lg ${
+        type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+    }`;
+    notification.innerHTML = `
+        <div class="flex items-center">
+            <i class="fas fa-${type === 'success' ? 'check' : 'exclamation-triangle'} mr-2"></i>
+            <span>${message}</span>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Supprimer après 3 secondes
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+
+// Fonction pour voir les détails (placeholder)
+function voirDetailsTache(tacheId, nomTache) {
+    afficherMessage('info', `Détails de la tâche "${nomTache}" - Fonctionnalité en développement`);
+}
+</script>
+{% endblock %}

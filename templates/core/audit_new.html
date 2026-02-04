@@ -1,0 +1,537 @@
+{% extends 'base.html' %}
+
+{% block title %}Audit & Sécurité - SI-Gouvernance JCM{% endblock %}
+{% block page_title %}Audit & Sécurité{% endblock %}
+
+{% block content %}
+<div class="p-6 space-y-6">
+    <!-- Header -->
+    <div class="bg-gradient-to-r from-red-600 to-red-700 rounded-2xl p-6 text-white">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-bold">Journal d'Audit</h1>
+                <p class="text-red-100 mt-1">Traçabilité complète des actions système</p>
+            </div>
+            <div class="hidden md:block">
+                <i class="fas fa-shield-alt text-4xl text-red-200"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistiques rapides -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-history text-primary-600 text-xl"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500">Actions Totales</p>
+                    <p class="text-2xl font-bold text-gray-900">{{ page_obj.paginator.count|default:0 }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-success-100 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-user-check text-success-600 text-xl"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500">Connexions Aujourd'hui</p>
+                    <p class="text-2xl font-bold text-gray-900">{{ stats.connexions_today|default:0 }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-warning-100 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-exclamation-triangle text-warning-600 text-xl"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500">Tentatives Échouées</p>
+                    <p class="text-2xl font-bold text-gray-900">{{ stats.failed_attempts|default:0 }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-danger-100 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-ban text-danger-600 text-xl"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500">Actions Bloquées</p>
+                    <p class="text-2xl font-bold text-gray-900">{{ stats.blocked_actions|default:0 }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtres et recherche -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <form method="GET" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <label for="user" class="block text-sm font-medium text-gray-700 mb-2">Utilisateur</label>
+                    <select name="user" id="user" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        <option value="">Tous les utilisateurs</option>
+                        {% for user_item in users %}
+                        <option value="{{ user_item.id }}" {% if request.GET.user == user_item.id|stringformat:"s" %}selected{% endif %}>
+                            {{ user_item.get_full_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label for="action_type" class="block text-sm font-medium text-gray-700 mb-2">Type d'action</label>
+                    <select name="action_type" id="action_type" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        <option value="">Toutes les actions</option>
+                        {% for type_code, type_name in types_actions %}
+                        <option value="{{ type_code }}" {% if request.GET.action_type == type_code %}selected{% endif %}>
+                            {{ type_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label for="date_from" class="block text-sm font-medium text-gray-700 mb-2">Date début</label>
+                    <input type="date" name="date_from" id="date_from" value="{{ request.GET.date_from }}" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                </div>
+
+                <div>
+                    <label for="date_to" class="block text-sm font-medium text-gray-700 mb-2">Date fin</label>
+                    <input type="date" name="date_to" id="date_to" value="{{ request.GET.date_to }}" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between">
+                <div class="flex-1 max-w-md">
+                    <div class="relative">
+                        <input type="text" name="search" placeholder="Rechercher dans les logs..." 
+                               value="{{ request.GET.search }}"
+                               class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-search text-gray-400"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex space-x-3 ml-4">
+                    <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+                        <i class="fas fa-filter mr-2"></i>Filtrer
+                    </button>
+                    <a href="{% url 'audit' %}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                        <i class="fas fa-times mr-2"></i>Réinitialiser
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tableau des logs d'audit -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-900">Journal des Activités</h3>
+        </div>
+        
+        {% if page_obj.object_list %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Date & Heure
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Utilisateur
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Action
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Description
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            IP
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Détails
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for log in page_obj.object_list %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <div class="flex flex-col">
+                                <span class="font-medium">{{ log.timestamp|date:"d/m/Y" }}</span>
+                                <span class="text-gray-500">{{ log.timestamp|time:"H:i:s" }}</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
+                                    <span class="text-xs font-semibold text-primary-700">
+                                        {{ log.utilisateur.first_name.0 }}{{ log.utilisateur.last_name.0 }}
+                                    </span>
+                                </div>
+                                <div class="ml-3">
+                                    <div class="text-sm font-medium text-gray-900">{{ log.utilisateur.get_full_name }}</div>
+                                    <div class="text-sm text-gray-500">
+                                        {% if log.utilisateur.est_super_admin %}
+                                            Super Administrateur
+                                        {% else %}
+                                            Utilisateur
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                {% if log.type_action == 'CONNEXION' %}bg-success-100 text-success-800
+                                {% elif log.type_action == 'DECONNEXION' %}bg-gray-100 text-gray-800
+                                {% elif log.type_action == 'CREATION_PROJET' or log.type_action == 'CREATION_UTILISATEUR' %}bg-primary-100 text-primary-800
+                                {% elif log.type_action == 'MODIFICATION_PROJET' or log.type_action == 'MODIFICATION_BUDGET' or log.type_action == 'MODIFICATION_UTILISATEUR' %}bg-warning-100 text-warning-800
+                                {% elif log.type_action == 'TENTATIVE_CONNEXION_ECHOUEE' or log.type_action == 'ACCES_REFUSE' or log.type_action == 'DESACTIVATION_UTILISATEUR' %}bg-danger-100 text-danger-800
+                                {% elif log.type_action == 'REACTIVATION_UTILISATEUR' %}bg-success-100 text-success-800
+                                {% elif log.type_action == 'REINITIALISATION_MOT_PASSE' %}bg-purple-100 text-purple-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                <i class="{% if log.type_action == 'CONNEXION' %}fas fa-sign-in-alt
+                                        {% elif log.type_action == 'DECONNEXION' %}fas fa-sign-out-alt
+                                        {% elif log.type_action == 'CREATION_PROJET' or log.type_action == 'CREATION_UTILISATEUR' %}fas fa-plus
+                                        {% elif log.type_action == 'MODIFICATION_PROJET' or log.type_action == 'MODIFICATION_BUDGET' or log.type_action == 'MODIFICATION_UTILISATEUR' %}fas fa-edit
+                                        {% elif log.type_action == 'TENTATIVE_CONNEXION_ECHOUEE' or log.type_action == 'ACCES_REFUSE' %}fas fa-times
+                                        {% elif log.type_action == 'DESACTIVATION_UTILISATEUR' %}fas fa-user-slash
+                                        {% elif log.type_action == 'REACTIVATION_UTILISATEUR' %}fas fa-user-check
+                                        {% elif log.type_action == 'REINITIALISATION_MOT_PASSE' %}fas fa-key
+                                        {% else %}fas fa-eye{% endif %} mr-1"></i>
+                                {{ log.get_type_action_display }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-900">
+                            <div class="max-w-xs truncate">{{ log.description }}</div>
+                            {% if log.projet %}
+                                <div class="text-xs text-gray-500 mt-1">Projet: {{ log.projet.nom }}</div>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
+                            {{ log.adresse_ip|default:"-" }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button onclick="showLogDetails('{{ log.id }}')" 
+                                    class="text-primary-600 hover:text-primary-900 transition-colors">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+        <div class="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
+            <div class="flex items-center justify-between">
+                <div class="flex-1 flex justify-between sm:hidden">
+                    {% if page_obj.has_previous %}
+                        <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}" 
+                           class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                            Précédent
+                        </a>
+                    {% endif %}
+                    {% if page_obj.has_next %}
+                        <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}" 
+                           class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                            Suivant
+                        </a>
+                    {% endif %}
+                </div>
+                <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                    <div>
+                        <p class="text-sm text-gray-700">
+                            Affichage de <span class="font-medium">{{ page_obj.start_index }}</span> à 
+                            <span class="font-medium">{{ page_obj.end_index }}</span> sur 
+                            <span class="font-medium">{{ page_obj.paginator.count }}</span> résultats
+                        </p>
+                    </div>
+                    <div>
+                        <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                            {% if page_obj.has_previous %}
+                                <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}" 
+                                   class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                    <i class="fas fa-chevron-left"></i>
+                                </a>
+                            {% endif %}
+                            
+                            {% for num in page_obj.paginator.page_range %}
+                                {% if page_obj.number == num %}
+                                    <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-primary-50 text-sm font-medium text-primary-600">
+                                        {{ num }}
+                                    </span>
+                                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                    <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ num }}" 
+                                       class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                        {{ num }}
+                                    </a>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if page_obj.has_next %}
+                                <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}" 
+                                   class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                    <i class="fas fa-chevron-right"></i>
+                                </a>
+                            {% endif %}
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% else %}
+        <!-- État vide -->
+        <div class="text-center py-12">
+            <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-search text-4xl text-gray-400"></i>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">Aucun log trouvé</h3>
+            <p class="text-gray-500">Aucune activité ne correspond à vos critères de recherche.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Alertes de sécurité -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-900">Alertes de Sécurité</h3>
+        </div>
+        
+        <div class="space-y-4">
+            {% if security_alerts %}
+                {% for alert in security_alerts %}
+                <div class="flex items-start p-4 bg-{{ alert.severity }}-50 border border-{{ alert.severity }}-200 rounded-lg">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-exclamation-triangle text-{{ alert.severity }}-500 text-lg"></i>
+                    </div>
+                    <div class="ml-3 flex-1">
+                        <h4 class="text-sm font-medium text-{{ alert.severity }}-800">{{ alert.title }}</h4>
+                        <p class="text-sm text-{{ alert.severity }}-700 mt-1">{{ alert.description }}</p>
+                        <p class="text-xs text-{{ alert.severity }}-600 mt-2">{{ alert.timestamp|timesince }} ago</p>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="text-center py-8">
+                    <i class="fas fa-shield-alt text-4xl text-green-400 mb-4"></i>
+                    <h4 class="text-lg font-medium text-gray-900 mb-2">Système Sécurisé</h4>
+                    <p class="text-gray-500">Aucune alerte de sécurité détectée.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal pour les détails du log -->
+<div id="logDetailsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 hidden">
+    <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-900">Détails du Log</h3>
+            <button onclick="closeLogDetails()" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <div id="logDetailsContent" class="space-y-4">
+            <!-- Le contenu sera chargé dynamiquement -->
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function showLogDetails(logId) {
+    const modal = document.getElementById('logDetailsModal');
+    const content = document.getElementById('logDetailsContent');
+    
+    // Afficher un loader
+    content.innerHTML = `
+        <div class="flex items-center justify-center py-8">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+            <span class="ml-3 text-gray-600">Chargement des détails...</span>
+        </div>
+    `;
+    
+    modal.classList.remove('hidden');
+    
+    // Récupérer les détails via AJAX
+    fetch(`/audit/log/${logId}/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displayLogDetails(data.data);
+            } else {
+                content.innerHTML = `
+                    <div class="text-center py-8">
+                        <i class="fas fa-exclamation-triangle text-4xl text-red-400 mb-4"></i>
+                        <p class="text-red-600">Erreur lors du chargement: ${data.error}</p>
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            content.innerHTML = `
+                <div class="text-center py-8">
+                    <i class="fas fa-exclamation-triangle text-4xl text-red-400 mb-4"></i>
+                    <p class="text-red-600">Erreur de connexion: ${error.message}</p>
+                </div>
+            `;
+        });
+}
+
+function displayLogDetails(log) {
+    const content = document.getElementById('logDetailsContent');
+    
+    // Construire le HTML avec les informations spécifiques à l'action
+    let html = `
+        <div class="space-y-6">
+            <!-- Informations utilisateur -->
+            <div class="bg-blue-50 rounded-lg p-4">
+                <h4 class="text-lg font-semibold text-gray-900 mb-3">
+                    <i class="fas fa-user mr-2 text-blue-500"></i>Utilisateur
+                </h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Nom Complet</label>
+                        <p class="text-sm text-gray-900 bg-white p-2 rounded border">${log.utilisateur.nom_complet}</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Nom d'utilisateur</label>
+                        <p class="text-sm text-gray-900 bg-white p-2 rounded border">${log.utilisateur.username}</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                        <p class="text-sm text-gray-900 bg-white p-2 rounded border">${log.utilisateur.email}</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Rôle</label>
+                        <p class="text-sm text-gray-900 bg-white p-2 rounded border">${log.utilisateur.role}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Description de l'action -->
+            <div class="bg-yellow-50 rounded-lg p-4">
+                <h4 class="text-lg font-semibold text-gray-900 mb-3">
+                    <i class="fas fa-file-alt mr-2 text-yellow-500"></i>Description de l'Action
+                </h4>
+                <p class="text-sm text-gray-900 bg-white p-3 rounded border whitespace-pre-wrap">${log.description}</p>
+            </div>
+
+            <!-- Informations techniques -->
+            <div class="bg-purple-50 rounded-lg p-4">
+                <h4 class="text-lg font-semibold text-gray-900 mb-3">
+                    <i class="fas fa-desktop mr-2 text-purple-500"></i>Informations Techniques
+                </h4>
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Adresse IP</label>
+                        <p class="text-sm text-gray-900 font-mono bg-white p-2 rounded border">${log.adresse_ip}</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">User Agent</label>
+                        <p class="text-sm text-gray-900 bg-white p-3 rounded border break-all">${log.user_agent}</p>
+                    </div>
+                </div>
+            </div>
+    `;
+
+    // Ajouter les informations du projet si disponible
+    if (log.projet) {
+        html += `
+            <div class="bg-green-50 rounded-lg p-4">
+                <h4 class="text-lg font-semibold text-gray-900 mb-3">
+                    <i class="fas fa-project-diagram mr-2 text-green-500"></i>Projet Concerné
+                </h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Nom du Projet</label>
+                        <p class="text-sm text-gray-900 bg-white p-2 rounded border">${log.projet.nom}</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Client</label>
+                        <p class="text-sm text-gray-900 bg-white p-2 rounded border">${log.projet.client}</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Statut</label>
+                        <p class="text-sm text-gray-900 bg-white p-2 rounded border">${log.projet.statut}</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Budget</label>
+                        <p class="text-sm text-gray-900 bg-white p-2 rounded border">${log.projet.budget}</p>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Ajouter les données avant/après si disponibles
+    if (log.donnees_avant || log.donnees_apres) {
+        html += `
+            <div class="bg-orange-50 rounded-lg p-4">
+                <h4 class="text-lg font-semibold text-gray-900 mb-3">
+                    <i class="fas fa-exchange-alt mr-2 text-orange-500"></i>Données de Modification
+                </h4>
+                <div class="grid grid-cols-1 ${log.donnees_avant && log.donnees_apres ? 'md:grid-cols-2' : ''} gap-4">
+        `;
+        
+        if (log.donnees_avant) {
+            html += `
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">État Avant</label>
+                    <pre class="text-sm text-gray-900 bg-white p-3 rounded border overflow-x-auto">${JSON.stringify(log.donnees_avant, null, 2)}</pre>
+                </div>
+            `;
+        }
+        
+        if (log.donnees_apres) {
+            html += `
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">État Après</label>
+                    <pre class="text-sm text-gray-900 bg-white p-3 rounded border overflow-x-auto">${JSON.stringify(log.donnees_apres, null, 2)}</pre>
+                </div>
+            `;
+        }
+        
+        html += `
+                </div>
+            </div>
+        `;
+    }
+
+    html += `
+        </div>
+    `;
+
+    content.innerHTML = html;
+}
+
+function closeLogDetails() {
+    document.getElementById('logDetailsModal').classList.add('hidden');
+}
+
+// Fermer le modal en cliquant à l'extérieur
+document.getElementById('logDetailsModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeLogDetails();
+    }
+});
+</script>
+{% endblock %}

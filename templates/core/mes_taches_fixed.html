@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block title %}Mes Tâches - {{ projet.nom }} - SI-Gouvernance JCM{% endblock %}
+{% block page_title %}Mes Tâches{% endblock %}
+
+{% block content %}
+<div class="bg-gray-50 min-h-screen p-2 md:p-4">
+    <div class="max-w-6xl mx-auto space-y-3 md:space-y-4">
+        
+        <!-- Header -->
+        <div class="bg-white rounded-lg p-3 md:p-4 shadow-md border border-white/20">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
+                        <span class="text-white font-bold text-lg">📋</span>
+                    </div>
+                    <div>
+                        <h1 class="text-xl md:text-2xl font-bold text-gray-900">Mes Tâches</h1>
+                        <p class="text-sm text-gray-600">{{ projet.nom }}</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <a href="{% url 'projet_detail' projet.id %}" 
+                       class="inline-flex items-center px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors duration-200 text-sm">
+                        <span class="mr-1">←</span>Retour au projet
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistiques -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+            <div class="bg-white rounded-lg p-3 md:p-4 shadow-md border border-white/20">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs md:text-sm font-medium text-gray-600">Total</p>
+                        <p class="text-lg md:text-2xl font-bold text-gray-900">{{ stats.total }}</p>
+           

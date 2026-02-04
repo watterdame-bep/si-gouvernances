@@ -1,0 +1,259 @@
+{% extends 'base.html' %}
+
+{% block title %}Créer une Tâche - {{ module.nom }} - SI-Gouvernance JCM{% endblock %}
+{% block page_title %}Créer une Tâche - {{ module.nom }}{% endblock %}
+
+{% block content %}
+<div class="bg-gray-50 min-h-screen p-2 md:p-4">
+    <div class="max-w-4xl mx-auto space-y-4">
+        
+        <!-- Header -->
+        <div class="bg-white rounded-lg p-4 shadow-md border border-white/20">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-md">
+                        <span class="text-white font-bold text-sm">📋</span>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-900">Créer une Tâche</h1>
+                        <p class="text-sm text-gray-600">{{ module.nom }} - {{ projet.nom }}</p>
+                    </div>
+                </div>
+                <a href="{% url 'detail_module' projet.id module.id %}" class="inline-flex items-center px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium shadow-md transition-all duration-300 text-sm">
+                    <i class="fas fa-arrow-left mr-2"></i>Retour au module
+                </a>
+            </div>
+        </div>
+
+        <!-- Formulaire de création -->
+        <div class="bg-white rounded-lg p-6 shadow-md border border-white/20">
+            <form method="post" class="space-y-6">
+                {% csrf_token %}
+                
+                <!-- Informations de base -->
+                <div class="space-y-4">
+                    <h3 class="text-lg font-bold text-gray-900 border-b border-gray-200 pb-2">Informations de la tâche</h3>
+                    
+                    <!-- Nom de la tâche -->
+                    <div>
+                        <label for="nom" class="block text-sm font-medium text-gray-700 mb-2">
+                            Nom de la tâche <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" 
+                               id="nom" 
+                               name="nom" 
+                               required 
+                               maxlength="200"
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                               placeholder="Ex: Créer l'interface de connexion, Implémenter l'API REST..."
+                               value="{{ request.POST.nom|default:'' }}">
+                        <p class="mt-1 text-xs text-gray-500">Nom clair et descriptif de la tâche</p>
+                    </div>
+                    
+                    <!-- Description -->
+                    <div>
+                        <label for="description" class="block text-sm font-medium text-gray-700 mb-2">
+                            Description <span class="text-red-500">*</span>
+                        </label>
+                        <textarea id="description" 
+                                  name="description" 
+                                  required 
+                                  rows="4"
+                                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                                  placeholder="Décrivez en détail ce qui doit être fait, les critères d'acceptation, les contraintes...">{{ request.POST.description|default:'' }}</textarea>
+                        <p class="mt-1 text-xs text-gray-500">Description détaillée des objectifs et critères de la tâche</p>
+                    </div>
+                </div>
+
+                <!-- Assignation et priorité -->
+                <div class="space-y-4">
+                    <h3 class="text-lg font-bold text-gray-900 border-b border-gray-200 pb-2">Assignation et priorité</h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Responsable -->
+                        <div>
+                            <label for="responsable_id" class="block text-sm font-medium text-gray-700 mb-2">
+                                Responsable
+                            </label>
+                            <select id="responsable_id" 
+                                    name="responsable_id" 
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300">
+                                <option value="">Assigner plus tard</option>
+                                {% for membre in equipe %}
+                                <option value="{{ membre.id }}" {% if request.POST.responsable_id == membre.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ membre.get_full_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <p class="mt-1 text-xs text-gray-500">Membre de l'équipe responsable de cette tâche</p>
+                        </div>
+                        
+                        <!-- Priorité -->
+                        <div>
+                            <label for="priorite" class="block text-sm font-medium text-gray-700 mb-2">
+                                Priorité
+                            </label>
+                            <select id="priorite" 
+                                    name="priorite" 
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300">
+                                {% for value, label in priorites %}
+                                <option value="{{ value }}" {% if request.POST.priorite == value or value == 'MOYENNE' and not request.POST.priorite %}selected{% endif %}>
+                                    {% if value == 'CRITIQUE' %}🔴 {{ label }}
+                                    {% elif value == 'HAUTE' %}🟠 {{ label }}
+                                    {% elif value == 'MOYENNE' %}🔵 {{ label }}
+                                    {% else %}⚪ {{ label }}{% endif %}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <p class="mt-1 text-xs text-gray-500">Niveau de priorité de la tâche</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Planification -->
+                <div class="space-y-4">
+                    <h3 class="text-lg font-bold text-gray-900 border-b border-gray-200 pb-2">Planification</h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Date de début -->
+                        <div>
+                            <label for="date_debut" class="block text-sm font-medium text-gray-700 mb-2">
+                                Date de début
+                            </label>
+                            <input type="date" 
+                                   id="date_debut" 
+                                   name="date_debut" 
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                                   value="{{ request.POST.date_debut|default:'' }}">
+                            <p class="mt-1 text-xs text-gray-500">Date à partir de laquelle la tâche peut commencer</p>
+                        </div>
+                        
+                        <!-- Date de fin -->
+                        <div>
+                            <label for="date_fin" class="block text-sm font-medium text-gray-700 mb-2">
+                                Date de fin
+                            </label>
+                            <input type="date" 
+                                   id="date_fin" 
+                                   name="date_fin" 
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
+                                   value="{{ request.POST.date_fin|default:'' }}">
+                            <p class="mt-1 text-xs text-gray-500">Date limite pour terminer la tâche</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Étape d'exécution -->
+                    <div>
+                        <label for="etape_execution_id" class="block text-sm font-medium text-gray-700 mb-2">
+                            Étape d'exécution
+                        </label>
+                        <select id="etape_execution_id" 
+                                name="etape_execution_id" 
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300">
+                            <option value="">Toutes les étapes</option>
+                            {% for etape in etapes %}
+                            <option value="{{ etape.id }}" {% if request.POST.etape_execution_id == etape.id|stringformat:"s" %}selected{% endif %}>
+                                {{ etape.type_etape.icone_emoji }} {{ etape.type_etape.get_nom_display }}
+                                {% if etape.statut == 'EN_COURS' %} (Actuelle){% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <p class="mt-1 text-xs text-gray-500">Étape du projet pendant laquelle cette tâche sera exécutée</p>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex items-center justify-between pt-6 border-t border-gray-200">
+                    <a href="{% url 'detail_module' projet.id module.id %}" class="inline-flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium shadow-md transition-all duration-300">
+                        <i class="fas fa-arrow-left mr-2"></i>Annuler
+                    </a>
+                    
+                    <button type="submit" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-lg font-medium shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300">
+                        <span class="mr-2">📋</span>Créer la tâche
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Aide -->
+        <div class="bg-white rounded-lg p-6 shadow-md border border-white/20">
+            <div class="flex items-center space-x-3 mb-4">
+                <div class="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center shadow-md">
+                    <span class="text-white text-sm">💡</span>
+                </div>
+                <h3 class="text-lg font-bold text-gray-900">Conseils pour créer une tâche</h3>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-3">
+                    <h4 class="font-medium text-gray-900">Description efficace</h4>
+                    <ul class="text-sm text-gray-600 space-y-1">
+                        <li><i class="fas fa-circle text-xs mr-2"></i>Définissez clairement l'objectif</li>
+                        <li><i class="fas fa-circle text-xs mr-2"></i>Listez les critères d'acceptation</li>
+                        <li><i class="fas fa-circle text-xs mr-2"></i>Mentionnez les contraintes techniques</li>
+                        <li><i class="fas fa-circle text-xs mr-2"></i>Indiquez les livrables attendus</li>
+                    </ul>
+                </div>
+                <div class="space-y-3">
+                    <h4 class="font-medium text-gray-900">Planification</h4>
+                    <ul class="text-sm text-gray-600 space-y-1">
+                        <li><i class="fas fa-circle text-xs mr-2"></i>Estimez la durée réaliste</li>
+                        <li><i class="fas fa-circle text-xs mr-2"></i>Considérez les dépendances</li>
+                        <li><i class="fas fa-circle text-xs mr-2"></i>Alignez avec les étapes du projet</li>
+                        <li><i class="fas fa-circle text-xs mr-2"></i>Assignez selon les compétences</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Aperçu du module -->
+        <div class="bg-white rounded-lg p-6 shadow-md border border-white/20">
+            <div class="flex items-center space-x-3 mb-4">
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center shadow-md" style="background-color: {{ module.couleur }};">
+                    <span class="text-white text-sm">{{ module.icone_emoji }}</span>
+                </div>
+                <h3 class="text-lg font-bold text-gray-900">Module: {{ module.nom }}</h3>
+            </div>
+            
+            <p class="text-gray-700 mb-4">{{ module.description }}</p>
+            
+            <div class="flex items-center space-x-4 text-sm text-gray-600">
+                <div class="flex items-center space-x-1">
+                    <span class="font-medium">Tâches actuelles:</span>
+                    <span class="text-gray-900">{{ module.taches.count }}</span>
+                </div>
+                <div class="flex items-center space-x-1">
+                    <span class="font-medium">Progression:</span>
+                    <span class="text-emerald-600 font-bold">{{ module.get_progression_taches }}%</span>
+                </div>
+                <div class="flex items-center space-x-1">
+                    <span class="font-medium">Créé dans:</span>
+                    <span class="text-gray-900">{{ module.etape_creation.type_etape.get_nom_display }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts JavaScript -->
+<script>
+// Validation des dates
+document.getElementById('date_debut').addEventListener('change', function() {
+    const dateDebut = this.value;
+    const dateFin = document.getElementById('date_fin').value;
+    
+    if (dateDebut && dateFin && dateDebut > dateFin) {
+        document.getElementById('date_fin').value = dateDebut;
+    }
+});
+
+document.getElementById('date_fin').addEventListener('change', function() {
+    const dateFin = this.value;
+    const dateDebut = document.getElementById('date_debut').value;
+    
+    if (dateDebut && dateFin && dateFin < dateDebut) {
+        document.getElementById('date_debut').value = dateFin;
+    }
+});
+</script>
+{% endblock %}

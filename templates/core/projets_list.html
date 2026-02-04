@@ -1,0 +1,325 @@
+{% extends 'base.html' %}
+
+{% block title %}Liste des Projets - SI-Gouvernance JCM{% endblock %}
+{% block page_title %}{% if user.est_super_admin %}Gestion des Projets{% else %}Mes Projets{% endif %}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto p-3 md:p-6 space-y-4 md:space-y-6 bg-gray-50 min-h-screen">
+    
+    <!-- Header Section -->
+    <div class="bg-white rounded-lg shadow-sm border border-slate-200 p-4 md:p-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+            <div class="flex items-center space-x-3 md:space-x-4">
+                <div class="w-10 h-10 md:w-12 md:h-12 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-folder-open text-white text-sm md:text-lg"></i>
+                </div>
+                <div class="min-w-0">
+                    <h1 class="text-lg md:text-2xl font-semibold text-slate-900 truncate">{% if user.est_super_admin %}Gestion des Projets{% else %}Mes Projets{% endif %}</h1>
+                    <p class="text-xs md:text-sm text-slate-600 truncate">{% if user.est_super_admin %}Gérez et suivez tous vos projets{% else %}Projets auxquels vous êtes affecté{% endif %}</p>
+                </div>
+            </div>
+            
+            {% if user.est_super_admin and can_create %}
+            <a href="{% url 'creer_projet' %}" class="flex items-center justify-center px-3 py-2 md:px-4 md:py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm whitespace-nowrap">
+                <i class="fas fa-plus mr-2"></i>
+                <span class="hidden sm:inline">Nouveau Projet</span>
+                <span class="sm:hidden">Nouveau</span>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="bg-white rounded-lg shadow-sm border border-slate-200 p-4 md:p-6">
+        <form method="get" class="space-y-3 md:space-y-0 md:grid md:grid-cols-4 md:gap-4">
+            <!-- Search -->
+            <div class="md:col-span-2">
+                <label for="search" class="block text-sm font-medium text-slate-700 mb-2">Rechercher</label>
+                <div class="relative">
+                    <input 
+                        type="text" 
+                        id="search" 
+                        name="search" 
+                        value="{{ search }}"
+                        placeholder="Nom du projet, client..."
+                        class="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
+                    >
+                    <i class="fas fa-search absolute left-3 top-3 text-slate-400 text-xs"></i>
+                </div>
+            </div>
+
+            <!-- Status Filter -->
+            <div>
+                <label for="statut" class="block text-sm font-medium text-slate-700 mb-2">Statut</label>
+                <select 
+                    id="statut" 
+                    name="statut"
+                    class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
+                >
+                    <option value="">Tous les statuts</option>
+                    {% for statut in statuts %}
+                    <option value="{{ statut.nom }}" {% if statut_filter == statut.nom %}selected{% endif %}>
+                        {{ statut.get_nom_display }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Search Button -->
+            <div class="flex items-end">
+                <button 
+                    type="submit"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm"
+                >
+                    <i class="fas fa-search mr-2"></i>Filtrer
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Projects List -->
+    {% if page_obj.object_list %}
+    <div class="space-y-3 md:space-y-4">
+        {% for projet in page_obj.object_list %}
+        <div class="bg-white rounded-lg shadow-sm border border-slate-200 p-4 md:p-6 hover:shadow-md transition-shadow">
+            <!-- Mobile Layout -->
+            <div class="block md:hidden">
+                <div class="flex items-start space-x-3 mb-3">
+                    <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <span class="text-white font-semibold text-sm">{{ projet.nom.0|upper }}</span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h3 class="text-base font-semibold text-slate-900 mb-1 truncate">{{ projet.nom }}</h3>
+                        <div class="flex flex-wrap items-center gap-2 mb-2">
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+                                {% if projet.statut.nom == 'IDEE' %}bg-slate-100 text-slate-800
+                                {% elif projet.statut.nom == 'AFFECTE' %}bg-blue-100 text-blue-800
+                                {% elif projet.statut.nom == 'PLANIFIE' %}bg-purple-100 text-purple-800
+                                {% elif projet.statut.nom == 'EN_COURS' %}bg-yellow-100 text-yellow-800
+                                {% elif projet.statut.nom == 'TERMINE' %}bg-green-100 text-green-800
+                                {% elif projet.statut.nom == 'SUSPENDU' %}bg-red-100 text-red-800
+                                {% endif %}">
+                                {{ projet.statut.get_nom_display }}
+                            </span>
+                        </div>
+                        <div class="space-y-1 text-xs text-slate-600">
+                            <div class="flex items-center">
+                                <i class="fas fa-calendar mr-2 w-3"></i>
+                                <span>{{ projet.date_creation|date:"d/m/Y" }}</span>
+                            </div>
+                            {% if projet.client %}
+                            <div class="flex items-center">
+                                <i class="fas fa-building mr-2 w-3"></i>
+                                <span class="truncate">{{ projet.client }}</span>
+                            </div>
+                            {% endif %}
+                            <div class="flex items-center">
+                                <i class="fas fa-euro-sign mr-2 w-3"></i>
+                                <span>{{ projet.budget_previsionnel|floatformat:0 }}€</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Mobile Actions -->
+                <div class="flex items-center justify-between pt-3 border-t border-slate-200">
+                    {% with responsable=projet.get_responsable_principal %}
+                    <div class="flex items-center space-x-2">
+                        {% if responsable %}
+                        <div class="w-6 h-6 bg-emerald-600 rounded-full flex items-center justify-center">
+                            <span class="text-xs font-semibold text-white">{{ responsable.first_name.0|upper }}</span>
+                        </div>
+                        <span class="text-xs text-slate-600 truncate max-w-20">{{ responsable.first_name }}</span>
+                        {% else %}
+                        <div class="w-6 h-6 bg-slate-400 rounded-full flex items-center justify-center">
+                            <i class="fas fa-user text-white text-xs"></i>
+                        </div>
+                        <span class="text-xs text-slate-500">Non assigné</span>
+                        {% endif %}
+                    </div>
+                    {% endwith %}
+                    
+                    <div class="flex items-center space-x-2">
+                        <a href="{% url 'projet_detail' projet.id %}" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-xs">
+                            <i class="fas fa-eye mr-1"></i>Voir
+                        </a>
+                        {% if can_create %}
+                        <a href="{% url 'modifier_projet' projet.id %}" class="px-3 py-1.5 bg-white border border-slate-300 hover:border-slate-400 text-slate-700 hover:text-slate-900 rounded-lg font-medium transition-colors text-xs">
+                            <i class="fas fa-edit mr-1"></i>Modifier
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Desktop Layout -->
+            <div class="hidden md:flex md:items-center md:justify-between">
+                <!-- Project Main Info -->
+                <div class="flex items-center space-x-4 flex-1 min-w-0">
+                    <!-- Project Avatar -->
+                    <div class="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <span class="text-white font-semibold text-lg">{{ projet.nom.0|upper }}</span>
+                    </div>
+                    
+                    <!-- Project Details -->
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center space-x-3 mb-2">
+                            <h3 class="text-lg font-semibold text-slate-900 truncate">{{ projet.nom }}</h3>
+                            <!-- Status Badge -->
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                {% if projet.statut.nom == 'IDEE' %}bg-slate-100 text-slate-800
+                                {% elif projet.statut.nom == 'AFFECTE' %}bg-blue-100 text-blue-800
+                                {% elif projet.statut.nom == 'PLANIFIE' %}bg-purple-100 text-purple-800
+                                {% elif projet.statut.nom == 'EN_COURS' %}bg-yellow-100 text-yellow-800
+                                {% elif projet.statut.nom == 'TERMINE' %}bg-green-100 text-green-800
+                                {% elif projet.statut.nom == 'SUSPENDU' %}bg-red-100 text-red-800
+                                {% endif %}">
+                                {{ projet.statut.get_nom_display }}
+                            </span>
+                        </div>
+                        
+                        <!-- Project Meta Info -->
+                        <div class="flex items-center space-x-6 text-sm text-slate-600">
+                            <span class="flex items-center">
+                                <i class="fas fa-calendar mr-2"></i>
+                                {{ projet.date_creation|date:"d/m/Y" }}
+                            </span>
+                            {% if projet.client %}
+                            <span class="flex items-center truncate">
+                                <i class="fas fa-building mr-2"></i>
+                                <span class="truncate">{{ projet.client }}</span>
+                            </span>
+                            {% endif %}
+                            <span class="flex items-center">
+                                <i class="fas fa-euro-sign mr-2"></i>
+                                {{ projet.budget_previsionnel|floatformat:0 }}€
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Responsible and Actions -->
+                <div class="flex items-center space-x-4 flex-shrink-0">
+                    <!-- Responsible Person -->
+                    {% with responsable=projet.get_responsable_principal %}
+                    <div class="flex items-center space-x-2">
+                        {% if responsable %}
+                        <div class="w-8 h-8 bg-emerald-600 rounded-full flex items-center justify-center">
+                            <span class="text-xs font-semibold text-white">{{ responsable.first_name.0|upper }}</span>
+                        </div>
+                        <span class="text-sm text-slate-600 truncate max-w-24">{{ responsable.get_full_name }}</span>
+                        {% else %}
+                        <div class="w-8 h-8 bg-slate-400 rounded-full flex items-center justify-center">
+                            <i class="fas fa-user text-white text-xs"></i>
+                        </div>
+                        <span class="text-sm text-slate-500">Non assigné</span>
+                        {% endif %}
+                    </div>
+                    {% endwith %}
+                    
+                    <!-- Action Buttons -->
+                    <div class="flex items-center space-x-2">
+                        <a href="{% url 'projet_detail' projet.id %}" class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm whitespace-nowrap">
+                            <i class="fas fa-eye mr-1"></i>Voir
+                        </a>
+                        {% if can_create %}
+                        <a href="{% url 'modifier_projet' projet.id %}" class="px-3 py-2 bg-white border border-slate-300 hover:border-slate-400 text-slate-700 hover:text-slate-900 rounded-lg font-medium transition-colors text-sm whitespace-nowrap">
+                            <i class="fas fa-edit mr-1"></i>Modifier
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="bg-white rounded-lg shadow-sm border border-slate-200 px-4 py-3 md:px-6 md:py-4">
+        <div class="flex items-center justify-between">
+            <div class="flex-1 flex justify-between sm:hidden">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}&search={{ search }}&statut={{ statut_filter }}" class="px-3 py-2 border border-slate-300 text-sm font-medium rounded-lg text-slate-700 bg-white hover:bg-slate-50 transition-colors">
+                    Précédent
+                </a>
+                {% endif %}
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}&search={{ search }}&statut={{ statut_filter }}" class="px-3 py-2 border border-slate-300 text-sm font-medium rounded-lg text-slate-700 bg-white hover:bg-slate-50 transition-colors">
+                    Suivant
+                </a>
+                {% endif %}
+            </div>
+            <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                <div>
+                    <p class="text-sm text-slate-700">
+                        Affichage de <span class="font-medium">{{ page_obj.start_index }}</span> à <span class="font-medium">{{ page_obj.end_index }}</span>
+                        sur <span class="font-medium">{{ page_obj.paginator.count }}</span> résultats
+                    </p>
+                </div>
+                <div>
+                    <nav class="flex rounded-lg shadow-sm -space-x-px">
+                        {% if page_obj.has_previous %}
+                        <a href="?page={{ page_obj.previous_page_number }}&search={{ search }}&statut={{ statut_filter }}" class="px-3 py-2 rounded-l-lg border border-slate-300 bg-white text-sm font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                        {% endif %}
+                        
+                        {% for num in page_obj.paginator.page_range %}
+                            {% if page_obj.number == num %}
+                            <span class="px-4 py-2 border border-blue-500 bg-blue-600 text-sm font-medium text-white">
+                                {{ num }}
+                            </span>
+                            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <a href="?page={{ num }}&search={{ search }}&statut={{ statut_filter }}" class="px-4 py-2 border border-slate-300 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors">
+                                {{ num }}
+                            </a>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}&search={{ search }}&statut={{ statut_filter }}" class="px-3 py-2 rounded-r-lg border border-slate-300 bg-white text-sm font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                        {% endif %}
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <!-- Empty State -->
+    <div class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+        <div class="text-center py-8 md:py-12 px-4">
+            <div class="w-12 h-12 md:w-16 md:h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-folder-open text-slate-400 text-lg md:text-2xl"></i>
+            </div>
+            <h3 class="text-base md:text-lg font-medium text-slate-900 mb-2">Aucun projet trouvé</h3>
+            <p class="text-sm text-slate-500 mb-6 max-w-md mx-auto">
+                {% if search or statut_filter %}
+                    Aucun projet ne correspond à vos critères de recherche.
+                {% else %}
+                    Vous n'avez pas encore de projets. Commencez par créer votre premier projet.
+                {% endif %}
+            </p>
+            <div class="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-4">
+                {% if can_create and not search and not statut_filter %}
+                <a href="{% url 'creer_projet' %}" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm">
+                    <i class="fas fa-plus mr-2"></i>
+                    Créer un projet
+                </a>
+                {% endif %}
+                {% if search or statut_filter %}
+                <a href="{% url 'projets_list' %}" class="px-4 py-2 bg-white border border-slate-300 hover:border-slate-400 text-slate-700 hover:text-slate-900 rounded-lg font-medium transition-colors text-sm">
+                    <i class="fas fa-times mr-2"></i>
+                    Effacer les filtres
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

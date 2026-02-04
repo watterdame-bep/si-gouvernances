@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block title %}Mes Tâches - Test{% endblock %}
+{% block page_title %}Mes Tâches - Test{% endblock %}
+
+{% block content %}
+<div class="container mx-auto p-4">
+    <h1 class="text-2xl font-bold mb-4">Mes Tâches - {{ projet.nom }}</h1>
+    
+    <div class="bg-white rounded-lg p-4 shadow">
+        <h2 class="text-lg font-semibold mb-4">Statistiques</h2>
+        <p>Total: {{ stats.total }}</p>
+        <p>En cours: {{ stats.en_cours }}</p>
+        <p>Terminées: {{ stats.terminees }}</p>
+        <p>Bloquées: {{ stats.bloquees }}</p>
+    </div>
+    
+    <div class="bg-white rounded-lg p-4 shadow mt-4">
+        <h2 class="text-lg font-semibold mb-4">Tâches d'Étapes ({{ mes_taches_etape|length }})</h2>
+        
+        {% for tache in mes_taches_etape %}
+        <div class="border-b py-2">
+            <h3 class="font-medium">{{ tache.nom }}</h3>
+            <p class="text-sm text-gray-600">{{ tache.description|truncatewords:10 }}</p>
+            <p class="text-xs text-gray-500">
+                Statut: {{ tache.statut }} | 
+                Priorité: {{ tache.priorite }} | 
+                Progression: {{ tache.pourcentage_completion|default:0 }}%
+            </p>
+        </div>
+        {% empty %}
+        <p class="text-gray-500">Aucune tâche d'étape assignée.</p>
+        {% endfor %}
+    </div>
+    
+    <div class="bg-white rounded-lg p-4 shadow mt-4">
+        <h2 class="text-lg font-semibold mb-4">Tâches de Modules ({{ mes_taches_module|length }})</h2>
+        
+        {% for tache in mes_taches_module %}
+        <div class="border-b py-2">
+            <h3 class="font-medium">{{ tache.nom }}</h3>
+            <p class="text-sm text-gray-600">{{ tache.description|truncatewords:10 }}</p>
+            <p class="text-xs text-gray-500">
+                Statut: {{ tache.statut }} | 
+                Priorité: {{ tache.priorite }}
+            </p>
+        </div>
+        {% empty %}
+        <p class="text-gray-500">Aucune tâche de module assignée.</p>
+        {% endfor %}
+    </div>
+    
+    <div class="mt-4">
+        <a href="{% url 'projet_detail' projet.id %}" class="bg-blue-500 text-white px-4 py-2 rounded">
+            Retour au projet
+        </a>
+    </div>
+</div>
+{% endblock %}

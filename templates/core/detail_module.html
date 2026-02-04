@@ -1,0 +1,388 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ module.nom }} - {{ projet.nom }} - SI-Gouvernance JCM{% endblock %}
+{% block page_title %}{{ module.nom }} - {{ projet.nom }}{% endblock %}
+
+{% block content %}
+<div class="bg-gray-50 min-h-screen p-2 md:p-4">
+    <div class="max-w-7xl mx-auto space-y-4">
+        
+        <!-- Header -->
+        <div class="bg-white rounded-lg p-4 shadow-md border border-white/20">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-lg flex items-center justify-center shadow-md" style="background-color: {{ module.couleur }};">
+                        <span class="text-white font-bold text-lg">{{ module.icone_emoji }}</span>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-900">{{ module.nom }}</h1>
+                        <p class="text-sm text-gray-600">{{ projet.nom }} - Module fonctionnel</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3">
+                    {% if can_manage %}
+                    <a href="{% url 'creer_tache' module.id %}" class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-lg font-medium shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300 text-sm">
+                        <span class="mr-2">➕</span>Nouvelle tâche
+                    </a>
+                    {% endif %}
+                    <a href="{% url 'gestion_modules' projet.id %}" class="inline-flex items-center px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium shadow-md transition-all duration-300 text-sm">
+                        <span class="mr-2">←</span>Retour aux modules
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Informations du module et statistiques -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <!-- Informations principales -->
+            <div class="lg:col-span-2 space-y-4">
+                <!-- Description -->
+                <div class="bg-white rounded-lg p-6 shadow-md border border-white/20">
+                    <div class="flex items-center space-x-3 mb-4">
+                        <div class="w-8 h-8 bg-gradient-to-br from-gray-500 to-gray-600 rounded-lg flex items-center justify-center shadow-md">
+                            <span class="text-white text-sm">📝</span>
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-900">Description</h3>
+                    </div>
+                    <p class="text-gray-700 leading-relaxed">{{ module.description }}</p>
+                    
+                    <!-- Badges informatifs -->
+                    <div class="flex items-center space-x-3 mt-4 pt-4 border-t border-gray-200">
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
+                            {{ module.etape_creation.type_etape.get_nom_display }}
+                        </span>
+                        {% if module.est_creation_tardive %}
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-orange-100 text-orange-800">
+                            ⚠️ Création tardive
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Justification si création tardive -->
+                {% if module.est_creation_tardive and module.justification_creation_tardive %}
+                <div class="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                    <div class="flex items-center space-x-3 mb-3">
+                        <div class="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg flex items-center justify-center shadow-md">
+                            <span class="text-white text-sm">⚠️</span>
+                        </div>
+                        <h3 class="text-lg font-bold text-orange-800">Justification de création tardive</h3>
+                    </div>
+                    <p class="text-orange-700">{{ module.justification_creation_tardive }}</p>
+                </div>
+                {% endif %}
+
+                <!-- Liste des tâches -->
+                <div class="bg-white rounded-lg shadow-md border border-white/20 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 class="text-lg font-bold text-gray-900">Tâches du module</h3>
+                                <p class="text-sm text-gray-600">{{ stats.total_taches }} tâche{{ stats.total_taches|pluralize }} • {{ stats.progression }}% terminé</p>
+                            </div>
+                            {% if can_manage %}
+                            <a href="{% url 'gestion_taches' module.id %}" class="inline-flex items-center px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg font-medium shadow-md transition-all duration-300 text-sm">
+                                <span class="mr-1">⚙️</span>Gérer
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    {% if taches %}
+                    <div class="p-6">
+                        <div class="space-y-3">
+                            {% for tache in taches %}
+                            <div class="p-4 bg-gray-50 rounded-lg border border-gray-200 hover:shadow-md transition-all duration-300">
+                                <div class="flex items-start justify-between mb-3">
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex items-center space-x-3 mb-2">
+                                            <h4 class="font-medium text-gray-900 truncate">{{ tache.nom }}</h4>
+                                            <!-- Badge de statut -->
+                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+                                                {% if tache.statut == 'TERMINEE' %}bg-green-100 text-green-800
+                                                {% elif tache.statut == 'EN_COURS' %}bg-blue-100 text-blue-800
+                                                {% elif tache.statut == 'BLOQUEE' %}bg-red-100 text-red-800
+                                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                                {% if tache.statut == 'TERMINEE' %}✅ Terminée
+                                                {% elif tache.statut == 'EN_COURS' %}🔄 En cours
+                                                {% elif tache.statut == 'BLOQUEE' %}🚫 Bloquée
+                                                {% else %}📋 À faire{% endif %}
+                                            </span>
+                                            <!-- Badge de priorité -->
+                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+                                                {% if tache.priorite == 'CRITIQUE' %}bg-red-100 text-red-800
+                                                {% elif tache.priorite == 'HAUTE' %}bg-orange-100 text-orange-800
+                                                {% elif tache.priorite == 'MOYENNE' %}bg-blue-100 text-blue-800
+                                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                                {% if tache.priorite == 'CRITIQUE' %}🔴 Critique
+                                                {% elif tache.priorite == 'HAUTE' %}🟠 Haute
+                                                {% elif tache.priorite == 'MOYENNE' %}🔵 Moyenne
+                                                {% else %}⚪ Basse{% endif %}
+                                            </span>
+                                        </div>
+                                        <p class="text-sm text-gray-600 line-clamp-2">{{ tache.description }}</p>
+                                    </div>
+                                </div>
+                                
+                                <!-- Informations de la tâche -->
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                                    <div>
+                                        <span class="font-medium text-gray-700">Responsable:</span>
+                                        {% if tache.responsable %}
+                                            <div class="flex items-center space-x-2 mt-1">
+                                                <div class="w-6 h-6 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
+                                                    <span class="text-xs font-bold text-white">{{ tache.responsable.first_name.0 }}</span>
+                                                </div>
+                                                <span class="text-gray-900">{{ tache.responsable.get_full_name }}</span>
+                                            </div>
+                                        {% else %}
+                                            <span class="text-gray-500 italic">Non assignée</span>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div>
+                                        <span class="font-medium text-gray-700">Étape d'exécution:</span>
+                                        <div class="text-gray-900 mt-1">
+                                            {% if tache.etape_execution %}
+                                                {{ tache.etape_execution.type_etape.get_nom_display }}
+                                            {% else %}
+                                                <span class="text-gray-500 italic">Toutes étapes</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    
+                                    <div>
+                                        <span class="font-medium text-gray-700">Dates:</span>
+                                        <div class="text-gray-900 mt-1">
+                                            {% if tache.date_debut and tache.date_fin %}
+                                                {{ tache.date_debut|date:"d/m" }} - {{ tache.date_fin|date:"d/m/Y" }}
+                                            {% elif tache.date_debut %}
+                                                Dès le {{ tache.date_debut|date:"d/m/Y" }}
+                                            {% elif tache.date_fin %}
+                                                Avant le {{ tache.date_fin|date:"d/m/Y" }}
+                                            {% else %}
+                                                <span class="text-gray-500 italic">À définir</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Actions -->
+                                {% if can_manage %}
+                                <div class="flex items-center space-x-2 mt-4 pt-3 border-t border-gray-200">
+                                    {% if not tache.responsable %}
+                                    <button onclick="assignerTache('{{ tache.id }}')" class="text-xs text-blue-600 hover:text-blue-700 font-medium">
+                                        👤 Assigner
+                                    </button>
+                                    {% endif %}
+                                    <a href="#" class="text-xs text-gray-600 hover:text-gray-700 font-medium">
+                                        ✏️ Modifier
+                                    </a>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="p-12 text-center">
+                        <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <span class="text-gray-400 text-2xl">📋</span>
+                        </div>
+                        <p class="text-lg font-medium text-gray-500 mb-2">Aucune tâche définie</p>
+                        <p class="text-sm text-gray-400 mb-6">Créez des tâches pour organiser le travail de ce module</p>
+                        {% if can_manage %}
+                        <a href="{% url 'creer_tache' module.id %}" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-lg font-medium shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300">
+                            <span class="mr-2">📋</span>Créer la première tâche
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="space-y-4">
+                <!-- Statistiques -->
+                <div class="bg-white rounded-lg p-4 shadow-md border border-white/20">
+                    <div class="flex items-center space-x-3 mb-4">
+                        <div class="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center shadow-md">
+                            <span class="text-white text-sm">📊</span>
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-900">Statistiques</h3>
+                    </div>
+                    
+                    <!-- Progression -->
+                    <div class="mb-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm font-medium text-gray-600">Progression</span>
+                            <span class="text-lg font-bold text-emerald-600">{{ stats.progression }}%</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-3">
+                            <div class="bg-gradient-to-r from-emerald-500 to-teal-600 h-3 rounded-full transition-all duration-300" style="width: {{ stats.progression }}%"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Détails -->
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center p-2 bg-blue-50 rounded-lg">
+                            <span class="text-sm font-medium text-blue-700">Total tâches</span>
+                            <span class="text-lg font-bold text-blue-900">{{ stats.total_taches }}</span>
+                        </div>
+                        <div class="flex justify-between items-center p-2 bg-green-50 rounded-lg">
+                            <span class="text-sm font-medium text-green-700">Terminées</span>
+                            <span class="text-lg font-bold text-green-900">{{ stats.taches_terminees }}</span>
+                        </div>
+                        <div class="flex justify-between items-center p-2 bg-orange-50 rounded-lg">
+                            <span class="text-sm font-medium text-orange-700">En cours</span>
+                            <span class="text-lg font-bold text-orange-900">{{ stats.taches_en_cours }}</span>
+                        </div>
+                        {% if stats.taches_bloquees > 0 %}
+                        <div class="flex justify-between items-center p-2 bg-red-50 rounded-lg">
+                            <span class="text-sm font-medium text-red-700">Bloquées</span>
+                            <span class="text-lg font-bold text-red-900">{{ stats.taches_bloquees }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Informations du module -->
+                <div class="bg-white rounded-lg p-4 shadow-md border border-white/20">
+                    <div class="flex items-center space-x-3 mb-4">
+                        <div class="w-8 h-8 bg-gradient-to-br from-gray-500 to-gray-600 rounded-lg flex items-center justify-center shadow-md">
+                            <span class="text-white text-sm">ℹ️</span>
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-900">Informations</h3>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center p-2 bg-gray-50 rounded-lg">
+                            <span class="text-sm font-medium text-gray-600">Créateur</span>
+                            <span class="text-sm font-bold text-gray-900 truncate ml-2">{{ module.createur.get_full_name }}</span>
+                        </div>
+                        <div class="flex justify-between items-center p-2 bg-gray-50 rounded-lg">
+                            <span class="text-sm font-medium text-gray-600">Créé le</span>
+                            <span class="text-sm font-bold text-gray-900">{{ module.date_creation|date:"d/m/Y" }}</span>
+                        </div>
+                        <div class="flex justify-between items-center p-2 bg-gray-50 rounded-lg">
+                            <span class="text-sm font-medium text-gray-600">Modifié le</span>
+                            <span class="text-sm font-bold text-gray-900">{{ module.date_modification|date:"d/m/Y" }}</span>
+                        </div>
+                        <div class="flex justify-between items-center p-2 bg-gray-50 rounded-lg">
+                            <span class="text-sm font-medium text-gray-600">Étape de création</span>
+                            <span class="text-sm font-bold text-gray-900">{{ module.etape_creation.type_etape.get_nom_display }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Équipe du projet -->
+                {% if equipe %}
+                <div class="bg-white rounded-lg p-4 shadow-md border border-white/20">
+                    <div class="flex items-center space-x-3 mb-4">
+                        <div class="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center shadow-md">
+                            <span class="text-white text-sm">👥</span>
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-900">Équipe</h3>
+                    </div>
+                    
+                    <div class="space-y-2">
+                        {% for membre in equipe|slice:":5" %}
+                        <div class="flex items-center space-x-3 p-2 bg-gray-50 rounded-lg">
+                            <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
+                                <span class="text-xs font-bold text-white">{{ membre.first_name.0 }}</span>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-sm font-medium text-gray-900 truncate">{{ membre.get_full_name }}</div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        {% if equipe|length > 5 %}
+                        <div class="text-center text-sm text-gray-500">
+                            et {{ equipe|length|add:"-5" }} autre{{ equipe|length|add:"-5"|pluralize }}...
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal d'assignation de tâche -->
+<div id="assignModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">Assigner la tâche</h3>
+            <form id="assignForm">
+                {% csrf_token %}
+                <input type="hidden" id="tacheId" name="tache_id">
+                <div class="mb-4">
+                    <label for="responsable_id" class="block text-sm font-medium text-gray-700 mb-2">
+                        Responsable
+                    </label>
+                    <select id="responsable_id" name="responsable_id" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Sélectionner un responsable</option>
+                        {% for membre in equipe %}
+                        <option value="{{ membre.id }}">{{ membre.get_full_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <button type="button" onclick="fermerModalAssign()" class="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium">
+                        Annuler
+                    </button>
+                    <button type="submit" class="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-lg font-medium">
+                        Assigner
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts JavaScript -->
+<script>
+function assignerTache(tacheId) {
+    document.getElementById('tacheId').value = tacheId;
+    document.getElementById('assignModal').classList.remove('hidden');
+}
+
+function fermerModalAssign() {
+    document.getElementById('assignModal').classList.add('hidden');
+}
+
+document.getElementById('assignForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const tacheId = document.getElementById('tacheId').value;
+    const responsableId = document.getElementById('responsable_id').value;
+    
+    if (!responsableId) {
+        alert('Veuillez sélectionner un responsable');
+        return;
+    }
+    
+    fetch(`{% url 'assigner_tache' module.id '00000000-0000-0000-0000-000000000000' %}`.replace('00000000-0000-0000-0000-000000000000', tacheId), {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `responsable_id=${responsableId}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Erreur: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        alert('Une erreur est survenue');
+    });
+});
+</script>
+{% endblock %}
