@@ -8,7 +8,7 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 from django.utils import timezone
 from django.core.exceptions import ValidationError
-from .models import Utilisateur, Projet, Affectation, ActionAudit, RoleSysteme, RoleProjet, StatutProjet, Membre, TypeEtape, EtapeProjet, ModuleProjet, TacheModule, TacheEtape
+from .models import Utilisateur, Projet, Affectation, ActionAudit, RoleSysteme, RoleProjet, StatutProjet, Membre, TypeEtape, EtapeProjet, ModuleProjet, TacheModule, TacheEtape, TacheTest, BugTest, ValidationTest
 from .utils import enregistrer_audit, envoyer_notification_changement_mot_de_passe
 import json
 
@@ -4309,6 +4309,272 @@ def modifier_statut_tache_module_view(request, projet_id, tache_id):
             'success': True,
             'nouveau_statut': tache.get_statut_display(),
             'message': f'Statut mis à jour : {tache.get_statut_display()}'
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+# ============================================================================
+# SYSTÈME DE TESTS V1 - VUES SIMPLIFIÉES
+# ============================================================================
+
+@login_required
+def gestion_tests_view(request, projet_id, etape_id):
+    """Vue principale de gestion des tests pour une étape"""
+    user = request.user
+    projet = get_object_or_404(Projet, id=projet_id)
+    etape = get_object_or_404(EtapeProjet, id=etape_id, projet=projet)
+    
+    # Vérifier les permissions
+    if not user.est_super_admin():
+        if not user.a_acces_projet(projet) and projet.createur != user:
+            messages.error(request, 'Vous n\'avez pas accès à ce projet.')
+            return redirect('projets_list')
+    
+    # Vérifier que c'est bien une étape de tests
+    if etape.type_etape.nom != 'TESTS':
+        messages.error(request, 'Cette étape n\'est pas une étape de tests.')
+        return redirect('detail_etape', projet_id=projet.id, etape_id=etape.id)
+    
+    # Récupérer les tests de cette étape
+    tests = etape.taches_test.all().order_by('-date_creation')
+    
+    # Statistiques simples
+    stats = {
+        'total': tests.count(),
+        'passes': tests.filter(statut='PASSE').count(),
+        'echecs': tests.filter(statut='ECHEC').count(),
+        'en_attente': tests.filter(statut='EN_ATTENTE').count(),
+    }
+    
+    # Permissions utilisateur
+    peut_creer_tests = user.est_super_admin() or user.role_systeme.nom in ['QA', 'CHEF_PROJET'] or projet.createur == user
+    peut_executer_tests = user.est_super_admin() or user.role_systeme.nom == 'QA' or projet.createur == user
+    
+    context = {
+        'projet': projet,
+        'etape': etape,
+        'tests': tests,
+        'stats': stats,
+        'peut_creer_tests': peut_creer_tests,
+        'peut_executer_tests': peut_executer_tests,
+    }
+    
+    return render(request, 'core/gestion_tests_simple.html', context)
+
+
+@login_required
+def creer_test_view(request, projet_id, etape_id):
+    """Vue de création d'un test"""
+    from .models import TacheTest  # Import local pour éviter les problèmes
+    user = request.user
+    projet = get_object_or_404(Projet, id=projet_id)
+    etape = get_object_or_404(EtapeProjet, id=etape_id, projet=projet)
+    
+    # Vérifier les permissions
+    peut_creer = user.est_super_admin() or user.role_systeme.nom in ['QA', 'CHEF_PROJET'] or projet.createur == user
+    if not peut_creer:
+        messages.error(request, 'Vous n\'avez pas les permissions pour créer des tests.')
+        return redirect('gestion_tests', projet_id=projet.id, etape_id=etape.id)
+    
+    if request.method == 'POST':
+        try:
+            # Récupérer les données du formulaire
+            nom = request.POST.get('nom')
+            description = request.POST.get('description')
+            type_test = request.POST.get('type_test', 'FONCTIONNEL')
+            priorite = request.POST.get('priorite', 'MOYENNE')
+            scenario_test = request.POST.get('scenario_test', '')
+            resultats_attendus = request.POST.get('resultats_attendus', '')
+            
+            # Créer le test
+            test = TacheTest.objects.create(
+                etape=etape,
+                createur=user,
+                nom=nom,
+                description=description,
+                type_test=type_test,
+                priorite=priorite,
+                scenario_test=scenario_test,
+                resultats_attendus=resultats_attendus,
+                assignee_qa=user if user.role_systeme.nom == 'QA' else None
+            )
+            
+            messages.success(request, f'Test "{test.nom}" créé avec succès.')
+            return redirect('gestion_tests', projet_id=projet.id, etape_id=etape.id)
+            
+        except Exception as e:
+            messages.error(request, f'Erreur lors de la création : {str(e)}')
+    
+    context = {
+        'projet': projet,
+        'etape': etape,
+        'TYPE_TEST_CHOICES': getattr(TacheTest, 'TYPE_TEST_CHOICES', []),
+        'PRIORITE_CHOICES': getattr(TacheTest, 'PRIORITE_CHOICES', []),
+    }
+    
+    return render(request, 'core/creer_test_simple.html', context)
+
+
+@login_required
+@require_http_methods(["POST"])
+def executer_test_view(request, projet_id, etape_id, test_id):
+    """Vue d'exécution d'un test (AJAX)"""
+    user = request.user
+    projet = get_object_or_404(Projet, id=projet_id)
+    etape = get_object_or_404(EtapeProjet, id=etape_id, projet=projet)
+    test = get_object_or_404(TacheTest, id=test_id, etape=etape)
+    
+    try:
+        # Vérifier les permissions
+        peut_executer = user.est_super_admin() or user.role_systeme.nom == 'QA' or projet.createur == user
+        if not peut_executer:
+            return JsonResponse({'success': False, 'error': 'Permissions insuffisantes'})
+        
+        # Récupérer les données
+        statut_resultat = request.POST.get('statut_resultat')  # 'PASSE' ou 'ECHEC'
+        resultats_obtenus = request.POST.get('resultats_obtenus', '')
+        
+        # Mettre à jour le test
+        test.statut = statut_resultat
+        test.executeur = user
+        test.date_execution = timezone.now()
+        test.resultats_obtenus = resultats_obtenus
+        test.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Test {test.numero_test} exécuté avec succès',
+            'nouveau_statut': test.statut,
+            'date_execution': test.date_execution.strftime('%d/%m/%Y %H:%M')
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'Erreur : {str(e)}'})
+
+
+# Placeholders pour les autres vues
+@login_required
+def gestion_bugs_view(request, projet_id, etape_id):
+    messages.info(request, 'Interface de gestion des bugs disponible en V1.1')
+    return redirect('gestion_tests', projet_id=projet_id, etape_id=etape_id)
+
+@login_required
+def creer_bug_view(request, projet_id, etape_id):
+    messages.info(request, 'Création de bugs disponible en V1.1')
+    return redirect('gestion_tests', projet_id=projet_id, etape_id=etape_id)
+
+@login_required
+def validation_test_view(request, projet_id, etape_id):
+    messages.info(request, 'Interface de validation disponible en V1.1')
+    return redirect('gestion_tests', projet_id=projet_id, etape_id=etape_id)
+
+@login_required
+@require_http_methods(["POST"])
+def valider_etape_test_view(request, projet_id, etape_id):
+    messages.info(request, 'Validation d\'étape disponible en V1.1')
+    return redirect('gestion_tests', projet_id=projet_id, etape_id=etape_id)
+
+@login_required
+@require_http_methods(["POST"])
+def assigner_bug_view(request, projet_id, bug_id):
+    return JsonResponse({'success': False, 'error': 'Fonctionnalité disponible en V1.1'})
+
+@login_required
+@require_http_methods(["POST"])
+def resoudre_bug_view(request, projet_id, bug_id):
+    return JsonResponse({'success': False, 'error': 'Fonctionnalité disponible en V1.1'})
+
+@login_required
+@require_http_methods(["POST"])
+def fermer_bug_view(request, projet_id, bug_id):
+    return JsonResponse({'success': False, 'error': 'Fonctionnalité disponible en V1.1'})
+
+@login_required
+def modifier_test_view(request, projet_id, etape_id, test_id):
+    messages.info(request, 'Modification de tests disponible en V1.1')
+    return redirect('gestion_tests', projet_id=projet_id, etape_id=etape_id)
+
+
+# ============================================================================
+# API ENDPOINTS POUR INTEGRATION CASTEST
+# ============================================================================
+
+@login_required
+def api_tache_etape_to_tache_test(request, tache_etape_id):
+    """API pour trouver la TacheTest correspondante à une TacheEtape"""
+    try:
+        from .models import TacheEtape, TacheTest
+        tache_etape = get_object_or_404(TacheEtape, id=tache_etape_id)
+        
+        # Vérifier les permissions
+        if not request.user.a_acces_projet(tache_etape.etape.projet):
+            return JsonResponse({'success': False, 'error': 'Permissions insuffisantes'})
+        
+        # Chercher une TacheTest avec le même nom dans la même étape
+        tache_test = TacheTest.objects.filter(
+            etape=tache_etape.etape,
+            nom=tache_etape.nom
+        ).first()
+        
+        if tache_test:
+            return JsonResponse({
+                'success': True,
+                'tache_test_id': str(tache_test.id)
+            })
+        else:
+            # Créer une TacheTest automatiquement
+            tache_test = TacheTest.objects.create(
+                etape=tache_etape.etape,
+                nom=tache_etape.nom,
+                description=tache_etape.description or f"Tests pour: {tache_etape.nom}",
+                type_test='FONCTIONNEL',
+                priorite=tache_etape.priorite,
+                createur=request.user,
+                assignee_qa=tache_etape.responsable
+            )
+            
+            return JsonResponse({
+                'success': True,
+                'tache_test_id': str(tache_test.id),
+                'created': True
+            })
+            
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+@login_required
+def api_tache_test_cas_tests(request, tache_test_id):
+    """API pour récupérer les cas de test d'une TacheTest"""
+    try:
+        from .models import TacheTest
+        tache_test = get_object_or_404(TacheTest, id=tache_test_id)
+        
+        # Vérifier les permissions
+        if not request.user.a_acces_projet(tache_test.etape.projet):
+            return JsonResponse({'success': False, 'error': 'Permissions insuffisantes'})
+        
+        cas_tests = tache_test.cas_tests.all().order_by('ordre', 'date_creation')
+        
+        cas_tests_data = []
+        for cas in cas_tests:
+            cas_tests_data.append({
+                'id': str(cas.id),
+                'numero_cas': cas.numero_cas,
+                'nom': cas.nom,
+                'description': cas.description,
+                'priorite': cas.priorite,
+                'priorite_display': cas.get_priorite_display(),
+                'statut': cas.statut,
+                'statut_display': cas.get_statut_display(),
+                'date_creation': cas.date_creation.strftime('%d/%m/%Y'),
+                'executeur': cas.executeur.get_full_name() if cas.executeur else None,
+                'date_execution': cas.date_execution.strftime('%d/%m/%Y à %H:%M') if cas.date_execution else None,
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'cas_tests': cas_tests_data
         })
         
     except Exception as e:

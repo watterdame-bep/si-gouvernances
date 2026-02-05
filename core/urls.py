@@ -3,6 +3,7 @@ from . import views
 from . import views_affectation
 from . import views_taches_module
 from . import views_admin_profile
+from . import views_tests
 
 urlpatterns = [
     path('', views.dashboard_view, name='dashboard'),
@@ -71,6 +72,32 @@ urlpatterns = [
     path('projets/<uuid:projet_id>/etapes/<uuid:etape_id>/taches/<uuid:tache_id>/commentaire/', views.ajouter_commentaire_tache, name='ajouter_commentaire_tache'),
     path('projets/<uuid:projet_id>/etapes/<uuid:etape_id>/taches/<uuid:tache_id>/historique/', views.historique_tache_view, name='historique_tache'),
     
+    # ============================================================================
+    # SYSTÈME DE TESTS V1
+    # ============================================================================
+    
+    # Gestion des tests
+    path('projets/<uuid:projet_id>/etapes/<uuid:etape_id>/tests/', views.gestion_tests_view, name='gestion_tests'),
+    path('projets/<uuid:projet_id>/etapes/<uuid:etape_id>/tests/creer/', views.creer_test_view, name='creer_test'),
+    path('projets/<uuid:projet_id>/etapes/<uuid:etape_id>/tests/<uuid:test_id>/executer/', views.executer_test_view, name='executer_test'),
+    path('projets/<uuid:projet_id>/etapes/<uuid:etape_id>/tests/<uuid:test_id>/modifier/', views.modifier_test_view, name='modifier_test'),
+    
+    # Gestion des cas de test (CasTest) - Hiérarchie
+    path('projets/<uuid:projet_id>/etapes/<uuid:etape_id>/tests/<uuid:test_id>/cas-tests/creer/', views_tests.creer_cas_test_view, name='creer_cas_test'),
+    path('projets/<uuid:projet_id>/etapes/<uuid:etape_id>/cas-tests/<uuid:cas_test_id>/executer/', views_tests.executer_cas_test_view, name='executer_cas_test'),
+    path('projets/<uuid:projet_id>/etapes/<uuid:etape_id>/cas-tests/<uuid:cas_test_id>/details/', views_tests.details_cas_test_view, name='details_cas_test'),
+    
+    # Gestion des bugs
+    path('projets/<uuid:projet_id>/etapes/<uuid:etape_id>/bugs/', views.gestion_bugs_view, name='gestion_bugs'),
+    path('projets/<uuid:projet_id>/etapes/<uuid:etape_id>/bugs/creer/', views.creer_bug_view, name='creer_bug'),
+    path('projets/<uuid:projet_id>/bugs/<uuid:bug_id>/assigner/', views.assigner_bug_view, name='assigner_bug'),
+    path('projets/<uuid:projet_id>/bugs/<uuid:bug_id>/resoudre/', views.resoudre_bug_view, name='resoudre_bug'),
+    path('projets/<uuid:projet_id>/bugs/<uuid:bug_id>/fermer/', views.fermer_bug_view, name='fermer_bug'),
+    
+    # Validation des tests
+    path('projets/<uuid:projet_id>/etapes/<uuid:etape_id>/validation/', views.validation_test_view, name='validation_test'),
+    path('projets/<uuid:projet_id>/etapes/<uuid:etape_id>/valider/', views.valider_etape_test_view, name='valider_etape_test'),
+    
     # Gestion des tâches pour les membres
     path('projets/<uuid:projet_id>/mes-taches/', views.mes_taches_view, name='mes_taches'),
     path('projets/<uuid:projet_id>/taches/<uuid:tache_id>/terminer/<str:type_tache>/', views.terminer_tache_view, name='terminer_tache'),
@@ -106,6 +133,10 @@ urlpatterns = [
     path('api/notifications/detailed/', views.api_notifications_detailed, name='api_notifications_detailed'),
     path('api/notifications/<int:notification_id>/mark-read/', views.api_mark_notification_read, name='api_mark_notification_read'),
     path('api/notifications/mark-all-read/', views.api_mark_all_notifications_read, name='api_mark_all_notifications_read'),
+    
+    # API Endpoints pour l'intégration CasTest
+    path('api/tache-etape/<uuid:tache_etape_id>/tache-test/', views.api_tache_etape_to_tache_test, name='api_tache_etape_to_tache_test'),
+    path('api/tache-test/<uuid:tache_test_id>/cas-tests/', views.api_tache_test_cas_tests, name='api_tache_test_cas_tests'),
     
     # ============================================================================
     # PROFIL UTILISATEUR

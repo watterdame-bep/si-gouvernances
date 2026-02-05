@@ -1,0 +1,164 @@
+{% extends 'base.html' %}
+
+{% block title %}Créer un Test - {{ etape.type_etape.get_nom_display }} - {{ projet.nom }} - SI-Gouvernance JCM{% endblock %}
+{% block page_title %}Créer un Test - {{ projet.nom }}{% endblock %}
+
+{% block content %}
+<div class="bg-gray-50 min-h-screen p-4">
+    <div class="max-w-4xl mx-auto space-y-6">
+        
+        <!-- Header -->
+        <div class="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <div class="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-plus text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-semibold text-gray-900">Créer un Test</h1>
+                        <p class="text-gray-600">{{ projet.nom }} - Étape {{ etape.type_etape.get_nom_display }}</p>
+                    </div>
+                </div>
+                <a href="{% url 'gestion_tests' projet.id etape.id %}" class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md font-medium text-sm transition-colors">
+                    <i class="fas fa-arrow-left mr-2"></i>Retour
+                </a>
+            </div>
+        </div>
+
+        <!-- Formulaire de création -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-900">Informations du Test</h2>
+            </div>
+            
+            <form method="post" class="p-6 space-y-6">
+                {% csrf_token %}
+                
+                <!-- Nom du test -->
+                <div>
+                    <label for="nom" class="block text-sm font-medium text-gray-700 mb-2">
+                        Nom du test <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="nom" name="nom" required 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                           placeholder="Ex: Test de connexion utilisateur">
+                </div>
+
+                <!-- Description -->
+                <div>
+                    <label for="description" class="block text-sm font-medium text-gray-700 mb-2">
+                        Description <span class="text-red-500">*</span>
+                    </label>
+                    <textarea id="description" name="description" rows="4" required
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              placeholder="Décrivez ce que ce test doit vérifier..."></textarea>
+                </div>
+
+                <!-- Type de test -->
+                <div>
+                    <label for="type_test" class="block text-sm font-medium text-gray-700 mb-2">
+                        Type de test <span class="text-red-500">*</span>
+                    </label>
+                    <select id="type_test" name="type_test" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Sélectionner un type</option>
+                        <option value="FONCTIONNEL">Test Fonctionnel</option>
+                        <option value="SECURITE">Test de Sécurité</option>
+                        <option value="PERFORMANCE">Test de Performance</option>
+                        <option value="INTEGRATION">Test d'Intégration</option>
+                        <option value="REGRESSION">Test de Régression</option>
+                    </select>
+                </div>
+
+                <!-- Priorité -->
+                <div>
+                    <label for="priorite" class="block text-sm font-medium text-gray-700 mb-2">
+                        Priorité <span class="text-red-500">*</span>
+                    </label>
+                    <select id="priorite" name="priorite" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Sélectionner une priorité</option>
+                        <option value="CRITIQUE" class="text-red-600">🔥 Critique</option>
+                        <option value="HAUTE" class="text-orange-600">⚡ Haute</option>
+                        <option value="MOYENNE" class="text-blue-600">📊 Moyenne</option>
+                        <option value="BASSE" class="text-gray-600">⬇️ Basse</option>
+                    </select>
+                </div>
+
+                <!-- Étapes de test -->
+                <div>
+                    <label for="etapes_test" class="block text-sm font-medium text-gray-700 mb-2">
+                        Étapes du test <span class="text-red-500">*</span>
+                    </label>
+                    <textarea id="etapes_test" name="etapes_test" rows="6" required
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              placeholder="1. Étape 1 du test&#10;2. Étape 2 du test&#10;3. Étape 3 du test&#10;..."></textarea>
+                    <p class="text-sm text-gray-500 mt-1">Décrivez les étapes à suivre pour exécuter ce test</p>
+                </div>
+
+                <!-- Résultats attendus -->
+                <div>
+                    <label for="resultats_attendus" class="block text-sm font-medium text-gray-700 mb-2">
+                        Résultats attendus <span class="text-red-500">*</span>
+                    </label>
+                    <textarea id="resultats_attendus" name="resultats_attendus" rows="4" required
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              placeholder="Décrivez les résultats attendus si le test passe..."></textarea>
+                </div>
+
+                <!-- Assignation QA -->
+                {% if membres_qa %}
+                <div>
+                    <label for="assignee_qa" class="block text-sm font-medium text-gray-700 mb-2">
+                        Assigner à un QA
+                    </label>
+                    <select id="assignee_qa" name="assignee_qa"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Sélectionner un QA (optionnel)</option>
+                        {% for qa in membres_qa %}
+                        <option value="{{ qa.id }}">{{ qa.get_full_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+
+                <!-- Boutons d'action -->
+                <div class="flex items-center justify-end space-x-4 pt-6 border-t border-gray-200">
+                    <a href="{% url 'gestion_tests' projet.id etape.id %}" 
+                       class="px-6 py-2 text-gray-600 hover:text-gray-800 font-medium transition-colors">
+                        Annuler
+                    </a>
+                    <button type="submit" 
+                            class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors">
+                        <i class="fas fa-save mr-2"></i>Créer le Test
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Auto-génération du numéro de test
+document.addEventListener('DOMContentLoaded', function() {
+    const nomInput = document.getElementById('nom');
+    const typeSelect = document.getElementById('type_test');
+    
+    function generateTestNumber() {
+        const type = typeSelect.value;
+        if (type) {
+            const prefix = type.substring(0, 3).toUpperCase();
+            const timestamp = Date.now().toString().slice(-6);
+            const numero = `${prefix}-${timestamp}`;
+            
+            // Mettre à jour le placeholder si le nom est vide
+            if (!nomInput.value) {
+                nomInput.placeholder = `Ex: ${numero} - Description du test`;
+            }
+        }
+    }
+    
+    typeSelect.addEventListener('change', generateTestNumber);
+});
+</script>
+{% endblock %}

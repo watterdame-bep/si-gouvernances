@@ -162,12 +162,12 @@
                 </div>
             </div>
         </div>
-        <!-- Liste des tâches -->
+        <!-- Liste des tâches - Grille moderne -->
         <div class="bg-white rounded-lg shadow-sm border border-gray-200">
             <div class="p-4 border-b border-gray-200">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center">
-                        <i class="fas fa-list text-gray-600 mr-2"></i>
+                        <i class="fas fa-th-large text-gray-600 mr-2"></i>
                         <h2 class="text-lg font-semibold text-gray-900">Tâches de l'Étape</h2>
                     </div>
                     <span class="text-sm text-gray-500">{{ taches.count }} tâche{{ taches.count|pluralize }}</span>
@@ -175,151 +175,152 @@
             </div>
             
             {% if taches %}
-            <div class="divide-y divide-gray-200">
-                {% for tache in taches %}
-                <div class="p-4 hover:bg-gray-50 transition-colors" data-tache-id="{{ tache.id }}" data-responsable-id="{% if tache.responsable %}{{ tache.responsable.id }}{% endif %}">
-                    <div class="flex items-start justify-between">
-                        <div class="flex-1 min-w-0">
-                            <!-- Titre et badges -->
-                            <div class="flex items-center space-x-3 mb-2">
-                                <h3 class="text-sm font-semibold text-gray-900 truncate">{{ tache.nom }}</h3>
-                                
-                                <!-- Badge tâche spéciale -->
-                                {% if tache.ajoutee_apres_cloture %}
-                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-300">
-                                    <i class="fas fa-star mr-1"></i>Tâche Spéciale
-                                </span>
-                                {% endif %}
-                                
-                                <!-- Badge statut -->
-                                <span class="status-badge status-{{ tache.statut|lower }}">
-                                    {% if tache.statut == 'A_FAIRE' %}
-                                        <i class="fas fa-clock mr-1"></i>À Faire
-                                    {% elif tache.statut == 'EN_COURS' %}
-                                        <i class="fas fa-play mr-1"></i>En Cours
-                                    {% elif tache.statut == 'TERMINEE' %}
-                                        <i class="fas fa-check mr-1"></i>Terminée
-                                    {% elif tache.statut == 'BLOQUEE' %}
-                                        <i class="fas fa-exclamation-triangle mr-1"></i>Bloquée
-                                    {% endif %}
-                                </span>
-                                
-                                <!-- Badge priorité -->
-                                <span class="priority-badge priority-{{ tache.priorite|lower }}">
-                                    {% if tache.priorite == 'CRITIQUE' %}
-                                        <i class="fas fa-exclamation-circle mr-1"></i>Critique
-                                    {% elif tache.priorite == 'HAUTE' %}
-                                        <i class="fas fa-arrow-up mr-1"></i>Haute
-                                    {% elif tache.priorite == 'MOYENNE' %}
-                                        <i class="fas fa-minus mr-1"></i>Moyenne
-                                    {% else %}
-                                        <i class="fas fa-arrow-down mr-1"></i>Basse
-                                    {% endif %}
-                                </span>
-                            </div>
-                            
-                            <!-- Description -->
-                            {% if tache.description %}
-                            <p class="text-sm text-gray-600 mb-2 line-clamp-2">{{ tache.description }}</p>
-                            {% endif %}
-                            
-                            <!-- Responsable et dates -->
-                            <div class="flex items-center space-x-4 text-xs text-gray-500">
-                                {% if tache.responsable %}
-                                <span class="flex items-center">
-                                    <i class="fas fa-user mr-1"></i>{{ tache.responsable.get_full_name }}
-                                </span>
-                                {% else %}
-                                <span class="text-orange-600 flex items-center">
-                                    <i class="fas fa-exclamation-triangle mr-1"></i>Non assignée
-                                </span>
-                                {% endif %}
-                                
-                                <span class="flex items-center">
-                                    <i class="fas fa-calendar-alt mr-1"></i>{{ tache.date_creation|date:"d/m/Y" }}
-                                </span>
-                                
-                                {% if tache.date_debut or tache.date_fin %}
-                                <span class="flex items-center">
-                                    <i class="fas fa-calendar-check mr-1"></i>
-                                    {% if tache.date_debut and tache.date_fin %}
-                                        {{ tache.date_debut|date:"d/m" }} - {{ tache.date_fin|date:"d/m" }}
-                                    {% elif tache.date_debut %}
-                                        Dès {{ tache.date_debut|date:"d/m" }}
-                                    {% elif tache.date_fin %}
-                                        Avant {{ tache.date_fin|date:"d/m" }}
-                                    {% endif %}
-                                </span>
-                                {% endif %}
-                                
-                                {% if tache.pourcentage_completion > 0 %}
-                                <span class="flex items-center">
-                                    <i class="fas fa-chart-pie mr-1"></i>{{ tache.pourcentage_completion }}%
-                                </span>
-                                {% endif %}
-                            </div>
-                        </div>
+            <!-- Grille moderne des tâches -->
+            <div class="p-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {% for tache in taches %}
+                    <div class="bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 hover:shadow-md transition-all duration-200" 
+                         data-tache-id="{{ tache.id }}" data-responsable-id="{% if tache.responsable %}{{ tache.responsable.id }}{% endif %}">
                         
-                        <!-- Actions -->
-                        {% if can_create %}
-                        <div class="flex items-center space-x-1 ml-4">
-                            {% if not tache.responsable and tache.statut != 'TERMINEE' %}
-                            <!-- Bouton Assigner -->
-                            <button onclick="assignerTache('{{ tache.id }}')"
-                                    class="inline-flex items-center px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-medium transition-colors"
-                                    title="Assigner">
-                                <i class="fas fa-user-plus"></i>
-                            </button>
-                            {% elif tache.responsable and tache.statut != 'TERMINEE' %}
-                            <!-- Bouton Transférer -->
-                            <button onclick="transfererTache('{{ tache.id }}')"
-                                    class="inline-flex items-center px-2 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-xs font-medium transition-colors"
-                                    title="Transférer">
-                                <i class="fas fa-exchange-alt"></i>
-                            </button>
+                        <!-- Header de la carte -->
+                        <div class="p-4">
+                            <div class="flex items-start justify-between mb-3">
+                                <div class="flex-1 mr-3">
+                                    <h3 class="text-sm font-semibold text-gray-900 mb-2 line-clamp-2">
+                                        {{ tache.nom }}
+                                    </h3>
+                                    
+                                    <!-- Badges compacts -->
+                                    <div class="flex items-center space-x-2 mb-3">
+                                        <!-- Badge tâche spéciale -->
+                                        {% if tache.ajoutee_apres_cloture %}
+                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                            <i class="fas fa-star mr-1"></i>Spéciale
+                                        </span>
+                                        {% endif %}
+                                        
+                                        <!-- Badge statut -->
+                                        <span class="status-badge status-{{ tache.statut|lower }}">
+                                            {% if tache.statut == 'A_FAIRE' %}
+                                                <i class="fas fa-clock mr-1"></i>À Faire
+                                            {% elif tache.statut == 'EN_COURS' %}
+                                                <i class="fas fa-play mr-1"></i>En Cours
+                                            {% elif tache.statut == 'TERMINEE' %}
+                                                <i class="fas fa-check mr-1"></i>Terminée
+                                            {% elif tache.statut == 'BLOQUEE' %}
+                                                <i class="fas fa-exclamation-triangle mr-1"></i>Bloquée
+                                            {% endif %}
+                                        </span>
+                                        
+                                        <!-- Badge priorité -->
+                                        <span class="priority-badge priority-{{ tache.priorite|lower }}">
+                                            {% if tache.priorite == 'CRITIQUE' %}
+                                                <i class="fas fa-exclamation-circle mr-1"></i>Critique
+                                            {% elif tache.priorite == 'HAUTE' %}
+                                                <i class="fas fa-arrow-up mr-1"></i>Haute
+                                            {% elif tache.priorite == 'MOYENNE' %}
+                                                <i class="fas fa-minus mr-1"></i>Moyenne
+                                            {% else %}
+                                                <i class="fas fa-arrow-down mr-1"></i>Basse
+                                            {% endif %}
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Actions uniques -->
+                                {% if can_create %}
+                                <div class="flex flex-col space-y-1">
+                                    {% if not tache.responsable and tache.statut != 'TERMINEE' %}
+                                    <button onclick="assignerTache('{{ tache.id }}')"
+                                            class="text-blue-600 hover:text-blue-800 p-1 rounded transition-colors"
+                                            title="Assigner">
+                                        <i class="fas fa-user-plus text-sm"></i>
+                                    </button>
+                                    {% elif tache.responsable and tache.statut != 'TERMINEE' %}
+                                    <button onclick="transfererTache('{{ tache.id }}')"
+                                            class="text-indigo-600 hover:text-indigo-800 p-1 rounded transition-colors"
+                                            title="Transférer">
+                                        <i class="fas fa-exchange-alt text-sm"></i>
+                                    </button>
+                                    {% endif %}
+                                    
+                                    {% if tache.statut != 'TERMINEE' %}
+                                    <button onclick="terminerTache('{{ tache.id }}')"
+                                            class="text-green-600 hover:text-green-800 p-1 rounded transition-colors"
+                                            title="Terminer">
+                                        <i class="fas fa-check text-sm"></i>
+                                    </button>
+                                    
+                                    <a href="{% url 'modifier_tache_etape' projet.id etape.id tache.id %}"
+                                       class="text-gray-600 hover:text-gray-800 p-1 rounded transition-colors"
+                                       title="Modifier">
+                                        <i class="fas fa-edit text-sm"></i>
+                                    </a>
+                                    {% endif %}
+                                    
+                                    <!-- Bouton Gérer les Tests (uniquement pour étape TEST) -->
+                                    {% if etape.type_etape.nom == 'TESTS' %}
+                                    <button onclick="gererCasTests('{{ tache.id }}', '{{ tache.nom|escapejs }}')"
+                                            class="text-purple-600 hover:text-purple-800 p-1 rounded transition-colors"
+                                            title="Gérer les cas de test">
+                                        <i class="fas fa-vial text-sm"></i>
+                                    </button>
+                                    {% endif %}
+                                    
+                                    <button onclick="voirDetailsTache('{{ tache.id }}', '{{ tache.nom|escapejs }}', '{{ tache.description|escapejs }}', '{{ tache.responsable.get_full_name|default:"Non assignée"|escapejs }}', '{{ tache.date_creation|date:"d/m/Y" }}', '{{ tache.pourcentage_completion }}')"
+                                            class="text-blue-600 hover:text-blue-800 p-1 rounded transition-colors"
+                                            title="Voir détails">
+                                        <i class="fas fa-eye text-sm"></i>
+                                    </button>
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Progression (si > 0) -->
+                            {% if tache.pourcentage_completion > 0 %}
+                            <div class="mb-3">
+                                <div class="flex items-center justify-between text-xs text-gray-600 mb-1">
+                                    <span>Progression</span>
+                                    <span>{{ tache.pourcentage_completion }}%</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2">
+                                    <div class="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                                         style="width: {{ tache.pourcentage_completion }}%"></div>
+                                </div>
+                            </div>
                             {% endif %}
                             
-                            {% if tache.statut != 'TERMINEE' %}
-                            <!-- Bouton Terminer -->
-                            <button onclick="terminerTache('{{ tache.id }}')"
-                                    class="inline-flex items-center px-2 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-xs font-medium transition-colors"
-                                    title="Terminer">
-                                <i class="fas fa-check"></i>
-                            </button>
-                            
-                            <!-- Bouton Modifier -->
-                            <a href="{% url 'modifier_tache_etape' projet.id etape.id tache.id %}"
-                               class="inline-flex items-center px-2 py-1 bg-gray-600 hover:bg-gray-700 text-white rounded text-xs font-medium transition-colors"
-                               title="Modifier">
-                                <i class="fas fa-edit"></i>
-                            </a>
-                            {% else %}
-                            <!-- Tâche terminée -->
-                            <span class="inline-flex items-center px-2 py-1 bg-gray-100 text-gray-500 rounded text-xs font-medium"
-                                  title="Tâche terminée">
-                                <i class="fas fa-lock mr-1"></i>Terminée
-                            </span>
-                            {% endif %}
-                            
-                            <!-- Bouton Détails -->
-                            <button onclick="voirDetailsTache('{{ tache.id }}', '{{ tache.nom|escapejs }}')"
-                                    class="inline-flex items-center px-2 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded text-xs font-medium transition-colors"
-                                    title="Détails">
-                                <i class="fas fa-eye"></i>
-                            </button>
+                            <!-- Informations essentielles -->
+                            <div class="space-y-1 text-xs text-gray-500">
+                                <!-- Responsable -->
+                                <div class="flex items-center">
+                                    {% if tache.responsable %}
+                                    <i class="fas fa-user mr-2 text-gray-400 w-3"></i>
+                                    <span>{{ tache.responsable.get_full_name }}</span>
+                                    {% else %}
+                                    <i class="fas fa-user-slash mr-2 text-orange-400 w-3"></i>
+                                    <span class="text-orange-600">Non assignée</span>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Date de création -->
+                                <div class="flex items-center">
+                                    <i class="fas fa-calendar-alt mr-2 text-gray-400 w-3"></i>
+                                    <span>{{ tache.date_creation|date:"d/m/Y" }}</span>
+                                </div>
+                            </div>
                         </div>
-                        {% endif %}
                     </div>
+                    {% endfor %}
                 </div>
-                {% endfor %}
             </div>
             {% else %}
             <!-- État vide -->
             <div class="p-8 text-center">
-                <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i class="fas fa-tasks text-gray-400 text-xl"></i>
+                <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-tasks text-gray-400 text-2xl"></i>
                 </div>
-                <h3 class="text-base font-medium text-gray-500 mb-2">Aucune tâche créée</h3>
+                <h3 class="text-lg font-medium text-gray-500 mb-2">Aucune tâche créée</h3>
                 <p class="text-sm text-gray-400 mb-4">Créez votre première tâche pour organiser le travail sur cette étape</p>
                 {% if can_create %}
                 <a href="{% url 'creer_tache_etape' projet.id etape.id %}" 
@@ -374,7 +375,147 @@
     </div>
 </div>
 
-<!-- Modal Terminer Tâche -->
+<!-- Modal Gérer Cas de Test -->
+<div id="casTestModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+        <div class="bg-purple-600 rounded-t-lg px-4 py-3 text-white">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-semibold" id="casTestTitle">
+                    <i class="fas fa-vial mr-2"></i>Gérer les Cas de Test
+                </h3>
+                <button onclick="fermerModalCasTest()" class="text-white hover:text-gray-200 p-1 rounded transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+        </div>
+        
+        <div class="p-4 max-h-[70vh] overflow-y-auto">
+            <div id="casTestContent">
+                <!-- Le contenu sera chargé dynamiquement -->
+                <div class="text-center py-8">
+                    <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-spinner fa-spin text-purple-600 text-xl"></i>
+                    </div>
+                    <p class="text-gray-600">Chargement des cas de test...</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-gray-50 rounded-b-lg px-4 py-3 flex items-center justify-between">
+            <button onclick="creerNouveauCasTest()" 
+                    class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-md text-sm transition-colors">
+                <i class="fas fa-plus mr-1"></i>Nouveau Cas de Test
+            </button>
+            <button onclick="fermerModalCasTest()" 
+                    class="px-3 py-1.5 text-gray-600 hover:text-gray-800 font-medium text-sm transition-colors">
+                Fermer
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Créer Cas de Test -->
+<div id="creerCasTestModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
+        <div class="bg-green-600 rounded-t-lg px-4 py-3 text-white">
+            <h3 class="text-lg font-semibold">
+                <i class="fas fa-plus mr-2"></i>Créer un Cas de Test
+            </h3>
+        </div>
+        
+        <form id="creerCasTestForm" class="p-4 space-y-4 max-h-[70vh] overflow-y-auto">
+            {% csrf_token %}
+            <input type="hidden" id="tacheTestId" name="tache_test_id">
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="casTestNom" class="block text-sm font-medium text-gray-700 mb-1">
+                        <i class="fas fa-tag text-green-600 mr-1"></i>
+                        Nom du cas de test *
+                    </label>
+                    <input type="text" id="casTestNom" name="nom" required 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                           placeholder="Ex: Connexion avec email valide">
+                </div>
+                
+                <div>
+                    <label for="casTestPriorite" class="block text-sm font-medium text-gray-700 mb-1">
+                        <i class="fas fa-exclamation-triangle text-orange-600 mr-1"></i>
+                        Priorité
+                    </label>
+                    <select id="casTestPriorite" name="priorite" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                        <option value="MOYENNE">Moyenne</option>
+                        <option value="BASSE">Basse</option>
+                        <option value="HAUTE">Haute</option>
+                        <option value="CRITIQUE">Critique</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div>
+                <label for="casTestDescription" class="block text-sm font-medium text-gray-700 mb-1">
+                    <i class="fas fa-align-left text-blue-600 mr-1"></i>
+                    Description *
+                </label>
+                <textarea id="casTestDescription" name="description" required rows="3"
+                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                          placeholder="Description détaillée du cas de test"></textarea>
+            </div>
+            
+            <div>
+                <label for="casTestDonneesEntree" class="block text-sm font-medium text-gray-700 mb-1">
+                    <i class="fas fa-database text-indigo-600 mr-1"></i>
+                    Données d'entrée
+                </label>
+                <textarea id="casTestDonneesEntree" name="donnees_entree" rows="2"
+                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                          placeholder="Données nécessaires pour ce test"></textarea>
+            </div>
+            
+            <div>
+                <label for="casTestPreconditions" class="block text-sm font-medium text-gray-700 mb-1">
+                    <i class="fas fa-check-square text-teal-600 mr-1"></i>
+                    Préconditions
+                </label>
+                <textarea id="casTestPreconditions" name="preconditions" rows="2"
+                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                          placeholder="Conditions préalables à remplir"></textarea>
+            </div>
+            
+            <div>
+                <label for="casTestEtapesExecution" class="block text-sm font-medium text-gray-700 mb-1">
+                    <i class="fas fa-list-ol text-purple-600 mr-1"></i>
+                    Étapes d'exécution *
+                </label>
+                <textarea id="casTestEtapesExecution" name="etapes_execution" required rows="4"
+                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                          placeholder="1. Étape 1&#10;2. Étape 2&#10;3. Étape 3"></textarea>
+            </div>
+            
+            <div>
+                <label for="casTestResultatsAttendus" class="block text-sm font-medium text-gray-700 mb-1">
+                    <i class="fas fa-bullseye text-red-600 mr-1"></i>
+                    Résultats attendus *
+                </label>
+                <textarea id="casTestResultatsAttendus" name="resultats_attendus" required rows="3"
+                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                          placeholder="Résultats attendus pour ce cas spécifique"></textarea>
+            </div>
+        </form>
+        
+        <div class="bg-gray-50 rounded-b-lg px-4 py-3 flex items-center justify-end space-x-3">
+            <button onclick="fermerModalCreerCasTest()" 
+                    class="px-3 py-1.5 text-gray-600 hover:text-gray-800 font-medium text-sm transition-colors">
+                Annuler
+            </button>
+            <button onclick="confirmerCreerCasTest()" 
+                    class="px-4 py-1.5 bg-green-600 hover:bg-green-700 text-white font-medium rounded-md text-sm transition-colors">
+                <i class="fas fa-check mr-1"></i>Créer
+            </button>
+        </div>
+    </div>
+</div>
 <div id="completeModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
         <div class="bg-green-600 rounded-t-lg px-4 py-3 text-white">
@@ -408,8 +549,347 @@
     </div>
 </div>
 
+<!-- Modal Détails Tâche -->
+<div id="detailsModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
+        <div class="bg-blue-600 rounded-t-lg px-4 py-3 text-white">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-semibold">
+                    <i class="fas fa-info-circle mr-2"></i>Détails de la Tâche
+                </h3>
+                <button onclick="fermerModalDetails()" class="text-white hover:text-gray-200 p-1 rounded transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+        </div>
+        
+        <div class="p-6 overflow-y-auto max-h-[60vh]">
+            <div id="detailsContent">
+                <!-- Le contenu sera chargé dynamiquement -->
+            </div>
+        </div>
+        
+        <div class="bg-gray-50 rounded-b-lg px-4 py-3 flex items-center justify-end">
+            <button onclick="fermerModalDetails()" 
+                    class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-md text-sm transition-colors">
+                <i class="fas fa-times mr-1"></i>Fermer
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
 let isTransferMode = false;
+let currentTacheId = null;
+let currentTacheTestId = null;
+
+function assignerTache(tacheId) {
+    isTransferMode = false;
+    document.getElementById('assignTitle').innerHTML = '<i class="fas fa-user-plus mr-2"></i>Assigner la tâche';
+    document.getElementById('tacheId').value = tacheId;
+    
+    // Réinitialiser le select
+    const select = document.getElementById('responsable_id');
+    select.selectedIndex = 0;
+    const options = select.querySelectorAll('option');
+    options.forEach(option => option.style.display = 'block');
+    
+    document.getElementById('assignModal').classList.remove('hidden');
+}
+
+function transfererTache(tacheId) {
+    isTransferMode = true;
+    document.getElementById('assignTitle').innerHTML = '<i class="fas fa-exchange-alt mr-2"></i>Transférer la tâche';
+    document.getElementById('tacheId').value = tacheId;
+    
+    // Masquer le responsable actuel
+    const tacheElement = document.querySelector(`[data-tache-id="${tacheId}"]`);
+    const responsableActuelId = tacheElement ? tacheElement.getAttribute('data-responsable-id') : null;
+    
+    const select = document.getElementById('responsable_id');
+    select.selectedIndex = 0;
+    const options = select.querySelectorAll('option');
+    
+    let optionsDisponibles = 0;
+    options.forEach(option => {
+        if (option.value === '' || option.value === responsableActuelId) {
+            option.style.display = 'none';
+        } else {
+            option.style.display = 'block';
+            optionsDisponibles++;
+        }
+    });
+    
+    if (optionsDisponibles === 0) {
+        afficherMessage('error', 'Aucun autre membre disponible pour le transfert.');
+        return;
+    }
+    
+    document.getElementById('assignModal').classList.remove('hidden');
+}
+
+function fermerModalAssign() {
+    document.getElementById('assignModal').classList.add('hidden');
+}
+
+function terminerTache(tacheId) {
+    document.getElementById('completeTacheId').value = tacheId;
+    document.getElementById('completeModal').classList.remove('hidden');
+}
+
+function fermerModalComplete() {
+    document.getElementById('completeModal').classList.add('hidden');
+}
+
+// Nouvelles fonctions pour la gestion des cas de test
+function gererCasTests(tacheId, nomTache) {
+    currentTacheId = tacheId;
+    document.getElementById('casTestTitle').innerHTML = `<i class="fas fa-vial mr-2"></i>Cas de Test - ${nomTache}`;
+    document.getElementById('casTestModal').classList.remove('hidden');
+    
+    // Charger les cas de test existants
+    chargerCasTests(tacheId);
+}
+
+function chargerCasTests(tacheId) {
+    // D'abord, trouver la TacheTest correspondante
+    fetch(`/api/tache-etape/${tacheId}/tache-test/`, {
+        method: 'GET',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success && data.tache_test_id) {
+            currentTacheTestId = data.tache_test_id;
+            // Maintenant charger les cas de test
+            return fetch(`/api/tache-test/${data.tache_test_id}/cas-tests/`, {
+                method: 'GET',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                }
+            });
+        } else {
+            throw new Error('Aucune tâche de test trouvée pour cette tâche d\'étape');
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            afficherCasTests(data.cas_tests);
+        } else {
+            throw new Error(data.error || 'Erreur lors du chargement des cas de test');
+        }
+    })
+    .catch(error => {
+        document.getElementById('casTestContent').innerHTML = `
+            <div class="text-center py-8">
+                <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+                </div>
+                <p class="text-red-600 mb-2">Erreur lors du chargement</p>
+                <p class="text-gray-600 text-sm">${error.message}</p>
+                <button onclick="chargerCasTests('${tacheId}')" class="mt-3 px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
+                    Réessayer
+                </button>
+            </div>
+        `;
+    });
+}
+
+function afficherCasTests(casTests) {
+    if (!casTests || casTests.length === 0) {
+        document.getElementById('casTestContent').innerHTML = `
+            <div class="text-center py-8">
+                <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-vial text-gray-400 text-xl"></i>
+                </div>
+                <h3 class="text-base font-medium text-gray-500 mb-2">Aucun cas de test</h3>
+                <p class="text-sm text-gray-400 mb-4">Créez votre premier cas de test pour cette tâche</p>
+                <button onclick="creerNouveauCasTest()" class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
+                    <i class="fas fa-plus mr-1"></i>Créer un Cas de Test
+                </button>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '<div class="space-y-3">';
+    casTests.forEach(cas => {
+        const statutColor = {
+            'EN_ATTENTE': 'bg-gray-100 text-gray-800',
+            'EN_COURS': 'bg-blue-100 text-blue-800',
+            'PASSE': 'bg-green-100 text-green-800',
+            'ECHEC': 'bg-red-100 text-red-800',
+            'BLOQUE': 'bg-yellow-100 text-yellow-800'
+        };
+        
+        const prioriteColor = {
+            'BASSE': 'bg-gray-100 text-gray-600',
+            'MOYENNE': 'bg-blue-100 text-blue-700',
+            'HAUTE': 'bg-orange-100 text-orange-700',
+            'CRITIQUE': 'bg-red-100 text-red-700'
+        };
+        
+        html += `
+            <div class="p-4 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors">
+                <div class="flex items-start justify-between mb-3">
+                    <div class="flex-1">
+                        <h4 class="text-sm font-semibold text-gray-900 mb-1">${cas.numero_cas} - ${cas.nom}</h4>
+                        <p class="text-xs text-gray-600 mb-2">${cas.description}</p>
+                    </div>
+                    <div class="flex space-x-2 ml-4">
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${prioriteColor[cas.priorite] || 'bg-gray-100 text-gray-600'}">
+                            ${cas.priorite_display}
+                        </span>
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${statutColor[cas.statut] || 'bg-gray-100 text-gray-600'}">
+                            ${cas.statut_display}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="flex items-center justify-between text-xs text-gray-500">
+                    <div class="flex items-center space-x-3">
+                        <span><i class="fas fa-calendar-alt mr-1"></i>${cas.date_creation}</span>
+                        ${cas.executeur ? `<span><i class="fas fa-user mr-1"></i>${cas.executeur}</span>` : ''}
+                    </div>
+                    <div class="flex space-x-1">
+                        ${cas.statut === 'EN_ATTENTE' || cas.statut === 'ECHEC' ? `
+                            <button onclick="executerCasTest('${cas.id}', 'PASSE')" 
+                                    class="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700" title="Marquer comme réussi">
+                                <i class="fas fa-check"></i>
+                            </button>
+                            <button onclick="executerCasTest('${cas.id}', 'ECHEC')" 
+                                    class="px-2 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700" title="Marquer comme échoué">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        ` : ''}
+                        <button onclick="voirDetailsCasTest('${cas.id}')" 
+                                class="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700" title="Voir détails">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    html += '</div>';
+    
+    document.getElementById('casTestContent').innerHTML = html;
+}
+
+function creerNouveauCasTest() {
+    if (!currentTacheTestId) {
+        afficherMessage('error', 'Erreur: Aucune tâche de test sélectionnée');
+        return;
+    }
+    
+    document.getElementById('tacheTestId').value = currentTacheTestId;
+    document.getElementById('creerCasTestForm').reset();
+    document.getElementById('creerCasTestModal').classList.remove('hidden');
+}
+
+function fermerModalCasTest() {
+    document.getElementById('casTestModal').classList.add('hidden');
+    currentTacheId = null;
+    currentTacheTestId = null;
+}
+
+function fermerModalCreerCasTest() {
+    document.getElementById('creerCasTestModal').classList.add('hidden');
+}
+
+function confirmerCreerCasTest() {
+    const form = document.getElementById('creerCasTestForm');
+    const formData = new FormData(form);
+    
+    const submitBtn = document.querySelector('#creerCasTestModal button[onclick="confirmerCreerCasTest()"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Création...';
+    
+    fetch(`{% url 'creer_cas_test' projet.id etape.id '00000000-0000-0000-0000-000000000000' %}`.replace('00000000-0000-0000-0000-000000000000', currentTacheTestId), {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            fermerModalCreerCasTest();
+            afficherMessage('success', data.message);
+            // Recharger les cas de test
+            chargerCasTests(currentTacheId);
+        } else {
+            afficherMessage('error', data.error);
+        }
+    })
+    .catch(error => {
+        afficherMessage('error', 'Erreur de communication avec le serveur');
+    })
+    .finally(() => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+    });
+}
+
+function executerCasTest(casTestId, statut) {
+    const resultats = prompt(`Résultats obtenus pour ce cas de test (${statut === 'PASSE' ? 'succès' : 'échec'}):`);
+    if (resultats === null) return; // Annulé
+    
+    fetch(`{% url 'executer_cas_test' projet.id etape.id '00000000-0000-0000-0000-000000000000' %}`.replace('00000000-0000-0000-0000-000000000000', casTestId), {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `statut=${statut}&resultats_obtenus=${encodeURIComponent(resultats)}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            afficherMessage('success', data.message);
+            // Recharger les cas de test
+            chargerCasTests(currentTacheId);
+        } else {
+            afficherMessage('error', data.error);
+        }
+    })
+    .catch(error => {
+        afficherMessage('error', 'Erreur de communication avec le serveur');
+    });
+}
+
+function voirDetailsCasTest(casTestId) {
+    fetch(`{% url 'details_cas_test' projet.id etape.id '00000000-0000-0000-0000-000000000000' %}`.replace('00000000-0000-0000-0000-000000000000', casTestId), {
+        method: 'GET',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const cas = data.cas;
+            alert(`Détails du cas de test ${cas.numero_cas}:\n\n` +
+                  `Nom: ${cas.nom}\n` +
+                  `Description: ${cas.description}\n` +
+                  `Priorité: ${cas.priorite_display}\n` +
+                  `Statut: ${cas.statut_display}\n` +
+                  `Étapes d'exécution:\n${cas.etapes_execution}\n` +
+                  `Résultats attendus:\n${cas.resultats_attendus}` +
+                  (cas.resultats_obtenus ? `\n\nRésultats obtenus:\n${cas.resultats_obtenus}` : ''));
+        } else {
+            afficherMessage('error', data.error);
+        }
+    })
+    .catch(error => {
+        afficherMessage('error', 'Erreur de communication avec le serveur');
+    });
+}
 
 function assignerTache(tacheId) {
     isTransferMode = false;
@@ -570,9 +1050,289 @@ function afficherMessage(type, message) {
     }, 3000);
 }
 
-// Fonction pour voir les détails (placeholder)
-function voirDetailsTache(tacheId, nomTache) {
-    afficherMessage('info', `Détails de la tâche "${nomTache}" - Fonctionnalité en développement`);
+// Fonction pour gérer les cas de test
+function gererCasTests(tacheId, nomTache) {
+    document.getElementById('casTestTitle').innerHTML = `<i class="fas fa-vial mr-2"></i>Cas de Test - ${nomTache}`;
+    
+    // Charger le contenu des cas de test
+    const content = document.getElementById('casTestContent');
+    content.innerHTML = `
+        <div class="text-center py-8">
+            <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-spinner fa-spin text-purple-600 text-xl"></i>
+            </div>
+            <p class="text-gray-600">Chargement des cas de test...</p>
+        </div>
+    `;
+    
+    // Simuler le chargement des cas de test (à remplacer par un appel AJAX réel)
+    setTimeout(() => {
+        content.innerHTML = `
+            <div class="space-y-4">
+                <!-- Header avec bouton d'ajout -->
+                <div class="flex items-center justify-between p-4 bg-purple-50 rounded-lg border border-purple-200">
+                    <div>
+                        <h4 class="font-semibold text-purple-900">Cas de Test pour: ${nomTache}</h4>
+                        <p class="text-sm text-purple-700">Gérez les cas de test individuels pour cette tâche</p>
+                    </div>
+                    <button onclick="creerNouveauCasTest('${tacheId}')" 
+                            class="inline-flex items-center px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-sm font-medium transition-colors">
+                        <i class="fas fa-plus mr-2"></i>Nouveau Cas
+                    </button>
+                </div>
+                
+                <!-- Liste des cas de test (exemple) -->
+                <div class="space-y-3">
+                    <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <div class="flex items-center justify-between mb-2">
+                            <h5 class="font-medium text-gray-900">AUTH-001 - Connexion avec email valide</h5>
+                            <div class="flex items-center space-x-2">
+                                <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
+                                    <i class="fas fa-check mr-1"></i>Passé
+                                </span>
+                                <button class="text-blue-600 hover:text-blue-800 p-1" title="Exécuter">
+                                    <i class="fas fa-play text-sm"></i>
+                                </button>
+                                <button class="text-gray-600 hover:text-gray-800 p-1" title="Modifier">
+                                    <i class="fas fa-edit text-sm"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-2">Test de connexion avec un email et mot de passe valides</p>
+                        <div class="text-xs text-gray-500">
+                            <span class="mr-4"><i class="fas fa-user mr-1"></i>Exécuté par: John Doe</span>
+                            <span><i class="fas fa-calendar mr-1"></i>05/02/2026 14:30</span>
+                        </div>
+                    </div>
+                    
+                    <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <div class="flex items-center justify-between mb-2">
+                            <h5 class="font-medium text-gray-900">AUTH-002 - Connexion avec mot de passe incorrect</h5>
+                            <div class="flex items-center space-x-2">
+                                <span class="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium">
+                                    <i class="fas fa-times mr-1"></i>Échec
+                                </span>
+                                <button class="text-blue-600 hover:text-blue-800 p-1" title="Exécuter">
+                                    <i class="fas fa-play text-sm"></i>
+                                </button>
+                                <button class="text-gray-600 hover:text-gray-800 p-1" title="Modifier">
+                                    <i class="fas fa-edit text-sm"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-2">Test de connexion avec un mot de passe incorrect</p>
+                        <div class="text-xs text-gray-500">
+                            <span class="mr-4"><i class="fas fa-user mr-1"></i>Exécuté par: Jane Smith</span>
+                            <span><i class="fas fa-calendar mr-1"></i>05/02/2026 15:15</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Statistiques -->
+                <div class="grid grid-cols-3 gap-4 mt-6">
+                    <div class="text-center p-3 bg-green-50 rounded-lg border border-green-200">
+                        <div class="text-2xl font-bold text-green-600">1</div>
+                        <div class="text-sm text-green-700">Passés</div>
+                    </div>
+                    <div class="text-center p-3 bg-red-50 rounded-lg border border-red-200">
+                        <div class="text-2xl font-bold text-red-600">1</div>
+                        <div class="text-sm text-red-700">Échecs</div>
+                    </div>
+                    <div class="text-center p-3 bg-gray-50 rounded-lg border border-gray-200">
+                        <div class="text-2xl font-bold text-gray-600">50%</div>
+                        <div class="text-sm text-gray-700">Réussite</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }, 1000);
+    
+    document.getElementById('casTestModal').classList.remove('hidden');
+}
+
+// Fonction pour créer un nouveau cas de test
+function creerNouveauCasTest(tacheId) {
+    afficherMessage('info', 'Fonctionnalité de création de cas de test en développement');
+}
+
+// Fonction pour fermer le modal des cas de test
+function fermerModalCasTest() {
+    document.getElementById('casTestModal').classList.add('hidden');
+}
+
+function creerNouveauCasTest() {
+    if (!currentTacheTestId) {
+        afficherMessage('error', 'Erreur: Aucune tâche de test sélectionnée');
+        return;
+    }
+    
+    // Ouvrir un modal de création ou rediriger vers une page de création
+    afficherMessage('info', 'Fonctionnalité de création de cas de test en développement');
+}
+
+function executerCasTest(casTestId, statut) {
+    const resultats = prompt(`Résultats obtenus pour ce test (${statut === 'PASSE' ? 'succès' : 'échec'}):`);
+    if (resultats === null) return; // Annulé
+    
+    fetch(`{% url 'executer_cas_test' projet.id etape.id '00000000-0000-0000-0000-000000000000' %}`.replace('00000000-0000-0000-0000-000000000000', casTestId), {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `statut=${statut}&resultats_obtenus=${encodeURIComponent(resultats)}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            afficherMessage('success', data.message);
+            // Recharger les cas de test
+            chargerCasTests(currentTacheId);
+        } else {
+            afficherMessage('error', data.error);
+        }
+    })
+    .catch(error => {
+        afficherMessage('error', 'Erreur de communication avec le serveur');
+    });
+}
+
+function voirDetailsCasTest(casTestId) {
+    fetch(`{% url 'details_cas_test' projet.id etape.id '00000000-0000-0000-0000-000000000000' %}`.replace('00000000-0000-0000-0000-000000000000', casTestId), {
+        method: 'GET',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Afficher les détails dans un modal ou une section
+            alert(`Détails du cas de test:\n\nNom: ${data.cas.nom}\nDescription: ${data.cas.description}\nStatut: ${data.cas.statut_display}\nPriorité: ${data.cas.priorite_display}`);
+        } else {
+            afficherMessage('error', data.error);
+        }
+    })
+    .catch(error => {
+        afficherMessage('error', 'Erreur lors du chargement des détails');
+    });
+}
+
+// Fonction pour voir les détails de la tâche
+function voirDetailsTache(tacheId, nom, description, responsable, dateCreation, progression) {
+    // Remplir le contenu du modal
+    document.getElementById('detailsContent').innerHTML = `
+        <div class="space-y-6">
+            <!-- Titre et statut -->
+            <div class="border-b border-gray-200 pb-4">
+                <h4 class="text-lg font-semibold text-gray-900 mb-2">${nom}</h4>
+                <div class="flex items-center space-x-2">
+                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        <i class="fas fa-info-circle mr-1"></i>Tâche d'étape
+                    </span>
+                </div>
+            </div>
+            
+            <!-- Description -->
+            <div>
+                <h5 class="text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                    <i class="fas fa-align-left mr-2 text-gray-500"></i>Description
+                </h5>
+                <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                    <p class="text-sm text-gray-700">${description || 'Aucune description fournie'}</p>
+                </div>
+            </div>
+            
+            <!-- Informations générales -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <h5 class="text-sm font-semibold text-gray-700 mb-3 flex items-center">
+                        <i class="fas fa-user mr-2 text-gray-500"></i>Assignation
+                    </h5>
+                    <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                        <div class="flex items-center">
+                            ${responsable !== 'Non assignée' ? 
+                                `<div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center mr-3">
+                                    <span class="text-white text-xs font-bold">${responsable.charAt(0)}</span>
+                                </div>
+                                <span class="text-sm text-gray-700">${responsable}</span>` :
+                                `<i class="fas fa-user-slash text-orange-500 mr-2"></i>
+                                <span class="text-sm text-orange-600">Non assignée</span>`
+                            }
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <h5 class="text-sm font-semibold text-gray-700 mb-3 flex items-center">
+                        <i class="fas fa-calendar-alt mr-2 text-gray-500"></i>Dates
+                    </h5>
+                    <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                        <div class="space-y-1 text-sm text-gray-700">
+                            <div class="flex items-center">
+                                <i class="fas fa-plus-circle mr-2 text-green-500 w-4"></i>
+                                <span>Créée le ${dateCreation}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Progression -->
+            ${progression > 0 ? `
+            <div>
+                <h5 class="text-sm font-semibold text-gray-700 mb-3 flex items-center">
+                    <i class="fas fa-chart-line mr-2 text-gray-500"></i>Progression
+                </h5>
+                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm text-gray-600">Avancement</span>
+                        <span class="text-sm font-semibold text-blue-600">${progression}%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-3">
+                        <div class="bg-blue-600 h-3 rounded-full transition-all duration-300" style="width: ${progression}%"></div>
+                    </div>
+                </div>
+            </div>
+            ` : ''}
+            
+            <!-- Actions disponibles -->
+            <div>
+                <h5 class="text-sm font-semibold text-gray-700 mb-3 flex items-center">
+                    <i class="fas fa-cogs mr-2 text-gray-500"></i>Actions disponibles
+                </h5>
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="fermerModalDetails(); document.querySelector('[href*=\\'modifier_tache_etape\\'][href*=\\'${tacheId}\\']')?.click()" 
+                            class="inline-flex items-center px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md text-sm font-medium transition-colors">
+                        <i class="fas fa-edit mr-2"></i>Modifier
+                    </button>
+                    ${responsable === 'Non assignée' ? `
+                    <button onclick="fermerModalDetails(); assignerTache('${tacheId}')" 
+                            class="inline-flex items-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium transition-colors">
+                        <i class="fas fa-user-plus mr-2"></i>Assigner
+                    </button>
+                    ` : `
+                    <button onclick="fermerModalDetails(); transfererTache('${tacheId}')" 
+                            class="inline-flex items-center px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium transition-colors">
+                        <i class="fas fa-exchange-alt mr-2"></i>Transférer
+                    </button>
+                    `}
+                    <button onclick="fermerModalDetails(); terminerTache('${tacheId}')" 
+                            class="inline-flex items-center px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md text-sm font-medium transition-colors">
+                        <i class="fas fa-check mr-2"></i>Terminer
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Afficher le modal
+    document.getElementById('detailsModal').classList.remove('hidden');
+}
+
+// Fonction pour fermer le modal des détails
+function fermerModalDetails() {
+    document.getElementById('detailsModal').classList.add('hidden');
 }
 
 // Fermer modales en cliquant à l'extérieur
@@ -584,11 +1344,26 @@ document.getElementById('completeModal').addEventListener('click', function(e) {
     if (e.target === this) fermerModalComplete();
 });
 
+document.getElementById('casTestModal').addEventListener('click', function(e) {
+    if (e.target === this) fermerModalCasTest();
+});
+
+document.getElementById('creerCasTestModal').addEventListener('click', function(e) {
+    if (e.target === this) fermerModalCreerCasTest();
+});
+
+document.getElementById('detailsModal').addEventListener('click', function(e) {
+    if (e.target === this) fermerModalDetails();
+});
+
 // Fermer modales avec Escape
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
         fermerModalAssign();
         fermerModalComplete();
+        fermerModalCasTest();
+        fermerModalCreerCasTest();
+        fermerModalDetails();
     }
 });
 </script>

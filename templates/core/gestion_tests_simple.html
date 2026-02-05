@@ -1,0 +1,654 @@
+{% extends 'base.html' %}
+
+{% block title %}Tests - {{ etape.type_etape.get_nom_display }} - {{ projet.nom }} - SI-Gouvernance JCM{% endblock %}
+{% block page_title %}Gestion des Tests - {{ projet.nom }}{% endblock %}
+
+{% block content %}
+<div class="bg-gray-50 min-h-screen p-4">
+    <div class="max-w-6xl mx-auto space-y-6">
+        
+        <!-- Header -->
+        <div class="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <div class="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-vial text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-semibold text-gray-900">Gestion des Tests</h1>
+                        <p class="text-gray-600">{{ projet.nom }} - Étape {{ etape.type_etape.get_nom_display }}</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3">
+                    {% if peut_creer_tests %}
+                    <a href="{% url 'creer_test' projet.id etape.id %}" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium text-sm transition-colors">
+                        <i class="fas fa-plus mr-2"></i>Nouveau Test
+                    </a>
+                    {% endif %}
+                    <a href="{% url 'gestion_etapes' projet.id %}" class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md font-medium text-sm transition-colors">
+                        <i class="fas fa-arrow-left mr-2"></i>Retour
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistiques -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div class="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-vial text-blue-600"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Tests Total</p>
+                        <p class="text-2xl font-semibold text-gray-900">{{ stats.total }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-check-circle text-green-600"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Tests Passés</p>
+                        <p class="text-2xl font-semibold text-gray-900">{{ stats.passes }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-times-circle text-red-600"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Tests Échoués</p>
+                        <p class="text-2xl font-semibold text-gray-900">{{ stats.echecs }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-clock text-yellow-600"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">En Attente</p>
+                        <p class="text-2xl font-semibold text-gray-900">{{ stats.en_attente }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Liste des Tests avec Hiérarchie CasTest -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-900">Tests de l'étape</h2>
+            </div>
+            
+            <div class="p-6">
+                {% if tests %}
+                <div class="space-y-6">
+                    {% for test in tests %}
+                    <div class="border border-gray-200 rounded-lg overflow-hidden">
+                        <!-- TacheTest principale -->
+                        <div class="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                            <div class="flex items-center justify-between">
+                                <div class="flex-1">
+                                    <div class="flex items-center space-x-3">
+                                        <h3 class="font-semibold text-gray-900">{{ test.nom }}</h3>
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                            {% if test.statut == 'PASSE' %}bg-green-100 text-green-800
+                                            {% elif test.statut == 'ECHEC' %}bg-red-100 text-red-800
+                                            {% elif test.statut == 'EN_COURS' %}bg-yellow-100 text-yellow-800
+                                            {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                            {{ test.get_statut_display }}
+                                        </span>
+                                        <span class="text-sm font-mono text-gray-500">{{ test.numero_test }}</span>
+                                    </div>
+                                    <p class="text-sm text-gray-600 mt-1">{{ test.description|truncatewords:15 }}</p>
+                                    
+                                    <!-- Statistiques des cas de test -->
+                                    {% with stats=test.statistiques_cas %}
+                                    {% if stats.total > 0 %}
+                                    <div class="flex items-center space-x-4 mt-2">
+                                        <span class="text-xs text-gray-500">
+                                            <i class="fas fa-list-check mr-1"></i>{{ stats.total }} cas de test
+                                        </span>
+                                        <span class="text-xs text-green-600">
+                                            <i class="fas fa-check-circle mr-1"></i>{{ stats.passes }} réussis
+                                        </span>
+                                        <span class="text-xs text-red-600">
+                                            <i class="fas fa-times-circle mr-1"></i>{{ stats.echecs }} échoués
+                                        </span>
+                                        <span class="text-xs text-blue-600">
+                                            <i class="fas fa-chart-line mr-1"></i>{{ test.progression_pourcentage }}% complété
+                                        </span>
+                                    </div>
+                                    {% endif %}
+                                    {% endwith %}
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <button onclick="toggleCasTests('{{ test.id }}')" class="inline-flex items-center px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-md font-medium transition-colors">
+                                        <i class="fas fa-list mr-1"></i>Voir les cas
+                                    </button>
+                                    <button onclick="creerCasTest('{{ test.id }}')" class="inline-flex items-center px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm rounded-md font-medium transition-colors">
+                                        <i class="fas fa-plus mr-1"></i>Nouveau cas
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Liste des CasTest (cachée par défaut) -->
+                        <div id="casTests_{{ test.id }}" class="cas-tests-container hidden">
+                            <div class="p-4 space-y-3">
+                                {% for cas in test.cas_tests.all %}
+                                <div class="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-md hover:shadow-sm transition-shadow">
+                                    <div class="flex-1">
+                                        <div class="flex items-center space-x-3">
+                                            <span class="text-sm font-mono text-gray-500">{{ cas.numero_cas }}</span>
+                                            <h4 class="font-medium text-gray-900">{{ cas.nom }}</h4>
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+                                                {% if cas.statut == 'PASSE' %}bg-green-100 text-green-800
+                                                {% elif cas.statut == 'ECHEC' %}bg-red-100 text-red-800
+                                                {% elif cas.statut == 'EN_COURS' %}bg-yellow-100 text-yellow-800
+                                                {% elif cas.statut == 'BLOQUE' %}bg-orange-100 text-orange-800
+                                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                                {{ cas.get_statut_display }}
+                                            </span>
+                                            {% if cas.priorite == 'CRITIQUE' %}
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                                <i class="fas fa-exclamation-triangle mr-1"></i>Critique
+                                            </span>
+                                            {% endif %}
+                                        </div>
+                                        <p class="text-sm text-gray-600 mt-1">{{ cas.description|truncatewords:20 }}</p>
+                                        {% if cas.executeur %}
+                                        <p class="text-xs text-gray-500 mt-1">
+                                            <i class="fas fa-user mr-1"></i>Exécuté par {{ cas.executeur.get_full_name }} 
+                                            {% if cas.date_execution %}le {{ cas.date_execution|date:"d/m/Y à H:i" }}{% endif %}
+                                        </p>
+                                        {% endif %}
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        {% if cas.statut != 'PASSE' %}
+                                        <button onclick="marquerReussi('{{ cas.id }}')" class="inline-flex items-center px-2 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded font-medium transition-colors">
+                                            <i class="fas fa-check mr-1"></i>Réussi
+                                        </button>
+                                        {% endif %}
+                                        {% if cas.statut != 'ECHEC' %}
+                                        <button onclick="marquerEchec('{{ cas.id }}')" class="inline-flex items-center px-2 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded font-medium transition-colors">
+                                            <i class="fas fa-times mr-1"></i>Échoué
+                                        </button>
+                                        {% endif %}
+                                        <button onclick="voirDetailsCas('{{ cas.id }}')" class="inline-flex items-center px-2 py-1 bg-gray-600 hover:bg-gray-700 text-white text-xs rounded font-medium transition-colors">
+                                            <i class="fas fa-eye mr-1"></i>Détails
+                                        </button>
+                                    </div>
+                                </div>
+                                {% empty %}
+                                <div class="text-center py-6 text-gray-500">
+                                    <i class="fas fa-flask text-2xl mb-2"></i>
+                                    <p class="text-sm">Aucun cas de test créé pour cette tâche</p>
+                                    <button onclick="creerCasTest('{{ test.id }}')" class="mt-2 inline-flex items-center px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm rounded-md font-medium transition-colors">
+                                        <i class="fas fa-plus mr-1"></i>Créer le premier cas
+                                    </button>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-12">
+                    <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-vial text-gray-400 text-2xl"></i>
+                    </div>
+                    <p class="text-lg font-medium text-gray-600 mb-2">Aucun test créé</p>
+                    <p class="text-sm text-gray-500 mb-4">Commencez par créer des tests pour cette étape</p>
+                    {% if peut_creer_tests %}
+                    <a href="{% url 'creer_test' projet.id etape.id %}" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium text-sm transition-colors">
+                        <i class="fas fa-plus mr-2"></i>Créer le premier test
+                    </a>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal d'exécution de test -->
+<div id="modalExecutionTest" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-2xl max-w-md w-full">
+        <div class="p-6">
+            <div class="flex items-center mb-6">
+                <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center mr-4">
+                    <i class="fas fa-play text-white text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl font-semibold text-gray-900">Exécuter le test</h3>
+                    <p class="text-sm text-gray-600" id="testInfo"></p>
+                </div>
+            </div>
+            
+            <form id="formExecutionTest">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Résultat du test</label>
+                    <select name="statut_resultat" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Sélectionner le résultat</option>
+                        <option value="PASSE" class="text-green-600">✓ Test Passé</option>
+                        <option value="ECHEC" class="text-red-600">✗ Test Échoué</option>
+                    </select>
+                </div>
+                
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Résultats obtenus</label>
+                    <textarea name="resultats_obtenus" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Décrivez les résultats obtenus..."></textarea>
+                </div>
+                
+                <div class="flex items-center justify-end space-x-3">
+                    <button type="button" onclick="fermerModalExecutionTest()" class="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium transition-colors">
+                        Annuler
+                    </button>
+                    <button type="submit" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors">
+                        Enregistrer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de création de CasTest -->
+<div id="modalCreerCasTest" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div class="p-6">
+            <div class="flex items-center mb-6">
+                <div class="w-12 h-12 bg-green-600 rounded-full flex items-center justify-center mr-4">
+                    <i class="fas fa-plus text-white text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl font-semibold text-gray-900">Créer un cas de test</h3>
+                    <p class="text-sm text-gray-600" id="tacheTestInfo"></p>
+                </div>
+            </div>
+            
+            <form id="formCreerCasTest">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Nom du cas de test *</label>
+                        <input type="text" name="nom" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="Ex: Connexion avec mauvais mot de passe">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Priorité</label>
+                        <select name="priorite" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                            <option value="BASSE">Basse</option>
+                            <option value="MOYENNE" selected>Moyenne</option>
+                            <option value="HAUTE">Haute</option>
+                            <option value="CRITIQUE">Critique</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Description *</label>
+                    <textarea name="description" required rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="Description détaillée du cas de test"></textarea>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Données d'entrée</label>
+                    <textarea name="donnees_entree" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="Ex: Email: wrong@test.com, Password: wrongpass"></textarea>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Préconditions</label>
+                    <textarea name="preconditions" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="Conditions préalables à remplir"></textarea>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Étapes d'exécution *</label>
+                    <textarea name="etapes_execution" required rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="1. Ouvrir la page de connexion&#10;2. Saisir un email incorrect&#10;3. Cliquer sur Se connecter"></textarea>
+                </div>
+                
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Résultats attendus *</label>
+                    <textarea name="resultats_attendus" required rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="Message d'erreur affiché"></textarea>
+                </div>
+                
+                <div class="flex items-center justify-end space-x-3">
+                    <button type="button" onclick="fermerModalCreerCasTest()" class="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium transition-colors">
+                        Annuler
+                    </button>
+                    <button type="submit" class="px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-md transition-colors">
+                        Créer le cas de test
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de détails CasTest -->
+<div id="modalDetailsCasTest" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+        <div class="p-6">
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center mr-4">
+                        <i class="fas fa-eye text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-semibold text-gray-900" id="detailsCasNom"></h3>
+                        <p class="text-sm text-gray-600" id="detailsCasNumero"></p>
+                    </div>
+                </div>
+                <button onclick="fermerModalDetailsCasTest()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <div id="detailsCasContenu" class="space-y-4">
+                <!-- Contenu chargé dynamiquement -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let testIdEnCours = null;
+let tacheTestIdEnCours = null;
+
+// ============================================================================
+// GESTION DES TACHETEST
+// ============================================================================
+
+function toggleCasTests(testId) {
+    const container = document.getElementById(`casTests_${testId}`);
+    const button = event.target.closest('button');
+    
+    if (container.classList.contains('hidden')) {
+        container.classList.remove('hidden');
+        button.innerHTML = '<i class="fas fa-eye-slash mr-1"></i>Masquer les cas';
+    } else {
+        container.classList.add('hidden');
+        button.innerHTML = '<i class="fas fa-list mr-1"></i>Voir les cas';
+    }
+}
+
+// ============================================================================
+// GESTION DES CASTEST
+// ============================================================================
+
+function creerCasTest(tacheTestId) {
+    tacheTestIdEnCours = tacheTestId;
+    
+    // Trouver le nom de la TacheTest pour l'afficher
+    const tacheTestElement = document.querySelector(`#casTests_${tacheTestId}`).closest('.border').querySelector('h3');
+    const nomTacheTest = tacheTestElement.textContent;
+    
+    document.getElementById('tacheTestInfo').textContent = `Pour la tâche: ${nomTacheTest}`;
+    document.getElementById('modalCreerCasTest').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function fermerModalCreerCasTest() {
+    document.getElementById('modalCreerCasTest').classList.add('hidden');
+    document.body.style.overflow = 'auto';
+    tacheTestIdEnCours = null;
+    document.getElementById('formCreerCasTest').reset();
+}
+
+function marquerReussi(casTestId) {
+    if (confirm('Marquer ce cas de test comme réussi ?')) {
+        executerActionCasTest(casTestId, 'PASSE', 'Test marqué comme réussi');
+    }
+}
+
+function marquerEchec(casTestId) {
+    const resultats = prompt('Pourquoi ce test a-t-il échoué ? (optionnel)');
+    if (resultats !== null) {
+        executerActionCasTest(casTestId, 'ECHEC', resultats || 'Test marqué comme échoué');
+    }
+}
+
+function executerActionCasTest(casTestId, statut, resultats) {
+    const formData = new FormData();
+    formData.append('statut', statut);
+    formData.append('resultats_obtenus', resultats);
+    
+    fetch(`/projets/{{ projet.id }}/etapes/{{ etape.id }}/cas-tests/${casTestId}/executer/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Erreur: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        alert('Une erreur est survenue');
+    });
+}
+
+function voirDetailsCas(casTestId) {
+    fetch(`/projets/{{ projet.id }}/etapes/{{ etape.id }}/cas-tests/${casTestId}/details/`)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('detailsCasNom').textContent = data.cas.nom;
+            document.getElementById('detailsCasNumero').textContent = data.cas.numero_cas;
+            
+            const contenu = `
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="font-semibold text-gray-900 mb-2">Informations générales</h4>
+                        <div class="space-y-2 text-sm">
+                            <div><span class="font-medium">Statut:</span> 
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+                                    ${data.cas.statut === 'PASSE' ? 'bg-green-100 text-green-800' :
+                                      data.cas.statut === 'ECHEC' ? 'bg-red-100 text-red-800' :
+                                      data.cas.statut === 'EN_COURS' ? 'bg-yellow-100 text-yellow-800' :
+                                      'bg-gray-100 text-gray-800'}">
+                                    ${data.cas.statut_display}
+                                </span>
+                            </div>
+                            <div><span class="font-medium">Priorité:</span> ${data.cas.priorite_display}</div>
+                            <div><span class="font-medium">Créé le:</span> ${data.cas.date_creation}</div>
+                            ${data.cas.executeur ? `<div><span class="font-medium">Exécuté par:</span> ${data.cas.executeur}</div>` : ''}
+                            ${data.cas.date_execution ? `<div><span class="font-medium">Date d'exécution:</span> ${data.cas.date_execution}</div>` : ''}
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-gray-900 mb-2">Actions rapides</h4>
+                        <div class="space-y-2">
+                            ${data.cas.statut !== 'PASSE' ? `
+                            <button onclick="marquerReussi('${casTestId}')" class="w-full inline-flex items-center justify-center px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-md font-medium transition-colors">
+                                <i class="fas fa-check mr-2"></i>Marquer comme réussi
+                            </button>` : ''}
+                            ${data.cas.statut !== 'ECHEC' ? `
+                            <button onclick="marquerEchec('${casTestId}')" class="w-full inline-flex items-center justify-center px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-sm rounded-md font-medium transition-colors">
+                                <i class="fas fa-times mr-2"></i>Marquer comme échoué
+                            </button>` : ''}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-6 space-y-4">
+                    <div>
+                        <h4 class="font-semibold text-gray-900 mb-2">Description</h4>
+                        <p class="text-sm text-gray-700 bg-gray-50 p-3 rounded-md">${data.cas.description}</p>
+                    </div>
+                    
+                    ${data.cas.donnees_entree ? `
+                    <div>
+                        <h4 class="font-semibold text-gray-900 mb-2">Données d'entrée</h4>
+                        <p class="text-sm text-gray-700 bg-blue-50 p-3 rounded-md">${data.cas.donnees_entree}</p>
+                    </div>` : ''}
+                    
+                    ${data.cas.preconditions ? `
+                    <div>
+                        <h4 class="font-semibold text-gray-900 mb-2">Préconditions</h4>
+                        <p class="text-sm text-gray-700 bg-yellow-50 p-3 rounded-md">${data.cas.preconditions}</p>
+                    </div>` : ''}
+                    
+                    <div>
+                        <h4 class="font-semibold text-gray-900 mb-2">Étapes d'exécution</h4>
+                        <pre class="text-sm text-gray-700 bg-gray-50 p-3 rounded-md whitespace-pre-wrap">${data.cas.etapes_execution}</pre>
+                    </div>
+                    
+                    <div>
+                        <h4 class="font-semibold text-gray-900 mb-2">Résultats attendus</h4>
+                        <p class="text-sm text-gray-700 bg-green-50 p-3 rounded-md">${data.cas.resultats_attendus}</p>
+                    </div>
+                    
+                    ${data.cas.resultats_obtenus ? `
+                    <div>
+                        <h4 class="font-semibold text-gray-900 mb-2">Résultats obtenus</h4>
+                        <p class="text-sm text-gray-700 bg-orange-50 p-3 rounded-md">${data.cas.resultats_obtenus}</p>
+                    </div>` : ''}
+                </div>
+            `;
+            
+            document.getElementById('detailsCasContenu').innerHTML = contenu;
+            document.getElementById('modalDetailsCasTest').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        } else {
+            alert('Erreur: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        alert('Une erreur est survenue');
+    });
+}
+
+function fermerModalDetailsCasTest() {
+    document.getElementById('modalDetailsCasTest').classList.add('hidden');
+    document.body.style.overflow = 'auto';
+}
+
+// ============================================================================
+// GESTION DES FORMULAIRES
+// ============================================================================
+
+document.getElementById('formCreerCasTest').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    if (!tacheTestIdEnCours) return;
+    
+    const formData = new FormData(this);
+    
+    fetch(`/projets/{{ projet.id }}/etapes/{{ etape.id }}/tests/${tacheTestIdEnCours}/cas-tests/creer/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            fermerModalCreerCasTest();
+            location.reload();
+        } else {
+            alert('Erreur: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        alert('Une erreur est survenue');
+    });
+});
+
+// ============================================================================
+// ANCIEN CODE POUR LES TACHETEST (conservé pour compatibilité)
+// ============================================================================
+
+function ouvrirModalExecutionTest(testId, numeroTest, nomTest) {
+    testIdEnCours = testId;
+    document.getElementById('testInfo').textContent = `${numeroTest} - ${nomTest}`;
+    document.getElementById('modalExecutionTest').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function fermerModalExecutionTest() {
+    document.getElementById('modalExecutionTest').classList.add('hidden');
+    document.body.style.overflow = 'auto';
+    testIdEnCours = null;
+    document.getElementById('formExecutionTest').reset();
+}
+
+document.getElementById('formExecutionTest').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    if (!testIdEnCours) return;
+    
+    const formData = new FormData(this);
+    
+    fetch(`/projets/{{ projet.id }}/etapes/{{ etape.id }}/tests/${testIdEnCours}/executer/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            fermerModalExecutionTest();
+            location.reload();
+        } else {
+            alert('Erreur: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        alert('Une erreur est survenue');
+    });
+});
+
+// ============================================================================
+// GESTION DES ÉVÉNEMENTS
+// ============================================================================
+
+// Fermer les modals en cliquant à l'extérieur
+document.getElementById('modalExecutionTest').addEventListener('click', function(e) {
+    if (e.target === this) {
+        fermerModalExecutionTest();
+    }
+});
+
+document.getElementById('modalCreerCasTest').addEventListener('click', function(e) {
+    if (e.target === this) {
+        fermerModalCreerCasTest();
+    }
+});
+
+document.getElementById('modalDetailsCasTest').addEventListener('click', function(e) {
+    if (e.target === this) {
+        fermerModalDetailsCasTest();
+    }
+});
+
+// Fermer avec Escape
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        fermerModalExecutionTest();
+        fermerModalCreerCasTest();
+        fermerModalDetailsCasTest();
+    }
+});
+</script>
+{% endblock %}

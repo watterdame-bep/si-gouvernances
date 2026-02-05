@@ -7,7 +7,6 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 import uuid
 
-
 class RoleSysteme(models.Model):
     """Rôles système pour la connexion et l'accès à l'interface"""
     DEVELOPPEUR = 'DEVELOPPEUR'
@@ -31,11 +30,9 @@ class RoleSysteme(models.Model):
         verbose_name = "Rôle Système"
         verbose_name_plural = "Rôles Système"
         ordering = ['niveau_hierarchique']
-    
+
     def __str__(self):
         return self.get_nom_display()
-
-
 class RoleProjet(models.Model):
     """Rôles spécifiques aux projets pour les affectations"""
     RESPONSABLE_PRINCIPAL = 'RESPONSABLE_PRINCIPAL'
@@ -56,7 +53,6 @@ class RoleProjet(models.Model):
     
     def __str__(self):
         return self.get_nom_display()
-
 
 class Membre(models.Model):
     """Profil RH - Informations personnelles et professionnelles indépendantes du compte système"""
@@ -153,7 +149,6 @@ class Membre(models.Model):
         """Vérifie si le membre peut avoir un compte utilisateur"""
         return self.statut in ['ACTIF', 'EN_CONGE'] and self.email_personnel
 
-
 # Ancien modèle Role gardé pour compatibilité temporaire - sera supprimé après migration
 class Role(models.Model):
     """Définition des rôles organisationnels - DEPRECATED"""
@@ -184,7 +179,6 @@ class Role(models.Model):
     
     def __str__(self):
         return self.get_nom_display()
-
 
 class Utilisateur(AbstractUser):
     """Compte utilisateur système lié à un profil membre"""
@@ -312,7 +306,6 @@ class Utilisateur(AbstractUser):
             return self.membre.taux_horaire
         return self.taux_horaire  # Fallback sur l'ancien champ
 
-
 class StatutProjet(models.Model):
     """États possibles d'un projet dans son cycle de vie"""
     IDEE = 'IDEE'
@@ -345,7 +338,6 @@ class StatutProjet(models.Model):
     
     def __str__(self):
         return self.get_nom_display()
-
 
 class Projet(models.Model):
     """Entité centrale représentant un projet de JCONSULT MY"""
@@ -461,7 +453,6 @@ class Projet(models.Model):
             'futures': etapes.filter(statut='A_VENIR')
         }
 
-
 class Affectation(models.Model):
     """Relation entre un utilisateur et un projet avec un rôle spécifique au projet"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -523,7 +514,6 @@ class Affectation(models.Model):
         """Termine l'affectation en définissant la date de fin"""
         self.date_fin = timezone.now()
         self.save()
-
 
 class ActionAudit(models.Model):
     """Journal d'audit pour la traçabilité complète des actions"""
@@ -595,7 +585,6 @@ class ActionAudit(models.Model):
     def __str__(self):
         return f"{self.timestamp.strftime('%d/%m/%Y %H:%M')} - {self.utilisateur.get_full_name()} - {self.get_type_action_display()}"
 
-
 # ============================================================================
 # NOUVEAUX MODÈLES - ARCHITECTURE ÉTAPES/MODULES/TÂCHES
 # ============================================================================
@@ -632,7 +621,6 @@ class TypeEtape(models.Model):
     
     def __str__(self):
         return self.get_nom_display()
-
 
 class EtapeProjet(models.Model):
     """Étapes temporelles d'un projet (logique de cycle de vie)"""
@@ -837,7 +825,6 @@ class EtapeProjet(models.Model):
         """Retourne le nombre de tâches spéciales dans cette étape"""
         return self.taches_etape.filter(ajoutee_apres_cloture=True).count()
 
-
 class ModuleProjet(models.Model):
     """Modules fonctionnels d'un projet (logique de structure produit)"""
     projet = models.ForeignKey(Projet, on_delete=models.CASCADE, related_name='modules')
@@ -889,7 +876,6 @@ class ModuleProjet(models.Model):
         
         taches_terminees = taches.filter(statut='TERMINEE').count()
         return round((taches_terminees / taches.count()) * 100)
-
 
 class AffectationModule(models.Model):
     """Affectation d'un module à un ou plusieurs membres de l'équipe"""
@@ -970,7 +956,6 @@ class AffectationModule(models.Model):
         """Termine l'affectation"""
         self.date_fin_affectation = timezone.now()
         self.save()
-
 
 class TacheModule(models.Model):
     """Tâches d'un module"""
@@ -1132,7 +1117,6 @@ class TacheModule(models.Model):
             }
         )
 
-
 class TacheEtape(models.Model):
     """Tâches directement liées à une étape du projet"""
     STATUT_CHOICES = [
@@ -1151,6 +1135,16 @@ class TacheEtape(models.Model):
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     etape = models.ForeignKey(EtapeProjet, on_delete=models.CASCADE, related_name='taches_etape')
+
+    # Relation avec le cas de test (nouveau)
+    cas_test = models.ForeignKey(
+        'CasTest', 
+        on_delete=models.CASCADE, 
+        null=True, 
+        blank=True,
+        related_name='rolesysteme_cas_tests',
+        help_text="Cas de test qui a généré ce bug"
+    )
     nom = models.CharField(max_length=200)
     description = models.TextField()
     
@@ -1404,6 +1398,73 @@ class TacheEtape(models.Model):
         
         return timezone.now().date() > self.date_fin
     
+    def mettre_a_jour_statut_avec_sous_taches(self):
+        """Met à jour le statut de la tâche en fonction de ses sous-tâches (CasTest)"""
+        # Cette méthode ne s'applique que pour les étapes de TEST
+        if self.etape.type_etape.nom != 'TESTS':
+            return
+        
+        cas_tests = self.cas_tests.all()
+        if not cas_tests.exists():
+            return
+        
+        # Calculer les statistiques des cas de test
+        total_cas = cas_tests.count()
+        cas_passes = cas_tests.filter(statut='PASSE').count()
+        cas_echecs = cas_tests.filter(statut='ECHEC').count()
+        cas_en_cours = cas_tests.filter(statut='EN_COURS').count()
+        
+        # Déterminer le nouveau statut
+        if cas_passes == total_cas:
+            # Tous les cas sont passés
+            nouveau_statut = 'TERMINEE'
+            self.pourcentage_completion = 100
+        elif cas_echecs > 0:
+            # Il y a des échecs
+            nouveau_statut = 'BLOQUEE'
+            self.pourcentage_completion = int((cas_passes / total_cas) * 100)
+        elif cas_en_cours > 0:
+            # Des cas sont en cours
+            nouveau_statut = 'EN_COURS'
+            self.pourcentage_completion = int((cas_passes / total_cas) * 100)
+        else:
+            # Tous les cas sont en attente
+            nouveau_statut = 'A_FAIRE'
+            self.pourcentage_completion = 0
+        
+        # Mettre à jour si nécessaire
+        if self.statut != nouveau_statut:
+            self.statut = nouveau_statut
+            if nouveau_statut == 'TERMINEE':
+                self.date_fin_reelle = timezone.now()
+            self.save()
+    
+    def get_statistiques_cas_tests(self):
+        """Retourne les statistiques des cas de test pour cette tâche"""
+        if self.etape.type_etape.nom != 'TESTS':
+            return None
+        
+        cas_tests = self.cas_tests.all()
+        if not cas_tests.exists():
+            return None
+        
+        total = cas_tests.count()
+        passes = cas_tests.filter(statut='PASSE').count()
+        echecs = cas_tests.filter(statut='ECHEC').count()
+        en_cours = cas_tests.filter(statut='EN_COURS').count()
+        en_attente = cas_tests.filter(statut='EN_ATTENTE').count()
+        bloques = cas_tests.filter(statut='BLOQUE').count()
+        
+        return {
+            'total': total,
+            'passes': passes,
+            'echecs': echecs,
+            'en_cours': en_cours,
+            'en_attente': en_attente,
+            'bloques': bloques,
+            'pourcentage_reussite': int((passes / total) * 100) if total > 0 else 0,
+        }
+    
     def jours_restants(self):
         """Calcule le nombre de jours restants avant l'échéance"""
         if not self.date_fin or self.statut == 'TERMINEE':
@@ -1544,7 +1605,6 @@ class CommentaireTache(models.Model):
             except Utilisateur.DoesNotExist:
                 pass
 
-
 class HistoriqueTache(models.Model):
     """Historique des modifications et actions sur les tâches d'étape"""
     
@@ -1577,7 +1637,6 @@ class HistoriqueTache(models.Model):
     
     def __str__(self):
         return f"{self.type_action} - {self.tache.nom} par {self.utilisateur.get_full_name()}"
-
 
 class StatutTachePersonnalise(models.Model):
     """Statuts personnalisés pour les tâches selon le type d'étape"""
@@ -1615,7 +1674,6 @@ class StatutTachePersonnalise(models.Model):
     def peut_transitionner_vers(self, nouveau_statut):
         """Vérifie si la transition vers un nouveau statut est autorisée"""
         return self.transitions_autorisees.filter(id=nouveau_statut.id).exists()
-
 
 class PieceJointeTache(models.Model):
     """Pièces jointes attachées aux tâches d'étape"""
@@ -1668,7 +1726,6 @@ class PieceJointeTache(models.Model):
             self.taille_fichier /= 1024.0
         return f"{self.taille_fichier:.1f} To"
 
-
 class NotificationTache(models.Model):
     """Notifications liées aux tâches d'étape"""
     
@@ -1718,7 +1775,6 @@ class NotificationTache(models.Model):
             self.date_lecture = timezone.now()
             self.save()
 
-
 class NotificationEtape(models.Model):
     """Notifications liées aux étapes de projet"""
     
@@ -1732,6 +1788,16 @@ class NotificationEtape(models.Model):
     
     destinataire = models.ForeignKey(Utilisateur, on_delete=models.CASCADE, related_name='notifications_etapes')
     etape = models.ForeignKey(EtapeProjet, on_delete=models.CASCADE, related_name='notifications')
+
+    # Relation avec le cas de test (nouveau)
+    cas_test = models.ForeignKey(
+        'CasTest', 
+        on_delete=models.CASCADE, 
+        null=True, 
+        blank=True,
+        related_name='commentairetache_cas_tests',
+        help_text="Cas de test qui a généré ce bug"
+    )
     type_notification = models.CharField(max_length=20, choices=TYPE_NOTIFICATION_CHOICES)
     titre = models.CharField(max_length=200, help_text="Titre de la notification")
     message = models.TextField(help_text="Contenu de la notification")
@@ -1765,7 +1831,6 @@ class NotificationEtape(models.Model):
             self.lue = True
             self.date_lecture = timezone.now()
             self.save()
-
 
 class NotificationModule(models.Model):
     """Notifications liées aux modules de projet"""
@@ -1822,7 +1887,7 @@ class NotificationModule(models.Model):
 @receiver(post_save, sender=TacheEtape)
 def marquer_tache_speciale_automatiquement(sender, instance, created, **kwargs):
     """
-    Signal qui marque automatiquement une tâche comme spéciale 
+    Signal qui marque automatiquement une tâche comme spéciale
     si elle est créée sur une étape terminée
     """
     if created and instance.etape.statut == 'TERMINEE':
@@ -1833,3 +1898,517 @@ def marquer_tache_speciale_automatiquement(sender, instance, created, **kwargs):
                 instance.justification_ajout_tardif = "Tâche ajoutée automatiquement à une étape terminée"
             # Utiliser update_fields pour éviter une boucle infinie
             instance.save(update_fields=['ajoutee_apres_cloture', 'justification_ajout_tardif'])
+
+# ============================================================================
+# SYSTÈME DE TESTS V1 - GESTION QUALITÉ
+# ============================================================================
+
+class TacheTest(models.Model):
+    """Tâches de test pour l'étape TEST - Version 1 simplifiée"""
+    
+    TYPE_TEST_CHOICES = [
+        ('FONCTIONNEL', 'Test Fonctionnel'),
+        ('SECURITE', 'Test de Sécurité'),
+        ('INTEGRATION', 'Test d\'Intégration'),
+    ]
+    
+    STATUT_CHOICES = [
+        ('EN_ATTENTE', 'En attente'),
+        ('EN_COURS', 'En cours'),
+        ('PASSE', 'Passé'),
+        ('ECHEC', 'Échec'),
+        ('BLOQUE', 'Bloqué'),
+    ]
+    
+    PRIORITE_CHOICES = [
+        ('CRITIQUE', 'Critique'),
+        ('HAUTE', 'Haute'),
+        ('MOYENNE', 'Moyenne'),
+        ('BASSE', 'Basse'),
+    ]
+    
+    # Identification
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    numero_test = models.CharField(max_length=20, unique=True, help_text="Auto-généré: TEST-PROJ-001")
+    
+    # Relations
+    etape = models.ForeignKey(EtapeProjet, on_delete=models.CASCADE, related_name='taches_test')
+
+    # Relation avec le cas de test (nouveau)
+    cas_test = models.ForeignKey(
+        'CasTest', 
+        on_delete=models.CASCADE, 
+        null=True, 
+        blank=True,
+        related_name='notificationmodule_cas_tests',
+        help_text="Cas de test qui a généré ce bug"
+    )
+    module_concerne = models.ForeignKey(ModuleProjet, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # Métadonnées test
+    nom = models.CharField(max_length=200)
+    description = models.TextField()
+    type_test = models.CharField(max_length=20, choices=TYPE_TEST_CHOICES, default='FONCTIONNEL')
+    priorite = models.CharField(max_length=20, choices=PRIORITE_CHOICES, default='MOYENNE')
+    
+    # Scénario de test
+    scenario_test = models.TextField(help_text="Étapes détaillées du test")
+    resultats_attendus = models.TextField(help_text="Résultats attendus")
+    resultats_obtenus = models.TextField(blank=True, help_text="Résultats obtenus lors de l'exécution")
+    
+    # Statut et exécution
+    statut = models.CharField(max_length=20, choices=STATUT_CHOICES, default='EN_ATTENTE')
+    date_execution = models.DateTimeField(null=True, blank=True)
+    
+    # Assignation
+    assignee_qa = models.ForeignKey(
+        Utilisateur, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='taches_test_assignees',
+        help_text="QA responsable du test"
+    )
+    executeur = models.ForeignKey(
+        Utilisateur, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='tests_executes',
+        help_text="Personne qui a exécuté le test"
+    )
+    
+    # Audit
+    date_creation = models.DateTimeField(auto_now_add=True)
+    date_modification = models.DateTimeField(auto_now=True)
+    createur = models.ForeignKey(Utilisateur, on_delete=models.PROTECT, related_name='taches_test_creees')
+    
+    class Meta:
+        verbose_name = "Tâche de Test"
+        verbose_name_plural = "Tâches de Test"
+        ordering = ['-date_creation']
+    
+    def __str__(self):
+        return f"{self.numero_test} - {self.nom}"
+    
+    def save(self, *args, **kwargs):
+        # Auto-générer le numero_test si pas défini
+        if not self.numero_test:
+            # Générer un numéro unique basé sur l'étape et le projet
+            projet_prefix = self.etape.projet.nom[:4].upper().replace(' ', '')
+            existing_count = TacheTest.objects.filter(etape__projet=self.etape.projet).count()
+            self.numero_test = f"TEST-{projet_prefix}-{existing_count + 1:03d}"
+        
+        super().save(*args, **kwargs)
+    
+    def mettre_a_jour_statut(self):
+        """Mettre à jour le statut de la tâche basé sur ses cas de test - UNIQUEMENT pour étape TEST"""
+        # Vérifier que c'est bien une étape TEST
+        if self.etape.type_etape.nom != 'TESTS':
+            return  # Ne pas traiter si ce n'est pas l'étape TEST
+        
+        cas_tests = self.cas_tests.all()
+        
+        if not cas_tests.exists():
+            return
+        
+        total_cas = cas_tests.count()
+        cas_passes = cas_tests.filter(statut='PASSE').count()
+        cas_echecs = cas_tests.filter(statut='ECHEC').count()
+        cas_en_cours = cas_tests.filter(statut='EN_COURS').count()
+        
+        if cas_echecs > 0:
+            self.statut = 'ECHEC'
+        elif cas_passes == total_cas:
+            self.statut = 'PASSE'
+        elif cas_en_cours > 0 or cas_passes > 0:
+            self.statut = 'EN_COURS'
+        else:
+            self.statut = 'EN_ATTENTE'
+        
+        self.save()
+    
+    @property
+    def statistiques_cas(self):
+        """Retourne les statistiques des cas de test - UNIQUEMENT pour étape TEST"""
+        if self.etape.type_etape.nom != 'TESTS':
+            return {'total': 0, 'passes': 0, 'echecs': 0, 'en_cours': 0, 'en_attente': 0}
+        
+        cas_tests = self.cas_tests.all()
+        return {
+            'total': cas_tests.count(),
+            'passes': cas_tests.filter(statut='PASSE').count(),
+            'echecs': cas_tests.filter(statut='ECHEC').count(),
+            'en_cours': cas_tests.filter(statut='EN_COURS').count(),
+            'en_attente': cas_tests.filter(statut='EN_ATTENTE').count(),
+        }
+    
+    @property
+    def progression_pourcentage(self):
+        """Calcule le pourcentage de progression - UNIQUEMENT pour étape TEST"""
+        stats = self.statistiques_cas
+        if stats['total'] == 0:
+            return 0
+        return round((stats['passes'] / stats['total']) * 100, 1)
+
+
+
+class CasTest(models.Model):
+    """Cas de test individuel dans une tâche de test"""
+    
+    STATUT_CHOICES = [
+        ('EN_ATTENTE', 'En attente'),
+        ('EN_COURS', 'En cours'),
+        ('PASSE', 'Passé'),
+        ('ECHEC', 'Échec'),
+        ('BLOQUE', 'Bloqué'),
+    ]
+    
+    PRIORITE_CHOICES = [
+        ('CRITIQUE', 'Critique'),
+        ('HAUTE', 'Haute'),
+        ('MOYENNE', 'Moyenne'),
+        ('BASSE', 'Basse'),
+    ]
+    
+    # Identification
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    numero_cas = models.CharField(max_length=30, help_text="Auto-généré: AUTH-001, AUTH-002, etc.")
+    
+    # Relations
+    tache_test = models.ForeignKey('TacheTest', on_delete=models.CASCADE, related_name='cas_tests')
+    
+    # Informations du cas
+    nom = models.CharField(max_length=200, help_text="Ex: Connexion avec email valide")
+    description = models.TextField(help_text="Description détaillée du cas de test")
+    priorite = models.CharField(max_length=20, choices=PRIORITE_CHOICES, default='MOYENNE')
+    
+    # Données de test
+    donnees_entree = models.TextField(blank=True, help_text="Données d'entrée du test")
+    preconditions = models.TextField(blank=True, help_text="Conditions préalables à remplir")
+    
+    # Étapes d'exécution
+    etapes_execution = models.TextField(help_text="Étapes détaillées pour exécuter ce cas")
+    
+    # Résultats
+    resultats_attendus = models.TextField(help_text="Résultats attendus pour ce cas spécifique")
+    resultats_obtenus = models.TextField(blank=True, help_text="Résultats obtenus lors de l'exécution")
+    
+    # Statut et exécution
+    statut = models.CharField(max_length=20, choices=STATUT_CHOICES, default='EN_ATTENTE')
+    date_execution = models.DateTimeField(null=True, blank=True)
+    
+    # Assignation et exécution
+    executeur = models.ForeignKey(
+        'Utilisateur', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='cas_tests_executes',
+        help_text="QA qui a exécuté ce cas"
+    )
+    
+    # Métadonnées
+    date_creation = models.DateTimeField(auto_now_add=True)
+    date_modification = models.DateTimeField(auto_now=True)
+    createur = models.ForeignKey(
+        'Utilisateur', 
+        on_delete=models.SET_NULL, 
+        null=True,
+        related_name='cas_tests_crees'
+    )
+    
+    # Ordre dans la tâche
+    ordre = models.PositiveIntegerField(default=1)
+    
+    class Meta:
+        ordering = ['ordre', 'date_creation']
+        unique_together = ['tache_test', 'numero_cas']
+        verbose_name = "Cas de test"
+        verbose_name_plural = "Cas de tests"
+    
+    def __str__(self):
+        return f"{self.numero_cas} - {self.nom}"
+    
+    def save(self, *args, **kwargs):
+        # Auto-générer le numéro de cas si pas défini
+        if not self.numero_cas:
+            # Prendre le préfixe de la tâche parent et ajouter un numéro séquentiel
+            prefix = self.tache_test.nom[:4].upper().replace(' ', '')
+            existing_count = CasTest.objects.filter(tache_test=self.tache_test).count()
+            self.numero_cas = f"{prefix}-{existing_count + 1:03d}"
+        
+        super().save(*args, **kwargs)
+    
+    @property
+    def est_critique(self):
+        """Vérifie si ce cas est critique"""
+        return self.priorite == 'CRITIQUE'
+    
+    @property
+    def peut_etre_execute(self):
+        """Vérifie si ce cas peut être exécuté"""
+        return self.statut in ['EN_ATTENTE', 'ECHEC']
+    
+    @property
+    def est_termine(self):
+        """Vérifie si ce cas est terminé (passé ou échoué)"""
+        return self.statut in ['PASSE', 'ECHEC']
+    
+    def marquer_comme_passe(self, executeur, resultats_obtenus=""):
+        """Marquer le cas comme passé"""
+        self.statut = 'PASSE'
+        self.executeur = executeur
+        self.resultats_obtenus = resultats_obtenus
+        self.date_execution = timezone.now()
+        self.save()
+        
+        # Mettre à jour le statut de la tâche parent
+        self.tache_test.mettre_a_jour_statut()
+    
+    def marquer_comme_echec(self, executeur, resultats_obtenus=""):
+        """Marquer le cas comme échoué"""
+        self.statut = 'ECHEC'
+        self.executeur = executeur
+        self.resultats_obtenus = resultats_obtenus
+        self.date_execution = timezone.now()
+        self.save()
+        
+        # Mettre à jour le statut de la tâche parent
+        self.tache_test.mettre_a_jour_statut()
+
+class BugTest(models.Model):
+    """Bugs découverts lors des tests - Version 1 simplifiée"""
+    
+    GRAVITE_CHOICES = [
+        ('CRITIQUE', 'Critique'),
+        ('MAJEUR', 'Majeur'),
+        ('MINEUR', 'Mineur'),
+    ]
+    
+    STATUT_CHOICES = [
+        ('OUVERT', 'Ouvert'),
+        ('ASSIGNE', 'Assigné'),
+        ('EN_COURS', 'En cours'),
+        ('RESOLU', 'Résolu'),
+        ('FERME', 'Fermé'),
+        ('REJETE', 'Rejeté'),
+    ]
+    
+    TYPE_BUG_CHOICES = [
+        ('FONCTIONNEL', 'Fonctionnel'),
+        ('SECURITE', 'Sécurité'),
+        ('UI_UX', 'Interface utilisateur'),
+        ('DONNEES', 'Données'),
+        ('AUTRE', 'Autre'),
+    ]
+    
+    # Identification
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    numero_bug = models.CharField(max_length=20, unique=True, help_text="Auto-généré: BUG-PROJ-001")
+    titre = models.CharField(max_length=200)
+    
+    # Relations
+    tache_test = models.ForeignKey(TacheTest, on_delete=models.CASCADE, related_name='bugs')
+    projet = models.ForeignKey(Projet, on_delete=models.CASCADE, related_name='bugs_test')
+    module_concerne = models.ForeignKey(ModuleProjet, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # Classification
+    gravite = models.CharField(max_length=20, choices=GRAVITE_CHOICES)
+    type_bug = models.CharField(max_length=20, choices=TYPE_BUG_CHOICES, default='FONCTIONNEL')
+    
+    # Description
+    description = models.TextField(help_text="Description détaillée du bug")
+    etapes_reproduction = models.TextField(help_text="Étapes pour reproduire le bug")
+    environnement = models.CharField(max_length=100, blank=True, help_text="Environnement de test")
+    
+    # Workflow
+    statut = models.CharField(max_length=20, choices=STATUT_CHOICES, default='OUVERT')
+    resolution = models.TextField(blank=True, help_text="Description de la résolution")
+    date_resolution = models.DateTimeField(null=True, blank=True)
+    
+    # Assignation
+    rapporteur = models.ForeignKey(
+        Utilisateur, 
+        on_delete=models.PROTECT, 
+        related_name='bugs_rapportes',
+        help_text="QA qui a rapporté le bug"
+    )
+    assignee_dev = models.ForeignKey(
+        Utilisateur, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='bugs_assignes',
+        help_text="Développeur assigné pour la correction"
+    )
+    
+    # Audit
+    date_creation = models.DateTimeField(auto_now_add=True)
+    date_modification = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Bug de Test"
+        verbose_name_plural = "Bugs de Test"
+        ordering = ['-date_creation']
+    
+    def __str__(self):
+        return f"{self.numero_bug} - {self.titre}"
+    
+    def save(self, *args, **kwargs):
+        """Auto-génération du numéro de bug"""
+        if not self.numero_bug:
+            # Compter les bugs existants pour ce projet
+            count = BugTest.objects.filter(projet=self.projet).count() + 1
+            self.numero_bug = f"BUG-{str(self.projet.id)[:8].upper()}-{count:03d}"
+        super().save(*args, **kwargs)
+    
+    def est_critique(self):
+        """Vérifie si le bug est critique"""
+        return self.gravite == 'CRITIQUE'
+    
+    def est_ouvert(self):
+        """Vérifie si le bug est encore ouvert"""
+        return self.statut in ['OUVERT', 'ASSIGNE', 'EN_COURS']
+    
+    def assigner_a_developpeur(self, developpeur):
+        """Assigne le bug à un développeur"""
+        self.assignee_dev = developpeur
+        self.statut = 'ASSIGNE'
+        self.save()
+    
+    def marquer_comme_resolu(self, resolution=""):
+        """Marque le bug comme résolu"""
+        self.statut = 'RESOLU'
+        self.resolution = resolution
+        self.date_resolution = timezone.now()
+        self.save()
+    
+    def fermer_bug(self):
+        """Ferme définitivement le bug"""
+        self.statut = 'FERME'
+        if not self.date_resolution:
+            self.date_resolution = timezone.now()
+        self.save()
+
+class ValidationTest(models.Model):
+    """Validation de l'étape TEST par le Chef de projet"""
+    
+    # Relations
+    etape = models.OneToOneField(EtapeProjet, on_delete=models.CASCADE, related_name='validation_test')
+    
+    # Validation
+    est_validee = models.BooleanField(default=False)
+    validateur = models.ForeignKey(
+        Utilisateur, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        help_text="Chef de projet qui a validé"
+    )
+    date_validation = models.DateTimeField(null=True, blank=True)
+    
+    # Critères de validation (calculés automatiquement)
+    tous_tests_passes = models.BooleanField(default=False)
+    aucun_bug_critique = models.BooleanField(default=False)
+    
+    # Commentaires
+    commentaires_validation = models.TextField(blank=True)
+    conditions_specifiques = models.TextField(blank=True, help_text="Conditions spéciales pour cette validation")
+    
+    # Métriques simples
+    nb_tests_total = models.IntegerField(default=0)
+    nb_tests_passes = models.IntegerField(default=0)
+    nb_bugs_critiques = models.IntegerField(default=0)
+    nb_bugs_majeurs = models.IntegerField(default=0)
+    nb_bugs_mineurs = models.IntegerField(default=0)
+    
+    # Audit
+    date_creation = models.DateTimeField(auto_now_add=True)
+    date_modification = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Validation de Test"
+        verbose_name_plural = "Validations de Test"
+    
+    def __str__(self):
+        statut = "Validée" if self.est_validee else "En attente"
+        return f"Validation TEST - {self.etape.projet.nom} - {statut}"
+    
+    def calculer_metriques(self):
+        """Calcule automatiquement les métriques de validation"""
+        # Tests
+        tests = self.etape.taches_test.all()
+        self.nb_tests_total = tests.count()
+        self.nb_tests_passes = tests.filter(statut='PASSE').count()
+        self.tous_tests_passes = self.nb_tests_total > 0 and self.nb_tests_passes == self.nb_tests_total
+        
+        # Bugs
+        bugs = BugTest.objects.filter(projet=self.etape.projet, statut__in=['OUVERT', 'ASSIGNE', 'EN_COURS'])
+        self.nb_bugs_critiques = bugs.filter(gravite='CRITIQUE').count()
+        self.nb_bugs_majeurs = bugs.filter(gravite='MAJEUR').count()
+        self.nb_bugs_mineurs = bugs.filter(gravite='MINEUR').count()
+        self.aucun_bug_critique = self.nb_bugs_critiques == 0
+        
+        self.save()
+    
+    def peut_etre_validee(self):
+        """Vérifie si l'étape peut être validée"""
+        self.calculer_metriques()
+        return self.tous_tests_passes and self.aucun_bug_critique
+    
+    def valider_etape(self, validateur, commentaires=""):
+        """Valide l'étape TEST"""
+        if not self.peut_etre_validee():
+            raise ValidationError("L'étape ne peut pas être validée : tests non passés ou bugs critiques ouverts")
+        
+        self.est_validee = True
+        self.validateur = validateur
+        self.date_validation = timezone.now()
+        self.commentaires_validation = commentaires
+        self.save()
+        
+        # Marquer l'étape comme terminée
+        self.etape.statut = 'TERMINEE'
+        self.etape.date_fin_reelle = timezone.now()
+        self.etape.save()
+    
+    def get_taux_reussite_tests(self):
+        """Retourne le taux de réussite des tests en pourcentage"""
+        if self.nb_tests_total == 0:
+            return 0
+        return round((self.nb_tests_passes / self.nb_tests_total) * 100, 1)
+
+# ============================================================================
+# SIGNAUX POUR LE SYSTÈME DE TESTS
+# ============================================================================
+
+@receiver(post_save, sender=EtapeProjet)
+def creer_validation_test_automatiquement(sender, instance, created, **kwargs):
+    """
+    Crée automatiquement une ValidationTest quand une étape TEST est créée
+    """
+    if created and instance.type_etape.nom == 'TESTS':
+        ValidationTest.objects.get_or_create(etape=instance)
+
+@receiver(post_save, sender=TacheTest)
+def mettre_a_jour_validation_test(sender, instance, **kwargs):
+    """
+    Met à jour les métriques de validation quand une tâche de test change
+    """
+    try:
+        validation = instance.etape.validation_test
+        validation.calculer_metriques()
+    except ValidationTest.DoesNotExist:
+        pass
+
+@receiver(post_save, sender=BugTest)
+def mettre_a_jour_validation_test_bug(sender, instance, **kwargs):
+    """
+    Met à jour les métriques de validation quand un bug change
+    """
+    try:
+        validation = instance.projet.etapes.filter(type_etape__nom='TESTS').first().validation_test
+        validation.calculer_metriques()
+    except (AttributeError, ValidationTest.DoesNotExist):
+        pass

@@ -1,0 +1,292 @@
+{% extends 'base.html' %}
+
+{% block title %}Tests - {{ etape.type_etape.get_nom_display }} - {{ projet.nom }} - SI-Gouvernance JCM{% endblock %}
+{% block page_title %}Gestion des Tests - {{ projet.nom }}{% endblock %}
+
+{% block content %}
+<div class="bg-gray-50 min-h-screen p-4">
+    <div class="max-w-7xl mx-auto space-y-6">
+        
+        <!-- Header -->
+        <div class="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <div class="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-vial text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-semibold text-gray-900">Gestion des Tests</h1>
+                        <p class="text-gray-600">{{ projet.nom }} - Étape {{ etape.type_etape.get_nom_display }}</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3">
+                    {% if peut_creer_tests %}
+                    <a href="{% url 'creer_test' projet.id etape.id %}" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium text-sm transition-colors">
+                        <i class="fas fa-plus mr-2"></i>Nouveau Test
+                    </a>
+                    {% endif %}
+                    <a href="{% url 'gestion_etapes' projet.id %}" class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md font-medium text-sm transition-colors">
+                        <i class="fas fa-arrow-left mr-2"></i>Retour
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <!-- Tests Total -->
+            <div class="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-vial text-blue-600"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Tests Total</p>
+                        <p class="text-2xl font-semibold text-gray-900">{{ dashboard.tests.total }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tests Passés -->
+            <div class="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-check-circle text-green-600"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Tests Passés</p>
+                        <p class="text-2xl font-semibold text-gray-900">{{ dashboard.tests.par_statut.PASSE }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bugs Critiques -->
+            <div class="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-exclamation-triangle text-red-600"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Bugs Critiques</p>
+                        <p class="text-2xl font-semibold text-gray-900">{{ dashboard.bugs.par_gravite.CRITIQUE }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statut Validation -->
+            <div class="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 {% if dashboard.validation.peut_etre_validee %}bg-green-100{% else %}bg-yellow-100{% endif %} rounded-lg flex items-center justify-center">
+                        <i class="fas {% if dashboard.validation.peut_etre_validee %}fa-thumbs-up text-green-600{% else %}fa-clock text-yellow-600{% endif %}"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Validation</p>
+                        <p class="text-sm font-semibold {% if dashboard.validation.peut_etre_validee %}text-green-600{% else %}text-yellow-600{% endif %}">
+                            {% if dashboard.validation.est_validee %}
+                                Validée
+                            {% elif dashboard.validation.peut_etre_validee %}
+                                Prête
+                            {% else %}
+                                En attente
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div class="border-b border-gray-200">
+                <nav class="-mb-px flex space-x-8 px-6">
+                    <a href="#tests" class="tab-link active border-blue-500 text-blue-600 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                        <i class="fas fa-vial mr-2"></i>Tests ({{ dashboard.tests.total }})
+                    </a>
+                    <a href="{% url 'gestion_bugs' projet.id etape.id %}" class="tab-link border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                        <i class="fas fa-bug mr-2"></i>Bugs ({{ dashboard.bugs.total_ouverts }})
+                    </a>
+                    {% if peut_valider %}
+                    <a href="{% url 'validation_test' projet.id etape.id %}" class="tab-link border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                        <i class="fas fa-check-double mr-2"></i>Validation
+                    </a>
+                    {% endif %}
+                </nav>
+            </div>
+
+            <!-- Liste des Tests -->
+            <div class="p-6">
+                <div class="space-y-4">
+                    {% for test in dashboard.tests.derniers %}
+                    <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                        <div class="flex items-center justify-between">
+                            <div class="flex-1">
+                                <div class="flex items-center space-x-3">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                        {% if test.statut == 'PASSE' %}bg-green-100 text-green-800
+                                        {% elif test.statut == 'ECHEC' %}bg-red-100 text-red-800
+                                        {% elif test.statut == 'EN_COURS' %}bg-blue-100 text-blue-800
+                                        {% elif test.statut == 'BLOQUE' %}bg-yellow-100 text-yellow-800
+                                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                        {{ test.get_statut_display }}
+                                    </span>
+                                    <span class="text-sm font-medium text-gray-900">{{ test.numero_test }}</span>
+                                    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium
+                                        {% if test.priorite == 'CRITIQUE' %}bg-red-100 text-red-700
+                                        {% elif test.priorite == 'HAUTE' %}bg-orange-100 text-orange-700
+                                        {% elif test.priorite == 'MOYENNE' %}bg-blue-100 text-blue-700
+                                        {% else %}bg-gray-100 text-gray-700{% endif %}">
+                                        {{ test.get_priorite_display }}
+                                    </span>
+                                </div>
+                                <h3 class="text-lg font-medium text-gray-900 mt-2">{{ test.nom }}</h3>
+                                <p class="text-sm text-gray-600 mt-1">{{ test.description|truncatechars:100 }}</p>
+                                <div class="flex items-center space-x-4 mt-2 text-xs text-gray-500">
+                                    <span><i class="fas fa-user mr-1"></i>{{ test.assignee_qa.get_full_name|default:"Non assigné" }}</span>
+                                    <span><i class="fas fa-calendar mr-1"></i>{{ test.date_creation|date:"d/m/Y" }}</span>
+                                    {% if test.module_concerne %}
+                                    <span><i class="fas fa-cube mr-1"></i>{{ test.module_concerne.nom }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                {% if peut_executer_tests and test.peut_etre_executee %}
+                                <button onclick="ouvrirModalExecutionTest('{{ test.id }}', '{{ test.numero_test }}', '{{ test.nom }}')" 
+                                        class="inline-flex items-center px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded transition-colors">
+                                    <i class="fas fa-play mr-1"></i>Exécuter
+                                </button>
+                                {% endif %}
+                                <button onclick="voirDetailsTest('{{ test.id }}')" 
+                                        class="inline-flex items-center px-3 py-1.5 bg-gray-600 hover:bg-gray-700 text-white text-xs font-medium rounded transition-colors">
+                                    <i class="fas fa-eye mr-1"></i>Détails
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-12">
+                        <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-vial text-gray-400 text-2xl"></i>
+                        </div>
+                        <p class="text-lg font-medium text-gray-600 mb-2">Aucun test créé</p>
+                        <p class="text-sm text-gray-500 mb-4">Commencez par créer des tests pour cette étape</p>
+                        {% if peut_creer_tests %}
+                        <a href="{% url 'creer_test' projet.id etape.id %}" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium text-sm transition-colors">
+                            <i class="fas fa-plus mr-2"></i>Créer le premier test
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal d'exécution de test -->
+<div id="modalExecutionTest" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-2xl max-w-md w-full">
+        <div class="p-6">
+            <div class="flex items-center mb-6">
+                <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center mr-4">
+                    <i class="fas fa-play text-white text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl font-semibold text-gray-900">Exécuter le test</h3>
+                    <p class="text-sm text-gray-600" id="testInfo"></p>
+                </div>
+            </div>
+            
+            <form id="formExecutionTest">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Résultat du test</label>
+                    <select name="statut_resultat" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Sélectionner le résultat</option>
+                        <option value="PASSE" class="text-green-600">✓ Test Passé</option>
+                        <option value="ECHEC" class="text-red-600">✗ Test Échoué</option>
+                    </select>
+                </div>
+                
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Résultats obtenus</label>
+                    <textarea name="resultats_obtenus" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Décrivez les résultats obtenus lors de l'exécution..."></textarea>
+                </div>
+                
+                <div class="flex items-center justify-end space-x-3">
+                    <button type="button" onclick="fermerModalExecutionTest()" class="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium transition-colors">
+                        Annuler
+                    </button>
+                    <button type="submit" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors">
+                        Enregistrer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+let testIdEnCours = null;
+
+function ouvrirModalExecutionTest(testId, numeroTest, nomTest) {
+    testIdEnCours = testId;
+    document.getElementById('testInfo').textContent = `${numeroTest} - ${nomTest}`;
+    document.getElementById('modalExecutionTest').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function fermerModalExecutionTest() {
+    document.getElementById('modalExecutionTest').classList.add('hidden');
+    document.body.style.overflow = 'auto';
+    testIdEnCours = null;
+    document.getElementById('formExecutionTest').reset();
+}
+
+document.getElementById('formExecutionTest').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    if (!testIdEnCours) return;
+    
+    const formData = new FormData(this);
+    
+    fetch(`/projets/{{ projet.id }}/etapes/{{ etape.id }}/tests/${testIdEnCours}/executer/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            fermerModalExecutionTest();
+            location.reload(); // Recharger pour voir les changements
+        } else {
+            alert('Erreur: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        alert('Une erreur est survenue');
+    });
+});
+
+function voirDetailsTest(testId) {
+    // TODO: Implémenter la vue détaillée des tests en V2
+    alert('Fonctionnalité de détails disponible en V2');
+}
+
+// Fermer le modal en cliquant à l'extérieur
+document.getElementById('modalExecutionTest').addEventListener('click', function(e) {
+    if (e.target === this) {
+        fermerModalExecutionTest();
+    }
+});
+
+// Fermer le modal avec la touche Échap
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && !document.getElementById('modalExecutionTest').classList.contains('hidden')) {
+        fermerModalExecutionTest();
+    }
+});
+</script>
+{% endblock %}
