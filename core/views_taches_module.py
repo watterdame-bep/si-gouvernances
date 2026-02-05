@@ -142,7 +142,6 @@ def creer_tache_module_nouvelle_view(request, projet_id, module_id):
         # Récupérer les données du formulaire
         nom = request.POST.get('nom', '').strip()
         description = request.POST.get('description', '').strip()
-        priorite = request.POST.get('priorite', 'MOYENNE')
         responsable_id = request.POST.get('responsable_id')
         
         # Validation
@@ -177,7 +176,6 @@ def creer_tache_module_nouvelle_view(request, projet_id, module_id):
             module=module,
             nom=nom,
             description=description,
-            priorite=priorite,
             responsable=responsable,
             createur=user,
             statut='EN_ATTENTE'
@@ -195,7 +193,6 @@ def creer_tache_module_nouvelle_view(request, projet_id, module_id):
                 'tache_nom': nom,
                 'module_id': module.id,
                 'module_nom': module.nom,
-                'priorite': priorite,
                 'responsable': responsable.get_full_name() if responsable else None
             }
         )
@@ -234,6 +231,207 @@ def creer_tache_module_nouvelle_view(request, projet_id, module_id):
             'success': False,
             'error': f'Erreur lors de la création de la tâche : {str(e)}',
             'debug': error_trace if user.est_super_admin() else None
+        })
+
+
+@login_required
+@require_http_methods(["POST"])
+def assigner_tache_module_view(request, projet_id, module_id, tache_id):
+    """Assigner une tâche à un membre de l'équipe du module"""
+    user = request.user
+    projet = get_object_or_404(Projet, id=projet_id)
+    module = get_object_or_404(ModuleProjet, id=module_id, projet=projet)
+    tache = get_object_or_404(TacheModule, id=tache_id, module=module)
+    
+    # Vérifier les permissions
+    peut_gerer_taches = False
+    
+    if user.est_super_admin():
+        peut_gerer_taches = True
+    elif projet.createur == user:
+        peut_gerer_taches = True
+    else:
+        affectation_projet = projet.affectations.filter(
+            utilisateur=user, 
+            est_responsable_principal=True,
+            date_fin__isnull=True
+        ).first()
+        if affectation_projet:
+            peut_gerer_taches = True
+        else:
+            affectation_module = module.affectations.filter(
+                utilisateur=user,
+                role_module='RESPONSABLE',
+                date_fin_affectation__isnull=True
+            ).first()
+            if affectation_module:
+                peut_gerer_taches = True
+    
+    if not peut_gerer_taches:
+        return JsonResponse({
+            'success': False,
+            'error': 'Vous n\'avez pas les permissions pour assigner cette tâche.'
+        })
+    
+    try:
+        responsable_id = request.POST.get('responsable_id')
+        
+        if not responsable_id:
+            return JsonResponse({
+                'success': False,
+                'error': 'Veuillez sélectionner un responsable.'
+            })
+        
+        # Vérifier que le responsable existe et fait partie de l'équipe
+        try:
+            responsable = Utilisateur.objects.get(id=responsable_id)
+            if not module.affectations.filter(
+                utilisateur=responsable,
+                date_fin_affectation__isnull=True
+            ).exists():
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Le responsable sélectionné ne fait pas partie de l\'équipe du module.'
+                })
+        except Utilisateur.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': 'Responsable invalide.'
+            })
+        
+        # Assigner la tâche
+        ancien_responsable = tache.responsable
+        tache.responsable = responsable
+        tache.save()
+        
+        # Audit
+        enregistrer_audit(
+            utilisateur=user,
+            type_action='ASSIGNATION_TACHE_MODULE',
+            description=f'Assignation de la tâche "{tache.nom}" à {responsable.get_full_name()}',
+            projet=projet,
+            request=request,
+            donnees_apres={
+                'tache_id': str(tache.id),
+                'tache_nom': tache.nom,
+                'nouveau_responsable': responsable.get_full_name(),
+                'ancien_responsable': ancien_responsable.get_full_name() if ancien_responsable else None
+            }
+        )
+        
+        # Créer une notification
+        if responsable != user:
+            try:
+                NotificationModule.objects.create(
+                    utilisateur=responsable,
+                    type_notification='TACHE_ASSIGNEE',
+                    titre=f'Tâche assignée',
+                    message=f'La tâche "{tache.nom}" vous a été assignée dans le module "{module.nom}"',
+                    module=module,
+                    tache_module=tache,
+                    createur=user
+                )
+            except Exception as e:
+                pass
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Tâche assignée à {responsable.get_full_name()} avec succès !'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Erreur lors de l\'assignation : {str(e)}'
+        })
+
+
+@login_required
+@require_http_methods(["POST"])
+def modifier_statut_tache_module_view(request, projet_id, module_id, tache_id):
+    """Modifier le statut d'une tâche de module"""
+    user = request.user
+    projet = get_object_or_404(Projet, id=projet_id)
+    module = get_object_or_404(ModuleProjet, id=module_id, projet=projet)
+    tache = get_object_or_404(TacheModule, id=tache_id, module=module)
+    
+    # Vérifier les permissions
+    peut_modifier = False
+    
+    if user.est_super_admin():
+        peut_modifier = True
+    elif projet.createur == user:
+        peut_modifier = True
+    elif tache.responsable == user:
+        peut_modifier = True
+    else:
+        affectation_projet = projet.affectations.filter(
+            utilisateur=user, 
+            est_responsable_principal=True,
+            date_fin__isnull=True
+        ).first()
+        if affectation_projet:
+            peut_modifier = True
+        else:
+            affectation_module = module.affectations.filter(
+                utilisateur=user,
+                role_module='RESPONSABLE',
+                date_fin_affectation__isnull=True
+            ).first()
+            if affectation_module:
+                peut_modifier = True
+    
+    if not peut_modifier:
+        return JsonResponse({
+            'success': False,
+            'error': 'Vous n\'avez pas les permissions pour modifier cette tâche.'
+        })
+    
+    try:
+        nouveau_statut = request.POST.get('statut')
+        commentaire = request.POST.get('commentaire', '').strip()
+        
+        if not nouveau_statut:
+            return JsonResponse({
+                'success': False,
+                'error': 'Veuillez sélectionner un statut.'
+            })
+        
+        if nouveau_statut not in ['EN_ATTENTE', 'EN_COURS', 'TERMINEE', 'BLOQUEE']:
+            return JsonResponse({
+                'success': False,
+                'error': 'Statut invalide.'
+            })
+        
+        ancien_statut = tache.statut
+        tache.statut = nouveau_statut
+        tache.save()
+        
+        # Audit
+        enregistrer_audit(
+            utilisateur=user,
+            type_action='MODIFICATION_STATUT_TACHE_MODULE',
+            description=f'Modification du statut de la tâche "{tache.nom}" de {ancien_statut} vers {nouveau_statut}',
+            projet=projet,
+            request=request,
+            donnees_apres={
+                'tache_id': str(tache.id),
+                'tache_nom': tache.nom,
+                'ancien_statut': ancien_statut,
+                'nouveau_statut': nouveau_statut,
+                'commentaire': commentaire
+            }
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Statut modifié avec succès !'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Erreur lors de la modification : {str(e)}'
         })
 
 

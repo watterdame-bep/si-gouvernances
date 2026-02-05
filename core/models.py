@@ -228,11 +228,20 @@ class Utilisateur(AbstractUser):
     
     def save(self, *args, **kwargs):
         """Synchronisation automatique avec le profil membre"""
-        if self.membre:
-            # Synchroniser les informations de base
-            self.email = self.membre.email_personnel
-            self.first_name = self.membre.prenom
-            self.last_name = self.membre.nom
+        # Vérifier si on empêche la synchronisation automatique
+        skip_sync = kwargs.pop('sync_from_membre', False)
+        
+        # Ne pas synchroniser si explicitement demandé (cas de mise à jour manuelle)
+        if not skip_sync and self.membre:
+            # Synchroniser automatiquement depuis le membre vers l'utilisateur
+            # Ceci se produit lors de la création ou modification du membre
+            if self.membre.email_personnel:
+                self.email = self.membre.email_personnel
+            if self.membre.prenom:
+                self.first_name = self.membre.prenom
+            if self.membre.nom:
+                self.last_name = self.membre.nom
+        
         super().save(*args, **kwargs)
     
     def est_compte_bloque(self):
@@ -529,6 +538,8 @@ class ActionAudit(models.Model):
         ('MODIFICATION_ROLE', 'Modification de rôle'),
         ('CHANGEMENT_RESPONSABLE', 'Changement de responsable'),
         ('CONSULTATION_AUDIT', 'Consultation d\'audit'),
+        ('CONSULTATION_PROFIL', 'Consultation de profil'),
+        ('MODIFICATION_PROFIL', 'Modification de profil'),
         ('ACCES_REFUSE', 'Accès refusé'),
         ('ARCHIVAGE_PROJET', 'Archivage de projet'),
         ('CREATION_UTILISATEUR', 'Création d\'utilisateur'),
@@ -536,6 +547,7 @@ class ActionAudit(models.Model):
         ('DESACTIVATION_UTILISATEUR', 'Désactivation d\'utilisateur'),
         ('REACTIVATION_UTILISATEUR', 'Réactivation d\'utilisateur'),
         ('REINITIALISATION_MOT_PASSE', 'Réinitialisation de mot de passe'),
+        ('CREATION_PROFIL_MEMBRE_ADMIN', 'Création de profil membre par admin'),
         # Nouveaux types pour l'architecture étapes/modules/tâches
         ('CREATION_ETAPE', 'Création d\'étape'),
         ('ACTIVATION_ETAPE', 'Activation d\'étape'),
@@ -959,13 +971,6 @@ class TacheModule(models.Model):
         ('BLOQUEE', 'Bloquée'),
     ]
     
-    PRIORITE_CHOICES = [
-        ('BASSE', 'Basse'),
-        ('MOYENNE', 'Moyenne'),
-        ('HAUTE', 'Haute'),
-        ('CRITIQUE', 'Critique'),
-    ]
-    
     module = models.ForeignKey(ModuleProjet, on_delete=models.CASCADE, related_name='taches')
     nom = models.CharField(max_length=200)
     description = models.TextField()
@@ -996,9 +1001,8 @@ class TacheModule(models.Model):
     date_debut = models.DateField(null=True, blank=True)
     date_fin = models.DateField(null=True, blank=True)
     
-    # Statut et priorité
+    # Statut
     statut = models.CharField(max_length=20, choices=STATUT_CHOICES, default='A_FAIRE')
-    priorite = models.CharField(max_length=20, choices=PRIORITE_CHOICES, default='MOYENNE')
     
     # Étape d'exécution
     etape_execution = models.ForeignKey(
@@ -1021,7 +1025,7 @@ class TacheModule(models.Model):
     class Meta:
         verbose_name = "Tâche de Module"
         verbose_name_plural = "Tâches de Module"
-        ordering = ['module', 'priorite', 'date_creation']
+        ordering = ['module', 'date_creation']
         constraints = [
             models.CheckConstraint(
                 check=models.Q(date_debut__lte=models.F('date_fin')),

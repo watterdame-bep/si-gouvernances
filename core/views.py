@@ -3853,10 +3853,7 @@ def profil_view(request):
     """Vue du profil utilisateur - permet de voir et modifier ses informations personnelles"""
     user = request.user
     
-    # Les administrateurs ne peuvent pas accéder à cette vue (ils ont leur propre interface)
-    if user.est_super_admin():
-        messages.info(request, 'Les administrateurs gèrent leurs informations via l\'interface d\'administration.')
-        return redirect('dashboard')
+    
     
     # Enregistrer la consultation du profil
     enregistrer_audit(
@@ -3867,10 +3864,14 @@ def profil_view(request):
     )
     
     # Récupérer les projets de l'utilisateur pour affichage
-    mes_projets = Projet.objects.filter(
-        affectations__utilisateur=user, 
-        affectations__date_fin__isnull=True
-    ).distinct()[:5]  # Limiter à 5 projets récents
+    if user.est_super_admin():
+        # Pour les admins, afficher tous les projets
+        mes_projets = Projet.objects.all()[:5]
+    else:
+        mes_projets = Projet.objects.filter(
+            affectations__utilisateur=user,
+            affectations__date_fin__isnull=True
+        ).distinct()[:5]  # Limiter à 5 projets récents
     
     # Récupérer les informations du membre associé (profil RH)
     membre = None
@@ -3908,6 +3909,8 @@ def profil_view(request):
         'mes_projets': mes_projets,
         'stats': stats,
         'peut_modifier': True,  # L'utilisateur peut toujours modifier son propre profil
+        'peut_creer_profil_membre': user.est_super_admin() and not membre,
+        'est_admin': user.est_super_admin(),
     }
     
     return render(request, 'core/profil.html', context)
@@ -3918,9 +3921,7 @@ def modifier_profil_view(request):
     """Modification des informations personnelles du profil"""
     user = request.user
     
-    # Les administrateurs ne peuvent pas utiliser cette vue
-    if user.est_super_admin():
-        return JsonResponse({'success': False, 'error': 'Accès non autorisé pour les administrateurs'})
+    # Restriction admin supprimée - les administrateurs peuvent maintenant modifier leurs informations
     
     try:
         # Sauvegarder l'état avant modification pour l'audit
@@ -3946,11 +3947,33 @@ def modifier_profil_view(request):
         if errors:
             return JsonResponse({'success': False, 'error': ' '.join(errors)})
         
-        # Appliquer les modifications
-        user.first_name = first_name
-        user.last_name = last_name
-        user.telephone = telephone
-        user.save()
+        # Stratégie de mise à jour selon le profil utilisateur
+        if hasattr(user, 'membre') and user.membre:
+            # Cas 1: L'utilisateur a un profil membre
+            # Mettre à jour le membre et l'utilisateur de manière coordonnée
+            membre = user.membre
+            
+            # Mettre à jour le membre
+            membre.prenom = first_name
+            membre.nom = last_name
+            if telephone:
+                membre.telephone = telephone
+            membre.save()
+            
+            # Mettre à jour l'utilisateur en empêchant la synchronisation automatique
+            user.first_name = first_name
+            user.last_name = last_name
+            user.telephone = telephone
+            user.save(sync_from_membre=True)
+        else:
+            # Cas 2: L'utilisateur n'a pas de profil membre (admin sans profil)
+            user.first_name = first_name
+            user.last_name = last_name
+            user.telephone = telephone
+            user.save()
+        
+        # Recharger l'utilisateur pour s'assurer d'avoir les dernières données
+        user.refresh_from_db()
         
         # Données après modification pour l'audit
         donnees_apres = {
@@ -3991,9 +4014,7 @@ def changer_mot_de_passe_view(request):
     """Changement du mot de passe utilisateur avec notification par email"""
     user = request.user
     
-    # Les administrateurs ne peuvent pas utiliser cette vue
-    if user.est_super_admin():
-        return JsonResponse({'success': False, 'error': 'Accès non autorisé pour les administrateurs'})
+    # Restriction admin supprimée - les administrateurs peuvent maintenant modifier leurs informations
     
     try:
         # Récupérer les données

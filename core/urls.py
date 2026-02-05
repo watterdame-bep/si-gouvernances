@@ -2,6 +2,7 @@ from django.urls import path
 from . import views
 from . import views_affectation
 from . import views_taches_module
+from . import views_admin_profile
 
 urlpatterns = [
     path('', views.dashboard_view, name='dashboard'),
@@ -93,12 +94,12 @@ urlpatterns = [
     path('modules/<int:module_id>/taches/', views.gestion_taches_view, name='gestion_taches'),
     path('projets/<uuid:projet_id>/modules/<int:module_id>/taches/', views_taches_module.gestion_taches_module_view, name='gestion_taches_module'),
     path('projets/<uuid:projet_id>/modules/<int:module_id>/taches/creer/', views_taches_module.creer_tache_module_nouvelle_view, name='creer_tache_module_nouvelle'),
-    path('projets/<uuid:projet_id>/modules/<int:module_id>/taches/<uuid:tache_id>/assigner/', views_taches_module.assigner_tache_module_view, name='assigner_tache_module'),
-    path('projets/<uuid:projet_id>/modules/<int:module_id>/taches/<uuid:tache_id>/statut/', views_taches_module.modifier_statut_tache_module_view, name='modifier_statut_tache_module'),
+    path('projets/<uuid:projet_id>/modules/<int:module_id>/taches/<int:tache_id>/assigner/', views_taches_module.assigner_tache_module_view, name='assigner_tache_module'),
+    path('projets/<uuid:projet_id>/modules/<int:module_id>/taches/<int:tache_id>/statut/', views_taches_module.modifier_statut_tache_module_view, name='modifier_statut_tache_module'),
     path('modules/<int:module_id>/taches/creer/', views.creer_tache_view, name='creer_tache'),
-    path('modules/<int:module_id>/taches/<uuid:tache_id>/', views.detail_tache_view, name='detail_tache'),
-    path('modules/<int:module_id>/taches/<uuid:tache_id>/modifier/', views.modifier_tache_view, name='modifier_tache'),
-    path('modules/<int:module_id>/taches/<uuid:tache_id>/assigner/', views.assigner_tache, name='assigner_tache'),
+    path('modules/<int:module_id>/taches/<int:tache_id>/', views.detail_tache_view, name='detail_tache'),
+    path('modules/<int:module_id>/taches/<int:tache_id>/modifier/', views.modifier_tache_view, name='modifier_tache'),
+    path('modules/<int:module_id>/taches/<int:tache_id>/assigner/', views.assigner_tache, name='assigner_tache'),
     
     # API Endpoints pour les notifications
     path('api/notifications/', views.api_notifications, name='api_notifications'),
@@ -112,9 +113,10 @@ urlpatterns = [
     path('profil/', views.profil_view, name='profil'),
     path('profil/modifier/', views.modifier_profil_view, name='modifier_profil'),
     path('profil/changer-mot-de-passe/', views.changer_mot_de_passe_view, name='changer_mot_de_passe'),
+    path('profil/creer-membre/', views_admin_profile.creer_profil_membre_admin_view, name='creer_profil_membre_admin'),
     
     # Gestion des modules (Phase développement)
     path('projets/<uuid:projet_id>/mes-modules/', views.mes_modules_view, name='mes_modules'),
     path('projets/<uuid:projet_id>/modules/<int:module_id>/taches/creer/', views.creer_tache_module_view, name='creer_tache_module'),
-    path('projets/<uuid:projet_id>/taches-module/<uuid:tache_id>/statut/', views.modifier_statut_tache_module_view, name='modifier_statut_tache_module'),
+    path('projets/<uuid:projet_id>/taches-module/<int:tache_id>/statut/', views.modifier_statut_tache_module_view, name='modifier_statut_tache_module'),
 ]
