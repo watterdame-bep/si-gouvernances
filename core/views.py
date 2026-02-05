@@ -2267,7 +2267,7 @@ def detail_etape_view(request, projet_id, etape_id):
             return redirect('projets_list')
     
     # Récupérer les tâches de cette étape
-    taches_etape = etape.taches_etape.all().order_by('priorite', 'date_creation')
+    taches_etape = etape.taches_etape.all().order_by('-date_creation')
     
     # Récupérer les modules créés dans cette étape
     modules_crees = etape.modules_crees.all().order_by('date_creation')
@@ -2535,7 +2535,7 @@ def gestion_taches_view(request, module_id):
             return redirect('projets_list')
     
     # Récupérer les tâches
-    taches = module.taches.all().order_by('statut', 'priorite', 'date_creation')
+    taches = module.taches.all().order_by('-date_creation')
     
     # Permissions
     can_manage = user.est_super_admin() or projet.createur == user
@@ -2736,7 +2736,7 @@ def gestion_taches_etape_view(request, projet_id, etape_id):
             return redirect('projets_list')
     
     # Récupérer les tâches
-    taches = etape.taches_etape.all().order_by('statut', 'priorite', 'date_creation')
+    taches = etape.taches_etape.all().order_by('-date_creation')
     
     # Permissions de création
     can_create = peut_creer_taches(user, projet)
@@ -2767,12 +2767,8 @@ def creer_tache_etape_view(request, projet_id, etape_id):
         messages.error(request, 'Vous n\'avez pas les permissions pour créer des tâches sur ce projet.')
         return redirect('detail_etape', projet_id=projet.id, etape_id=etape.id)
     
-    # Vérifier que l'étape n'est pas terminée
-    if etape.statut == 'TERMINEE':
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return JsonResponse({'success': False, 'error': 'Impossible de créer une tâche dans une étape terminée.'})
-        messages.error(request, 'Impossible de créer une tâche dans une étape terminée.')
-        return redirect('detail_etape', projet_id=projet.id, etape_id=etape.id)
+    # Permettre l'ajout de tâches aux étapes terminées (avec justification)
+    etape_terminee = etape.statut == 'TERMINEE' 
     
     if request.method == 'POST':
         nom = request.POST.get('nom', '').strip()

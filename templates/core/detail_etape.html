@@ -121,6 +121,16 @@
                         </span>
                         <span class="text-sm font-medium text-orange-600">{{ stats.taches_en_cours }}</span>
                     </div>
+                    
+                    {% if stats.taches_speciales > 0 %}
+                    <div class="flex items-center justify-between p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                        <span class="text-sm text-yellow-700 flex items-center">
+                            <i class="fas fa-star mr-2 text-yellow-600"></i>
+                            Tâches spéciales
+                        </span>
+                        <span class="text-sm font-medium text-yellow-800">{{ stats.taches_speciales }}</span>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
 
@@ -132,7 +142,7 @@
                 </h3>
                 
                 <div class="space-y-3">
-                    {% if can_manage and etape.statut != 'TERMINEE' %}
+                    {% if can_manage %}
                     <a href="{% url 'creer_tache_etape' projet.id etape.id %}" class="w-full inline-flex items-center justify-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-sm font-medium transition-colors">
                         <i class="fas fa-plus mr-2"></i>Nouvelle tâche
                     </a>
@@ -204,7 +214,7 @@
                             {{ stats.total_taches }}
                         </span>
                     </h3>
-                    {% if can_manage and etape.statut != 'TERMINEE' %}
+                    {% if can_manage %}
                     <div class="flex space-x-2">
                         <a href="{% url 'creer_tache_etape' projet.id etape.id %}" class="inline-flex items-center px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-sm font-medium transition-colors">
                             <i class="fas fa-plus mr-2"></i>Nouvelle
@@ -228,6 +238,13 @@
                                 {{ tache.nom }}
                             </h4>
                             <div class="flex space-x-2">
+                                <!-- Indicateur tâche spéciale -->
+                                {% if tache.ajoutee_apres_cloture %}
+                                <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-200">
+                                    <i class="fas fa-star mr-1"></i>Spéciale
+                                </span>
+                                {% endif %}
+                                
                                 <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium
                                     {% if tache.priorite == 'CRITIQUE' %}bg-red-100 text-red-700
                                     {% elif tache.priorite == 'HAUTE' %}bg-orange-100 text-orange-700
@@ -299,7 +316,7 @@
                         <i class="fas fa-info-circle mr-2"></i>
                         Aucune tâche dans cette étape
                     </p>
-                    {% if can_manage and etape.statut != 'TERMINEE' %}
+                    {% if can_manage %}
                     <a href="{% url 'creer_tache_etape' projet.id etape.id %}" class="inline-flex items-center text-sm text-purple-600 hover:text-purple-700 font-medium">
                         <i class="fas fa-plus mr-2"></i>Créer la première tâche
                     </a>

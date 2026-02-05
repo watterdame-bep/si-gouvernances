@@ -3,6 +3,8 @@ from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator
 from django.utils import timezone
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 import uuid
 
 
@@ -600,16 +602,16 @@ class ActionAudit(models.Model):
 
 class TypeEtape(models.Model):
     """Types d'étapes standard pour les projets"""
-    CONCEPTION = 'CONCEPTION'
     PLANIFICATION = 'PLANIFICATION'
+    CONCEPTION = 'CONCEPTION'
     DEVELOPPEMENT = 'DEVELOPPEMENT'
     TESTS = 'TESTS'
     DEPLOIEMENT = 'DEPLOIEMENT'
     MAINTENANCE = 'MAINTENANCE'
     
     TYPE_CHOICES = [
-        (CONCEPTION, 'Conception'),
         (PLANIFICATION, 'Planification'),
+        (CONCEPTION, 'Conception'),
         (DEVELOPPEMENT, 'Développement'),
         (TESTS, 'Tests'),
         (DEPLOIEMENT, 'Déploiement'),
@@ -826,6 +828,14 @@ class EtapeProjet(models.Model):
     def peut_creer_modules_librement(self):
         """Vérifie si on peut créer des modules librement dans cette étape"""
         return self.type_etape.nom == 'DEVELOPPEMENT'
+    
+    def a_taches_speciales(self):
+        """Vérifie si cette étape a des tâches ajoutées après clôture"""
+        return self.taches_etape.filter(ajoutee_apres_cloture=True).exists()
+    
+    def get_nombre_taches_speciales(self):
+        """Retourne le nombre de tâches spéciales dans cette étape"""
+        return self.taches_etape.filter(ajoutee_apres_cloture=True).count()
 
 
 class ModuleProjet(models.Model):
@@ -1219,10 +1229,20 @@ class TacheEtape(models.Model):
     commentaires = models.TextField(blank=True)
     raison_blocage = models.TextField(blank=True, help_text="Raison du blocage si statut = BLOQUEE")
     
+    # Tâche ajoutée après clôture d'étape
+    ajoutee_apres_cloture = models.BooleanField(
+        default=False,
+        help_text="Indique si cette tâche a été ajoutée après la clôture de l'étape"
+    )
+    justification_ajout_tardif = models.TextField(
+        blank=True,
+        help_text="Justification pour l'ajout de cette tâche après clôture de l'étape"
+    )
+    
     class Meta:
         verbose_name = "Tâche d'Étape"
         verbose_name_plural = "Tâches d'Étape"
-        ordering = ['etape', 'priorite', 'date_creation']
+        ordering = ['-date_creation']  # Tâches récentes en premier
         constraints = [
             models.CheckConstraint(
                 check=models.Q(date_debut__lte=models.F('date_fin')),
@@ -1794,3 +1814,22 @@ class NotificationModule(models.Model):
             self.lue = True
             self.date_lecture = timezone.now()
             self.save()
+
+# ============================================================================
+# SIGNAUX DJANGO
+# ============================================================================
+
+@receiver(post_save, sender=TacheEtape)
+def marquer_tache_speciale_automatiquement(sender, instance, created, **kwargs):
+    """
+    Signal qui marque automatiquement une tâche comme spéciale 
+    si elle est créée sur une étape terminée
+    """
+    if created and instance.etape.statut == 'TERMINEE':
+        # Marquer comme spéciale seulement si ce n'est pas déjà fait
+        if not instance.ajoutee_apres_cloture:
+            instance.ajoutee_apres_cloture = True
+            if not instance.justification_ajout_tardif:
+                instance.justification_ajout_tardif = "Tâche ajoutée automatiquement à une étape terminée"
+            # Utiliser update_fields pour éviter une boucle infinie
+            instance.save(update_fields=['ajoutee_apres_cloture', 'justification_ajout_tardif'])

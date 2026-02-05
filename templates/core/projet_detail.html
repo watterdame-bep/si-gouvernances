@@ -92,11 +92,20 @@
                             {% for etape in projet.etapes.all %}
                             <div class="flex-shrink-0 flex flex-col items-center min-w-0">
                                 <!-- Point de timeline -->
-                                <div class="w-8 h-8 rounded-full flex items-center justify-center shadow-md mb-2
-                                    {% if etape.statut == 'TERMINEE' %}bg-green-500
-                                    {% elif etape.statut == 'EN_COURS' %}bg-orange-500 ring-2 ring-orange-200
-                                    {% else %}bg-gray-300{% endif %}">
-                                    <i class="fas fa-{{ etape.type_etape.icone_emoji }} text-white text-xs"></i>
+                                <div class="relative">
+                                    <div class="w-8 h-8 rounded-full flex items-center justify-center shadow-md mb-2
+                                        {% if etape.statut == 'TERMINEE' %}bg-green-500
+                                        {% elif etape.statut == 'EN_COURS' %}bg-orange-500 ring-2 ring-orange-200
+                                        {% else %}bg-gray-300{% endif %}">
+                                        <i class="fas fa-{{ etape.type_etape.icone_emoji }} text-white text-xs"></i>
+                                    </div>
+                                    
+                                    <!-- Indicateur tâches spéciales -->
+                                    {% if etape.statut == 'TERMINEE' and etape.a_taches_speciales %}
+                                    <div class="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full flex items-center justify-center border-2 border-white">
+                                        <i class="fas fa-star text-white text-xs"></i>
+                                    </div>
+                                    {% endif %}
                                 </div>
                                 
                                 <!-- Nom de l'étape -->

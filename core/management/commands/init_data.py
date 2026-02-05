@@ -41,18 +41,18 @@ class Command(BaseCommand):
         
         types_etapes = [
             {
-                'nom': 'CONCEPTION',
-                'description': 'Phase de conception et analyse des besoins',
-                'ordre_standard': 1,
-                'couleur': '#8B5CF6',
-                'icone_emoji': '💡'
-            },
-            {
                 'nom': 'PLANIFICATION',
-                'description': 'Planification détaillée du projet',
-                'ordre_standard': 2,
+                'description': 'Planification détaillée du projet et analyse des besoins',
+                'ordre_standard': 1,
                 'couleur': '#3B82F6',
                 'icone_emoji': '📋'
+            },
+            {
+                'nom': 'CONCEPTION',
+                'description': 'Phase de conception et architecture technique',
+                'ordre_standard': 2,
+                'couleur': '#8B5CF6',
+                'icone_emoji': '💡'
             },
             {
                 'nom': 'DEVELOPPEMENT',

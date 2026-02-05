@@ -73,6 +73,26 @@
             </div>
         </div>
 
+        <!-- Message informatif pour étapes terminées -->
+        {% if etape_terminee and can_create %}
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div class="flex items-start space-x-3">
+                <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-info-circle text-blue-600"></i>
+                </div>
+                <div class="flex-1">
+                    <h3 class="text-sm font-medium text-blue-800 mb-1">
+                        Étape terminée - Ajout de tâches possible
+                    </h3>
+                    <p class="text-sm text-blue-700">
+                        Cette étape est terminée, mais vous pouvez encore ajouter des tâches si nécessaire (avec justification). 
+                        Cela peut être utile si vous avez oublié quelque chose ou si de nouveaux besoins sont identifiés.
+                    </p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Statistiques de l'étape -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
@@ -163,6 +183,13 @@
                             <!-- Titre et badges -->
                             <div class="flex items-center space-x-3 mb-2">
                                 <h3 class="text-sm font-semibold text-gray-900 truncate">{{ tache.nom }}</h3>
+                                
+                                <!-- Badge tâche spéciale -->
+                                {% if tache.ajoutee_apres_cloture %}
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-300">
+                                    <i class="fas fa-star mr-1"></i>Tâche Spéciale
+                                </span>
+                                {% endif %}
                                 
                                 <!-- Badge statut -->
                                 <span class="status-badge status-{{ tache.statut|lower }}">

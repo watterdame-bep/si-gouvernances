@@ -1,0 +1,114 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Démo - Badges Tâches Spéciales</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold text-gray-900 mb-8">
+            <i class="fas fa-star text-yellow-500 mr-3"></i>
+            Badges de Tâches Spéciales - Démo
+        </h1>
+        
+        <div class="bg-white rounded-lg p-6 shadow-sm border border-gray-200 mb-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">Fonctionnalité Implémentée</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-green-50 p-4 rounded-lg border border-green-200">
+                    <h3 class="font-semibold text-green-800 mb-2">✅ Badges Automatiques</h3>
+                    <p class="text-sm text-green-700">Les étapes avec tâches spéciales affichent automatiquement un badge jaune avec le nombre de tâches.</p>
+                </div>
+                <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <h3 class="font-semibold text-blue-800 mb-2">✅ Liens Rapides</h3>
+                    <p class="text-sm text-blue-700">Un lien "Tâches spéciales" permet d'accéder directement à la liste des tâches de l'étape.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">Exemple d'Étape avec Tâches Spéciales</h2>
+            
+            <!-- Simulation d'une étape avec tâches spéciales -->
+            <div class="flex items-center p-4 bg-green-50 rounded-lg border border-green-200">
+                <div class="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center bg-green-600 mr-4">
+                    <i class="fas fa-check text-white text-sm"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center space-x-2">
+                            <h3 class="text-sm font-semibold text-green-800 truncate">Planification</h3>
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-200">
+                                <i class="fas fa-star mr-1"></i>4 spéciales
+                            </span>
+                        </div>
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            <i class="fas fa-check-circle mr-1"></i>Terminée
+                        </span>
+                    </div>
+                    <p class="text-sm text-green-700 mb-3">Planification détaillée du projet</p>
+                    <div class="flex items-center justify-between">
+                        <div class="text-sm text-green-600">
+                            <i class="fas fa-calendar-check mr-1"></i>Terminée le 05/02/2026
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <a href="#" class="inline-flex items-center text-sm text-green-700 hover:text-green-800 font-medium">
+                                Consulter <i class="fas fa-arrow-right ml-1"></i>
+                            </a>
+                            <span class="text-gray-300">|</span>
+                            <a href="#" class="inline-flex items-center text-sm text-yellow-700 hover:text-yellow-800 font-medium">
+                                <i class="fas fa-star mr-1"></i>Tâches spéciales
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Simulation d'une étape sans tâches spéciales -->
+            <div class="flex items-center p-4 bg-green-50 rounded-lg border border-green-200 mt-4">
+                <div class="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center bg-green-600 mr-4">
+                    <i class="fas fa-check text-white text-sm"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center space-x-2">
+                            <h3 class="text-sm font-semibold text-green-800 truncate">Conception</h3>
+                            <!-- Pas de badge car pas de tâches spéciales -->
+                        </div>
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            <i class="fas fa-check-circle mr-1"></i>Terminée
+                        </span>
+                    </div>
+                    <p class="text-sm text-green-700 mb-3">Conception détaillée du système</p>
+                    <div class="flex items-center justify-between">
+                        <div class="text-sm text-green-600">
+                            <i class="fas fa-calendar-check mr-1"></i>Terminée le 03/02/2026
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <a href="#" class="inline-flex items-center text-sm text-green-700 hover:text-green-800 font-medium">
+                                Consulter <i class="fas fa-arrow-right ml-1"></i>
+                            </a>
+                            <!-- Pas de lien "Tâches spéciales" car pas de tâches spéciales -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mt-6">
+            <h3 class="text-lg font-semibold text-blue-800 mb-3">
+                <i class="fas fa-info-circle mr-2"></i>Comment ça marche
+            </h3>
+            <ul class="space-y-2 text-sm text-blue-700">
+                <li><i class="fas fa-check mr-2"></i>Les badges apparaissent automatiquement quand une étape a des tâches ajoutées après clôture</li>
+                <li><i class="fas fa-check mr-2"></i>Le compteur affiche le nombre exact de tâches spéciales</li>
+                <li><i class="fas fa-check mr-2"></i>Le lien "Tâches spéciales" mène directement à la gestion des tâches de l'étape</li>
+                <li><i class="fas fa-check mr-2"></i>Fonctionne pour toutes les étapes (passées, courante, futures)</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
