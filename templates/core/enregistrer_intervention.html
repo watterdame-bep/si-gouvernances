@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Enregistrer une Intervention - {{ billet.numero_billet }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-6">
+        <a href="{% url 'detail_ticket' projet.id ticket.id %}" class="text-blue-600 hover:text-blue-800 text-sm mb-2 inline-flex items-center">
+            <i class="fas fa-arrow-left mr-2"></i> Retour au ticket
+        </a>
+        <h1 class="text-3xl font-bold text-gray-900 mt-2">
+            <i class="fas fa-tools mr-2 text-blue-600"></i>Enregistrer une Intervention
+        </h1>
+        <p class="text-gray-600 mt-1">{{ billet.numero_billet }} - {{ ticket.numero_ticket }}</p>
+    </div>
+
+    <!-- Informations du billet -->
+    <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <i class="fas fa-info-circle text-blue-400"></i>
+            </div>
+            <div class="ml-3 text-sm text-blue-700">
+                <p><strong>Type:</strong> {{ billet.get_type_intervention_display }}</p>
+                <p><strong>Durée estimée:</strong> {{ billet.duree_estimee }}h</p>
+                {% if billet.instructions %}
+                <p class="mt-2"><strong>Instructions:</strong> {{ billet.instructions }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulaire -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+
+            <!-- Description des actions -->
+            <div>
+                <label for="description_actions" class="block text-sm font-medium text-gray-700 mb-2">
+                    Description des actions effectuées <span class="text-red-500">*</span>
+                </label>
+                <textarea id="description_actions" name="description_actions" rows="6" required
+                          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="Décrivez en détail les actions que vous avez effectuées..."></textarea>
+                <p class="mt-1 text-sm text-gray-500">
+                    Soyez précis: étapes suivies, commandes exécutées, tests effectués, etc.
+                </p>
+            </div>
+
+            <!-- Dates -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="date_debut" class="block text-sm font-medium text-gray-700 mb-2">
+                        Date et heure de début <span class="text-red-500">*</span>
+                    </label>
+                    <input type="datetime-local" id="date_debut" name="date_debut" required
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+                <div>
+                    <label for="date_fin" class="block text-sm font-medium text-gray-700 mb-2">
+                        Date et heure de fin
+                    </label>
+                    <input type="datetime-local" id="date_fin" name="date_fin"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <p class="mt-1 text-sm text-gray-500">Optionnel si intervention en cours</p>
+                </div>
+            </div>
+
+            <!-- Temps passé -->
+            <div>
+                <label for="temps_passe" class="block text-sm font-medium text-gray-700 mb-2">
+                    Temps passé (heures) <span class="text-red-500">*</span>
+                </label>
+                <input type="number" id="temps_passe" name="temps_passe" 
+                       min="0.1" max="100" step="0.1" required
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                       placeholder="Ex: 2.5">
+                <p class="mt-1 text-sm text-gray-500">
+                    Temps réellement passé sur cette intervention
+                </p>
+            </div>
+
+            <!-- Correctif appliqué -->
+            <div>
+                <label for="correctif_applique" class="block text-sm font-medium text-gray-700 mb-2">
+                    Correctif appliqué
+                </label>
+                <textarea id="correctif_applique" name="correctif_applique" rows="4"
+                          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="Détails techniques du correctif (code modifié, configuration changée, etc.)"></textarea>
+                <p class="mt-1 text-sm text-gray-500">
+                    Détails techniques de la solution mise en place
+                </p>
+            </div>
+
+            <!-- Fichiers modifiés -->
+            <div>
+                <label for="fichiers_modifies" class="block text-sm font-medium text-gray-700 mb-2">
+                    Fichiers modifiés
+                </label>
+                <textarea id="fichiers_modifies" name="fichiers_modifies" rows="3"
+                          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="Liste des fichiers modifiés (un par ligne)&#10;Ex:&#10;src/models/user.py&#10;config/settings.py"></textarea>
+                <p class="mt-1 text-sm text-gray-500">
+                    Liste des fichiers qui ont été modifiés
+                </p>
+            </div>
+
+            <!-- Avertissement -->
+            <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-exclamation-triangle text-yellow-400"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-yellow-700">
+                            <strong>Important:</strong> Après avoir enregistré cette intervention, vous devrez rédiger un statut technique obligatoire avant que le ticket puisse être résolu.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Boutons -->
+            <div class="flex items-center justify-between pt-4 border-t border-gray-200">
+                <a href="{% url 'detail_ticket' projet.id ticket.id %}" 
+                   class="text-gray-600 hover:text-gray-800">
+                    Annuler
+                </a>
+                <button type="submit" 
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium">
+                    <i class="fas fa-save mr-2"></i>Enregistrer l'Intervention
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Aide -->
+    <div class="mt-6 bg-gray-50 rounded-lg p-4">
+        <h3 class="text-sm font-semibold text-gray-900 mb-2">
+            <i class="fas fa-question-circle mr-2 text-gray-600"></i>Conseils pour l'enregistrement
+        </h3>
+        <ul class="text-sm text-gray-600 space-y-1">
+            <li>• Soyez précis dans la description des actions effectuées</li>
+            <li>• Indiquez le temps réel passé (pas l'estimation)</li>
+            <li>• Listez tous les fichiers modifiés pour la traçabilité</li>
+            <li>• Le statut technique sera demandé juste après</li>
+        </ul>
+    </div>
+</div>
+
+<script>
+// Pré-remplir la date de début avec l'heure actuelle
+document.addEventListener('DOMContentLoaded', function() {
+    const now = new Date();
+    const dateDebut = document.getElementById('date_debut');
+    
+    // Format: YYYY-MM-DDTHH:MM
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    
+    dateDebut.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+});
+</script>
+{% endblock %}

@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Émettre un Billet - {{ ticket.numero_ticket }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-6">
+        <a href="{% url 'detail_ticket' projet.id ticket.id %}" class="text-blue-600 hover:text-blue-800 text-sm mb-2 inline-flex items-center">
+            <i class="fas fa-arrow-left mr-2"></i> Retour au ticket
+        </a>
+        <h1 class="text-3xl font-bold text-gray-900 mt-2">
+            <i class="fas fa-file-signature mr-2 text-blue-600"></i>Émettre un Billet d'Intervention
+        </h1>
+        <p class="text-gray-600 mt-1">{{ ticket.numero_ticket }} - {{ ticket.titre }}</p>
+    </div>
+
+    <!-- Informations du ticket -->
+    <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <i class="fas fa-info-circle text-blue-400"></i>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-blue-700">
+                    <strong>Gravité:</strong> {{ ticket.get_gravite_display }} | 
+                    <strong>Origine:</strong> {{ ticket.get_origine_display }}
+                    {% if ticket.contrat_garantie %}
+                    | <strong>Contrat:</strong> {{ ticket.contrat_garantie.get_type_garantie_display }}
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulaire -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+
+            <!-- Développeur autorisé -->
+            <div>
+                <label for="developpeur_autorise" class="block text-sm font-medium text-gray-700 mb-2">
+                    Développeur autorisé <span class="text-red-500">*</span>
+                </label>
+                <select id="developpeur_autorise" name="developpeur_autorise" required
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">-- Sélectionner un développeur --</option>
+                    {% for dev in developpeurs %}
+                    <option value="{{ dev.id }}">
+                        {{ dev.get_full_name }} - {{ dev.role_systeme.get_nom_display }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <p class="mt-1 text-sm text-gray-500">
+                    Seuls les développeurs et chefs de projet peuvent intervenir
+                </p>
+            </div>
+
+            <!-- Type d'intervention -->
+            <div>
+                <label for="type_intervention" class="block text-sm font-medium text-gray-700 mb-2">
+                    Type d'intervention <span class="text-red-500">*</span>
+                </label>
+                <select id="type_intervention" name="type_intervention" required
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">-- Sélectionner un type --</option>
+                    <option value="ANALYSE">Analyse du problème</option>
+                    <option value="CORRECTION">Correction</option>
+                    <option value="DEPLOIEMENT_CORRECTIF">Déploiement correctif</option>
+                </select>
+            </div>
+
+            <!-- Durée estimée -->
+            <div>
+                <label for="duree_estimee" class="block text-sm font-medium text-gray-700 mb-2">
+                    Durée estimée (heures) <span class="text-red-500">*</span>
+                </label>
+                <input type="number" id="duree_estimee" name="duree_estimee" 
+                       min="0.5" max="40" step="0.5" required
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                       placeholder="Ex: 2.5">
+                <p class="mt-1 text-sm text-gray-500">
+                    Estimation du temps nécessaire pour cette intervention
+                </p>
+            </div>
+
+            <!-- Instructions -->
+            <div>
+                <label for="instructions" class="block text-sm font-medium text-gray-700 mb-2">
+                    Instructions spécifiques
+                </label>
+                <textarea id="instructions" name="instructions" rows="4"
+                          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="Consignes particulières pour le développeur..."></textarea>
+                <p class="mt-1 text-sm text-gray-500">
+                    Précisions sur ce qui doit être fait, contraintes, etc.
+                </p>
+            </div>
+
+            <!-- Avertissement SLA -->
+            {% if ticket.contrat_garantie %}
+            <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-clock text-yellow-400"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-yellow-700">
+                            <strong>SLA:</strong> {{ ticket.contrat_garantie.sla_heures }} heures
+                            {% if ticket.sla_depasse %}
+                            <span class="text-red-600 font-semibold">⚠️ DÉJÀ DÉPASSÉ</span>
+                            {% else %}
+                            <span class="text-green-600">({{ ticket.temps_ecoule|floatformat:1 }}h écoulées)</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Boutons -->
+            <div class="flex items-center justify-between pt-4 border-t border-gray-200">
+                <a href="{% url 'detail_ticket' projet.id ticket.id %}" 
+                   class="text-gray-600 hover:text-gray-800">
+                    Annuler
+                </a>
+                <button type="submit" 
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium">
+                    <i class="fas fa-file-signature mr-2"></i>Émettre le Billet
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Aide -->
+    <div class="mt-6 bg-gray-50 rounded-lg p-4">
+        <h3 class="text-sm font-semibold text-gray-900 mb-2">
+            <i class="fas fa-question-circle mr-2 text-gray-600"></i>À propos du billet d'intervention
+        </h3>
+        <ul class="text-sm text-gray-600 space-y-1">
+            <li>• Le billet autorise officiellement un développeur à intervenir sur le ticket</li>
+            <li>• Aucune intervention ne peut être effectuée sans billet validé</li>
+            <li>• Le développeur devra enregistrer son intervention et rédiger un statut technique</li>
+            <li>• Le ticket passera automatiquement en statut "EN_COURS"</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

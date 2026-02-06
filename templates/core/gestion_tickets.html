@@ -1,0 +1,204 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Tickets de Maintenance - {{ projet.nom }}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <a href="{% url 'projet_detail' projet.id %}" class="text-blue-600 hover:text-blue-800 text-sm mb-2 inline-flex items-center">
+                    <i class="fas fa-arrow-left mr-2"></i> Retour au projet
+                </a>
+                <h1 class="text-3xl font-bold text-gray-900 mt-2">
+                    <i class="fas fa-ticket-alt text-blue-600 mr-3"></i>Tickets de Maintenance
+                </h1>
+                <p class="text-gray-600 mt-1">{{ projet.nom }}</p>
+            </div>
+            {% if peut_creer %}
+            <a href="{% url 'creer_ticket' projet.id %}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg inline-flex items-center">
+                <i class="fas fa-plus mr-2"></i>Nouveau Ticket
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Statistiques -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4 mb-6">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <p class="text-xs text-gray-600 mb-1">Total</p>
+            <p class="text-2xl font-bold text-gray-900">{{ stats.total }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <p class="text-xs text-gray-600 mb-1">Ouverts</p>
+            <p class="text-2xl font-bold text-blue-600">{{ stats.ouverts }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <p class="text-xs text-gray-600 mb-1">En cours</p>
+            <p class="text-2xl font-bold text-orange-600">{{ stats.en_cours }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <p class="text-xs text-gray-600 mb-1">Résolus</p>
+            <p class="text-2xl font-bold text-green-600">{{ stats.resolus }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <p class="text-xs text-gray-600 mb-1">Fermés</p>
+            <p class="text-2xl font-bold text-gray-600">{{ stats.fermes }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <p class="text-xs text-gray-600 mb-1">Rejetés</p>
+            <p class="text-2xl font-bold text-red-600">{{ stats.rejetes }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <p class="text-xs text-gray-600 mb-1">Critiques</p>
+            <p class="text-2xl font-bold text-red-600">{{ stats.critiques }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <p class="text-xs text-gray-600 mb-1">SLA dépassé</p>
+            <p class="text-2xl font-bold text-red-600">{{ stats.sla_depasses }}</p>
+        </div>
+    </div>
+
+    <!-- Alertes -->
+    {% if contrats_actifs|length == 0 %}
+    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+        <div class="flex">
+            <i class="fas fa-exclamation-triangle text-yellow-400 mr-3 mt-1"></i>
+            <div>
+                <p class="text-sm text-yellow-700">
+                    <strong>Attention:</strong> Aucun contrat de garantie actif. Les nouveaux tickets seront marqués comme payants.
+                </p>
+                <a href="{% url 'gestion_contrats' projet.id %}" class="text-sm text-yellow-800 underline mt-1 inline-block">
+                    Gérer les contrats de garantie
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Liste des tickets -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <h2 class="text-lg font-semibold text-gray-900">
+                <i class="fas fa-list mr-2 text-gray-600"></i>Liste des Tickets
+            </h2>
+            <!-- Filtres -->
+            <div class="flex items-center space-x-2">
+                <select onchange="window.location.href='?statut='+this.value" class="px-3 py-1 border border-gray-300 rounded text-sm">
+                    <option value="">Tous les statuts</option>
+                    <option value="OUVERT">Ouverts</option>
+                    <option value="EN_COURS">En cours</option>
+                    <option value="RESOLU">Résolus</option>
+                    <option value="FERME">Fermés</option>
+                    <option value="REJETE">Rejetés</option>
+                </select>
+                <select onchange="window.location.href='?gravite='+this.value" class="px-3 py-1 border border-gray-300 rounded text-sm">
+                    <option value="">Toutes les gravités</option>
+                    <option value="CRITIQUE">Critiques</option>
+                    <option value="MAJEUR">Majeurs</option>
+                    <option value="MINEUR">Mineurs</option>
+                </select>
+            </div>
+        </div>
+
+        {% if tickets %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Numéro</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Titre</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Gravité</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Statut</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Origine</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Assigné à</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for ticket in tickets %}
+                    <tr class="hover:bg-gray-50 {% if ticket.sla_depasse %}bg-red-50{% endif %}">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <span class="text-sm font-medium text-gray-900">{{ ticket.numero_ticket }}</span>
+                                {% if ticket.est_payant %}
+                                <i class="fas fa-dollar-sign text-orange-500 ml-2" title="Intervention payante"></i>
+                                {% endif %}
+                                {% if ticket.sla_depasse %}
+                                <i class="fas fa-exclamation-triangle text-red-500 ml-2" title="SLA dépassé"></i>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm font-medium text-gray-900">{{ ticket.titre }}</div>
+                            <div class="text-xs text-gray-500">{{ ticket.description_probleme|truncatewords:10 }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if ticket.gravite == 'CRITIQUE' %}
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
+                                <i class="fas fa-fire mr-1"></i>Critique
+                            </span>
+                            {% elif ticket.gravite == 'MAJEUR' %}
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800">
+                                <i class="fas fa-exclamation-circle mr-1"></i>Majeur
+                            </span>
+                            {% else %}
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                                <i class="fas fa-info-circle mr-1"></i>Mineur
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if ticket.statut == 'OUVERT' %}
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">Ouvert</span>
+                            {% elif ticket.statut == 'EN_COURS' %}
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800">En cours</span>
+                            {% elif ticket.statut == 'RESOLU' %}
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Résolu</span>
+                            {% elif ticket.statut == 'FERME' %}
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">Fermé</span>
+                            {% else %}
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">Rejeté</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {{ ticket.get_origine_display }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {% if ticket.assigne_a %}
+                            {{ ticket.assigne_a.get_full_name }}
+                            {% else %}
+                            <span class="text-gray-400">Non assigné</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ ticket.date_creation|date:"d/m/Y H:i" }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            <a href="{% url 'detail_ticket' projet.id ticket.id %}" 
+                               class="text-blue-600 hover:text-blue-800"
+                               title="Voir les détails">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="px-6 py-12 text-center">
+            <i class="fas fa-ticket-alt text-gray-300 text-5xl mb-4"></i>
+            <p class="text-gray-500">Aucun ticket de maintenance pour ce projet</p>
+            {% if peut_creer %}
+            <a href="{% url 'creer_ticket' projet.id %}" class="mt-4 text-blue-600 hover:text-blue-800 inline-block">
+                Créer le premier ticket
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

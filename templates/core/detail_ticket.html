@@ -1,0 +1,286 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ ticket.numero_ticket }} - {{ projet.nom }}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-6">
+        <a href="{% url 'gestion_tickets' projet.id %}" class="text-blue-600 hover:text-blue-800 text-sm mb-2 inline-flex items-center">
+            <i class="fas fa-arrow-left mr-2"></i> Retour aux tickets
+        </a>
+        <div class="flex items-center justify-between mt-2">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">
+                    {{ ticket.numero_ticket }}
+                </h1>
+                <p class="text-gray-600 mt-1">{{ ticket.titre }}</p>
+            </div>
+            <div class="flex items-center space-x-2">
+                {% if ticket.statut == 'RESOLU' and peut_emettre_billet %}
+                <button onclick="fermerTicket()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg">
+                    <i class="fas fa-check-circle mr-2"></i>Fermer le Ticket
+                </button>
+                {% endif %}
+                {% if ticket.statut in 'OUVERT,EN_COURS' and peut_emettre_billet %}
+                <a href="{% url 'emettre_billet' projet.id ticket.id %}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
+                    <i class="fas fa-file-signature mr-2"></i>Émettre un Billet
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Colonne principale -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Informations du ticket -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">
+                    <i class="fas fa-info-circle mr-2 text-gray-600"></i>Informations
+                </h2>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-sm font-medium text-gray-600">Description du problème</label>
+                        <p class="mt-1 text-gray-900 whitespace-pre-wrap">{{ ticket.description_probleme }}</p>
+                    </div>
+
+                    {% if ticket.raison_rejet %}
+                    <div class="bg-red-50 border-l-4 border-red-400 p-4">
+                        <p class="text-sm text-red-700">
+                            <strong>Raison du rejet:</strong> {{ ticket.raison_rejet }}
+                        </p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Billets d'intervention -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">
+                    <i class="fas fa-file-signature mr-2 text-gray-600"></i>Billets d'Intervention
+                </h2>
+
+                {% if billets %}
+                <div class="space-y-4">
+                    {% for billet in billets %}
+                    <div class="border border-gray-200 rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <div>
+                                <span class="font-medium text-gray-900">{{ billet.numero_billet }}</span>
+                                <span class="ml-2 px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
+                                    {{ billet.get_type_intervention_display }}
+                                </span>
+                            </div>
+                            <span class="text-sm text-gray-600">{{ billet.duree_estimee }}h estimées</span>
+                        </div>
+                        
+                        <div class="text-sm text-gray-600 space-y-1">
+                            <p><strong>Développeur:</strong> {{ billet.developpeur_autorise.get_full_name }}</p>
+                            <p><strong>Autorisé par:</strong> {{ billet.autorise_par.get_full_name }}</p>
+                            <p><strong>Date:</strong> {{ billet.date_autorisation|date:"d/m/Y H:i" }}</p>
+                            {% if billet.instructions %}
+                            <p><strong>Instructions:</strong> {{ billet.instructions }}</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Interventions -->
+                        {% if billet.interventions.all %}
+                        <div class="mt-4 pt-4 border-t border-gray-200">
+                            <h4 class="text-sm font-medium text-gray-900 mb-2">Interventions</h4>
+                            {% for intervention in billet.interventions.all %}
+                            <div class="bg-gray-50 rounded p-3 mb-2">
+                                <p class="text-sm text-gray-900 mb-2">{{ intervention.description_actions }}</p>
+                                <div class="text-xs text-gray-600 space-y-1">
+                                    <p><strong>Temps passé:</strong> {{ intervention.temps_passe }}h</p>
+                                    <p><strong>Date:</strong> {{ intervention.date_debut|date:"d/m/Y H:i" }}</p>
+                                    {% if intervention.correctif_applique %}
+                                    <p><strong>Correctif:</strong> {{ intervention.correctif_applique }}</p>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Statut technique -->
+                                {% if intervention.statut_technique %}
+                                <div class="mt-3 pt-3 border-t border-gray-300">
+                                    <h5 class="text-xs font-medium text-gray-900 mb-2">📋 Statut Technique</h5>
+                                    <div class="text-xs text-gray-600 space-y-1">
+                                        <p><strong>Cause:</strong> {{ intervention.statut_technique.cause_reelle|truncatewords:20 }}</p>
+                                        <p><strong>Solution:</strong> {{ intervention.statut_technique.solution_apportee|truncatewords:20 }}</p>
+                                        {% if intervention.statut_technique.valide_par %}
+                                        <p class="text-green-600">
+                                            <i class="fas fa-check-circle mr-1"></i>
+                                            Validé par {{ intervention.statut_technique.valide_par.get_full_name }}
+                                        </p>
+                                        {% else %}
+                                        <p class="text-orange-600">
+                                            <i class="fas fa-clock mr-1"></i>En attente de validation
+                                        </p>
+                                        {% if peut_emettre_billet %}
+                                        <button onclick="validerStatut('{{ intervention.statut_technique.id }}')" 
+                                                class="mt-2 text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded">
+                                            Valider le Statut
+                                        </button>
+                                        {% endif %}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        {% if peut_intervenir and user == billet.developpeur_autorise %}
+                        <div class="mt-4 pt-4 border-t border-gray-200">
+                            <a href="{% url 'enregistrer_intervention' projet.id ticket.id billet.id %}" 
+                               class="text-sm bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded inline-block">
+                                <i class="fas fa-tools mr-2"></i>Enregistrer une Intervention
+                            </a>
+                        </div>
+                        {% endif %}
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-gray-500 text-center py-4">Aucun billet d'intervention émis</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Colonne latérale -->
+        <div class="space-y-6">
+            <!-- Statut et badges -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h3 class="text-sm font-semibold text-gray-900 mb-4">Statut</h3>
+                <div class="space-y-3">
+                    <div>
+                        {% if ticket.statut == 'OUVERT' %}
+                        <span class="px-3 py-1 text-sm font-semibold rounded-full bg-blue-100 text-blue-800">
+                            <i class="fas fa-folder-open mr-1"></i>Ouvert
+                        </span>
+                        {% elif ticket.statut == 'EN_COURS' %}
+                        <span class="px-3 py-1 text-sm font-semibold rounded-full bg-orange-100 text-orange-800">
+                            <i class="fas fa-spinner mr-1"></i>En cours
+                        </span>
+                        {% elif ticket.statut == 'RESOLU' %}
+                        <span class="px-3 py-1 text-sm font-semibold rounded-full bg-green-100 text-green-800">
+                            <i class="fas fa-check-circle mr-1"></i>Résolu
+                        </span>
+                        {% elif ticket.statut == 'FERME' %}
+                        <span class="px-3 py-1 text-sm font-semibold rounded-full bg-gray-100 text-gray-800">
+                            <i class="fas fa-lock mr-1"></i>Fermé
+                        </span>
+                        {% else %}
+                        <span class="px-3 py-1 text-sm font-semibold rounded-full bg-red-100 text-red-800">
+                            <i class="fas fa-ban mr-1"></i>Rejeté
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    {% if ticket.est_payant %}
+                    <div class="bg-orange-50 border-l-4 border-orange-400 p-3">
+                        <p class="text-xs text-orange-700">
+                            <i class="fas fa-dollar-sign mr-1"></i>
+                            <strong>Intervention payante</strong>
+                        </p>
+                    </div>
+                    {% endif %}
+
+                    {% if ticket.sla_depasse %}
+                    <div class="bg-red-50 border-l-4 border-red-400 p-3">
+                        <p class="text-xs text-red-700">
+                            <i class="fas fa-exclamation-triangle mr-1"></i>
+                            <strong>SLA dépassé</strong>
+                        </p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Détails -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h3 class="text-sm font-semibold text-gray-900 mb-4">Détails</h3>
+                <div class="space-y-3 text-sm">
+                    <div>
+                        <span class="text-gray-600">Gravité:</span>
+                        <span class="ml-2 font-medium">{{ ticket.get_gravite_display }}</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-600">Origine:</span>
+                        <span class="ml-2 font-medium">{{ ticket.get_origine_display }}</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-600">Créé par:</span>
+                        <span class="ml-2 font-medium">{{ ticket.cree_par.get_full_name }}</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-600">Date création:</span>
+                        <span class="ml-2 font-medium">{{ ticket.date_creation|date:"d/m/Y H:i" }}</span>
+                    </div>
+                    {% if ticket.assigne_a %}
+                    <div>
+                        <span class="text-gray-600">Assigné à:</span>
+                        <span class="ml-2 font-medium">{{ ticket.assigne_a.get_full_name }}</span>
+                    </div>
+                    {% endif %}
+                    {% if ticket.contrat_garantie %}
+                    <div>
+                        <span class="text-gray-600">Contrat:</span>
+                        <span class="ml-2 font-medium">{{ ticket.contrat_garantie.get_type_garantie_display }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function validerStatut(statutId) {
+    if (!confirm('Confirmer la validation du statut technique?\n\nLe ticket sera automatiquement marqué comme RÉSOLU.')) {
+        return;
+    }
+    
+    fetch(`{% url 'valider_statut_technique' projet.id ticket.id '00000000-0000-0000-0000-000000000000' %}`.replace('00000000-0000-0000-0000-000000000000', statutId), {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/x-www-form-urlencoded'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('Erreur: ' + data.error);
+        }
+    });
+}
+
+function fermerTicket() {
+    if (!confirm('Confirmer la fermeture du ticket?\n\nCette action est définitive.')) {
+        return;
+    }
+    
+    fetch(`{% url 'fermer_ticket' projet.id ticket.id %}`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/x-www-form-urlencoded'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('Erreur: ' + data.error);
+        }
+    });
+}
+</script>
+{% endblock %}

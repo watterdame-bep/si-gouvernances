@@ -5,7 +5,7 @@ from . import views_taches_module
 from . import views_admin_profile
 from . import views_tests
 from . import views_deploiement
-from . import views_deploiement
+from . import views_maintenance
 
 urlpatterns = [
     path('', views.dashboard_view, name='dashboard'),
@@ -164,4 +164,28 @@ urlpatterns = [
     path('projets/<uuid:projet_id>/mes-modules/', views.mes_modules_view, name='mes_modules'),
     path('projets/<uuid:projet_id>/modules/<int:module_id>/taches/creer/', views.creer_tache_module_view, name='creer_tache_module'),
     path('projets/<uuid:projet_id>/taches-module/<int:tache_id>/statut/', views.modifier_statut_tache_module_view, name='modifier_statut_tache_module'),
+    
+    # ============================================================================
+    # SYSTÈME DE MAINTENANCE
+    # ============================================================================
+    
+    # Gestion des contrats de garantie
+    path('projets/<uuid:projet_id>/contrats/', views_maintenance.gestion_contrats_view, name='gestion_contrats'),
+    path('projets/<uuid:projet_id>/contrats/creer/', views_maintenance.creer_contrat_view, name='creer_contrat'),
+    
+    # Gestion des tickets de maintenance
+    path('projets/<uuid:projet_id>/tickets/', views_maintenance.gestion_tickets_view, name='gestion_tickets'),
+    path('projets/<uuid:projet_id>/tickets/creer/', views_maintenance.creer_ticket_view, name='creer_ticket'),
+    path('projets/<uuid:projet_id>/tickets/<uuid:ticket_id>/', views_maintenance.detail_ticket_view, name='detail_ticket'),
+    path('projets/<uuid:projet_id>/tickets/<uuid:ticket_id>/fermer/', views_maintenance.fermer_ticket_view, name='fermer_ticket'),
+    
+    # Gestion des billets d'intervention
+    path('projets/<uuid:projet_id>/tickets/<uuid:ticket_id>/emettre-billet/', views_maintenance.emettre_billet_view, name='emettre_billet'),
+    
+    # Gestion des interventions
+    path('projets/<uuid:projet_id>/tickets/<uuid:ticket_id>/billets/<uuid:billet_id>/intervenir/', views_maintenance.enregistrer_intervention_view, name='enregistrer_intervention'),
+    
+    # Gestion du statut technique
+    path('projets/<uuid:projet_id>/tickets/<uuid:ticket_id>/interventions/<uuid:intervention_id>/statut/', views_maintenance.rediger_statut_technique_view, name='rediger_statut_technique'),
+    path('projets/<uuid:projet_id>/tickets/<uuid:ticket_id>/statuts/<uuid:statut_id>/valider/', views_maintenance.valider_statut_technique_view, name='valider_statut_technique'),
 ]

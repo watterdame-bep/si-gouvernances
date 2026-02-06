@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Nouveau Ticket - {{ projet.nom }}{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-6">
+        <a href="{% url 'gestion_tickets' projet.id %}" class="text-blue-600 hover:text-blue-800 text-sm mb-2 inline-flex items-center">
+            <i class="fas fa-arrow-left mr-2"></i> Retour aux tickets
+        </a>
+        <h1 class="text-3xl font-bold text-gray-900 mt-2">
+            <i class="fas fa-ticket-alt text-blue-600 mr-3"></i>Nouveau Ticket de Maintenance
+        </h1>
+        <p class="text-gray-600 mt-1">{{ projet.nom }}</p>
+    </div>
+
+    {% if contrats_actifs|length == 0 %}
+    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+        <div class="flex">
+            <i class="fas fa-exclamation-triangle text-yellow-400 mr-3 mt-1"></i>
+            <div>
+                <p class="text-sm text-yellow-700">
+                    <strong>Attention:</strong> Aucun contrat de garantie actif. Ce ticket sera marqué comme PAYANT.
+                </p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <form method="POST">
+            {% csrf_token %}
+            
+            <div class="space-y-6">
+                <div>
+                    <label for="titre" class="block text-sm font-medium text-gray-700 mb-2">
+                        Titre du Problème <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="titre" name="titre" required 
+                           placeholder="Ex: Erreur lors du paiement par carte bancaire"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <div>
+                    <label for="description_probleme" class="block text-sm font-medium text-gray-700 mb-2">
+                        Description Détaillée <span class="text-red-500">*</span>
+                    </label>
+                    <textarea id="description_probleme" name="description_probleme" required rows="6"
+                              placeholder="Décrivez le problème en détail..."
+                              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"></textarea>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="gravite" class="block text-sm font-medium text-gray-700 mb-2">
+                            Gravité <span class="text-red-500">*</span>
+                        </label>
+                        <select id="gravite" name="gravite" required 
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                            <option value="">Sélectionner...</option>
+                            <option value="MINEUR">🔵 Mineur</option>
+                            <option value="MAJEUR">🟠 Majeur</option>
+                            <option value="CRITIQUE">🔴 Critique</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="origine" class="block text-sm font-medium text-gray-700 mb-2">
+                            Origine <span class="text-red-500">*</span>
+                        </label>
+                        <select id="origine" name="origine" required 
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                            <option value="">Sélectionner...</option>
+                            <option value="CLIENT">👤 Client</option>
+                            <option value="MONITORING">📊 Monitoring</option>
+                            <option value="INTERNE">🏢 Interne</option>
+                        </select>
+                    </div>
+                </div>
+
+                {% if contrats_actifs %}
+                <div>
+                    <label for="contrat_garantie" class="block text-sm font-medium text-gray-700 mb-2">
+                        Contrat de Garantie
+                    </label>
+                    <select id="contrat_garantie" name="contrat_garantie" 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <option value="">Sélectionner un contrat...</option>
+                        {% for contrat in contrats_actifs %}
+                        <option value="{{ contrat.id }}">
+                            {{ contrat.get_type_garantie_display }} ({{ contrat.date_debut|date:"d/m/Y" }} → {{ contrat.date_fin|date:"d/m/Y" }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500">Si sélectionné, le ticket sera couvert par la garantie</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="flex justify-end space-x-3 mt-8 pt-6 border-t">
+                <a href="{% url 'gestion_tickets' projet.id %}" 
+                   class="px-6 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg">
+                    Annuler
+                </a>
+                <button type="submit" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
+                    <i class="fas fa-check mr-2"></i>Créer le Ticket
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
