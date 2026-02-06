@@ -162,12 +162,12 @@
                 </div>
             </div>
         </div>
-        <!-- Liste des tâches - Grille moderne -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+        <!-- Liste des tâches - Tableau moderne -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             <div class="p-4 border-b border-gray-200">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center">
-                        <i class="fas fa-th-large text-gray-600 mr-2"></i>
+                        <i class="fas fa-table text-gray-600 mr-2"></i>
                         <h2 class="text-lg font-semibold text-gray-900">Tâches de l'Étape</h2>
                     </div>
                     <span class="text-sm text-gray-500">{{ taches.count }} tâche{{ taches.count|pluralize }}</span>
@@ -175,144 +175,184 @@
             </div>
             
             {% if taches %}
-            <!-- Grille moderne des tâches -->
-            <div class="p-4">
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {% for tache in taches %}
-                    <div class="bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 hover:shadow-md transition-all duration-200" 
-                         data-tache-id="{{ tache.id }}" data-responsable-id="{% if tache.responsable %}{{ tache.responsable.id }}{% endif %}">
-                        
-                        <!-- Header de la carte -->
-                        <div class="p-4">
-                            <div class="flex items-start justify-between mb-3">
-                                <div class="flex-1 mr-3">
-                                    <h3 class="text-sm font-semibold text-gray-900 mb-2 line-clamp-2">
-                                        {{ tache.nom }}
-                                    </h3>
-                                    
-                                    <!-- Badges compacts -->
-                                    <div class="flex items-center space-x-2 mb-3">
-                                        <!-- Badge tâche spéciale -->
+            <!-- Tableau moderne -->
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50 border-b border-gray-200">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                <i class="fas fa-tasks mr-1"></i>Tâche
+                            </th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                <i class="fas fa-info-circle mr-1"></i>Statut
+                            </th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                <i class="fas fa-exclamation-circle mr-1"></i>Priorité
+                            </th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                <i class="fas fa-user mr-1"></i>Responsable
+                            </th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                <i class="fas fa-chart-line mr-1"></i>Progression
+                            </th>
+                            <th class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                <i class="fas fa-cog mr-1"></i>Actions
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200" data-tache-id="{{ tache.id }}" data-responsable-id="{% if tache.responsable %}{{ tache.responsable.id }}{% endif %}">
+                        {% for tache in taches %}
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <!-- Nom de la tâche -->
+                            <td class="px-4 py-4">
+                                <div class="flex items-start">
+                                    <div class="flex-1">
+                                        <div class="text-sm font-medium text-gray-900 mb-1">
+                                            {{ tache.nom }}
+                                        </div>
                                         {% if tache.ajoutee_apres_cloture %}
-                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                                             <i class="fas fa-star mr-1"></i>Spéciale
                                         </span>
                                         {% endif %}
-                                        
-                                        <!-- Badge statut -->
-                                        <span class="status-badge status-{{ tache.statut|lower }}">
-                                            {% if tache.statut == 'A_FAIRE' %}
-                                                <i class="fas fa-clock mr-1"></i>À Faire
-                                            {% elif tache.statut == 'EN_COURS' %}
-                                                <i class="fas fa-play mr-1"></i>En Cours
-                                            {% elif tache.statut == 'TERMINEE' %}
-                                                <i class="fas fa-check mr-1"></i>Terminée
-                                            {% elif tache.statut == 'BLOQUEE' %}
-                                                <i class="fas fa-exclamation-triangle mr-1"></i>Bloquée
-                                            {% endif %}
-                                        </span>
-                                        
-                                        <!-- Badge priorité -->
-                                        <span class="priority-badge priority-{{ tache.priorite|lower }}">
-                                            {% if tache.priorite == 'CRITIQUE' %}
-                                                <i class="fas fa-exclamation-circle mr-1"></i>Critique
-                                            {% elif tache.priorite == 'HAUTE' %}
-                                                <i class="fas fa-arrow-up mr-1"></i>Haute
-                                            {% elif tache.priorite == 'MOYENNE' %}
-                                                <i class="fas fa-minus mr-1"></i>Moyenne
-                                            {% else %}
-                                                <i class="fas fa-arrow-down mr-1"></i>Basse
-                                            {% endif %}
-                                        </span>
                                     </div>
                                 </div>
-                                
-                                <!-- Actions uniques -->
+                            </td>
+                            
+                            <!-- Statut -->
+                            <td class="px-4 py-4">
+                                <span class="status-badge status-{{ tache.statut|lower }}">
+                                    {% if tache.statut == 'A_FAIRE' %}
+                                        <i class="fas fa-clock mr-1"></i>À Faire
+                                    {% elif tache.statut == 'EN_COURS' %}
+                                        <i class="fas fa-play mr-1"></i>En Cours
+                                    {% elif tache.statut == 'TERMINEE' %}
+                                        <i class="fas fa-check mr-1"></i>Terminée
+                                    {% elif tache.statut == 'BLOQUEE' %}
+                                        <i class="fas fa-exclamation-triangle mr-1"></i>Bloquée
+                                    {% endif %}
+                                </span>
+                            </td>
+                            
+                            <!-- Priorité -->
+                            <td class="px-4 py-4">
+                                <span class="priority-badge priority-{{ tache.priorite|lower }}">
+                                    {% if tache.priorite == 'CRITIQUE' %}
+                                        <i class="fas fa-exclamation-circle mr-1"></i>Critique
+                                    {% elif tache.priorite == 'HAUTE' %}
+                                        <i class="fas fa-arrow-up mr-1"></i>Haute
+                                    {% elif tache.priorite == 'MOYENNE' %}
+                                        <i class="fas fa-minus mr-1"></i>Moyenne
+                                    {% else %}
+                                        <i class="fas fa-arrow-down mr-1"></i>Basse
+                                    {% endif %}
+                                </span>
+                            </td>
+                            
+                            <!-- Responsable -->
+                            <td class="px-4 py-4">
+                                <div class="flex items-center text-sm">
+                                    {% if tache.responsable %}
+                                    <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center mr-2">
+                                        <span class="text-white text-xs font-bold">{{ tache.responsable.first_name.0 }}</span>
+                                    </div>
+                                    <span class="text-gray-700">{{ tache.responsable.get_full_name }}</span>
+                                    {% else %}
+                                    <i class="fas fa-user-slash text-orange-400 mr-2"></i>
+                                    <span class="text-orange-600 text-sm">Non assignée</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            
+                            <!-- Progression -->
+                            <td class="px-4 py-4">
+                                <div class="flex items-center">
+                                    <div class="w-full bg-gray-200 rounded-full h-2 mr-2" style="max-width: 100px;">
+                                        <div class="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                                             style="width: {{ tache.pourcentage_completion }}%"></div>
+                                    </div>
+                                    <span class="text-xs font-medium text-gray-600 whitespace-nowrap">{{ tache.pourcentage_completion }}%</span>
+                                </div>
+                            </td>
+                            
+                            <!-- Actions -->
+                            <td class="px-4 py-4">
                                 {% if can_create %}
-                                <div class="flex flex-col space-y-1">
-                                    {% if not tache.responsable and tache.statut != 'TERMINEE' %}
+                                <div class="flex items-center justify-center space-x-2">
+                                    <!-- Bouton Voir -->
+                                    <button onclick="voirDetailsTache('{{ tache.id }}', '{{ tache.nom|escapejs }}', '{{ tache.description|escapejs }}', '{{ tache.responsable.get_full_name|default:"Non assignée"|escapejs }}', '{{ tache.date_creation|date:"d/m/Y" }}', '{{ tache.pourcentage_completion }}')"
+                                            class="text-blue-600 hover:text-blue-800 p-1.5 rounded transition-colors"
+                                            title="Voir détails">
+                                        <i class="fas fa-eye text-sm"></i>
+                                    </button>
+                                    
+                                    {% if tache.statut != 'TERMINEE' %}
+                                    <!-- Bouton Assigner/Transférer -->
+                                    {% if not tache.responsable %}
                                     <button onclick="assignerTache('{{ tache.id }}')"
-                                            class="text-blue-600 hover:text-blue-800 p-1 rounded transition-colors"
+                                            class="text-blue-600 hover:text-blue-800 p-1.5 rounded transition-colors"
                                             title="Assigner">
                                         <i class="fas fa-user-plus text-sm"></i>
                                     </button>
-                                    {% elif tache.responsable and tache.statut != 'TERMINEE' %}
+                                    {% else %}
                                     <button onclick="transfererTache('{{ tache.id }}')"
-                                            class="text-indigo-600 hover:text-indigo-800 p-1 rounded transition-colors"
+                                            class="text-indigo-600 hover:text-indigo-800 p-1.5 rounded transition-colors"
                                             title="Transférer">
                                         <i class="fas fa-exchange-alt text-sm"></i>
                                     </button>
                                     {% endif %}
                                     
-                                    {% if tache.statut != 'TERMINEE' %}
-                                    <button onclick="terminerTache('{{ tache.id }}')"
-                                            class="text-green-600 hover:text-green-800 p-1 rounded transition-colors"
-                                            title="Terminer">
-                                        <i class="fas fa-check text-sm"></i>
-                                    </button>
-                                    
+                                    <!-- Bouton Modifier -->
                                     <a href="{% url 'modifier_tache_etape' projet.id etape.id tache.id %}"
-                                       class="text-gray-600 hover:text-gray-800 p-1 rounded transition-colors"
+                                       class="text-gray-600 hover:text-gray-800 p-1.5 rounded transition-colors"
                                        title="Modifier">
                                         <i class="fas fa-edit text-sm"></i>
                                     </a>
-                                    {% endif %}
                                     
                                     <!-- Bouton Gérer les Tests (uniquement pour étape TEST) -->
                                     {% if etape.type_etape.nom == 'TESTS' %}
-                                    <button onclick="gererCasTests('{{ tache.id }}', '{{ tache.nom|escapejs }}')"
-                                            class="text-purple-600 hover:text-purple-800 p-1 rounded transition-colors"
-                                            title="Gérer les cas de test">
+                                    <a href="{% url 'gestion_cas_tests_tache' projet.id etape.id tache.id %}"
+                                       class="text-purple-600 hover:text-purple-800 p-1.5 rounded transition-colors"
+                                       title="Gérer les cas de test">
                                         <i class="fas fa-vial text-sm"></i>
-                                    </button>
+                                    </a>
                                     {% endif %}
                                     
-                                    <button onclick="voirDetailsTache('{{ tache.id }}', '{{ tache.nom|escapejs }}', '{{ tache.description|escapejs }}', '{{ tache.responsable.get_full_name|default:"Non assignée"|escapejs }}', '{{ tache.date_creation|date:"d/m/Y" }}', '{{ tache.pourcentage_completion }}')"
-                                            class="text-blue-600 hover:text-blue-800 p-1 rounded transition-colors"
-                                            title="Voir détails">
-                                        <i class="fas fa-eye text-sm"></i>
+                                    <!-- Bouton Gérer les Déploiements (uniquement pour étape DEPLOIEMENT) -->
+                                    {% if etape.type_etape.nom == 'DEPLOIEMENT' %}
+                                    <a href="{% url 'gestion_deploiements_tache' projet.id etape.id tache.id %}"
+                                       class="text-blue-600 hover:text-blue-800 p-1.5 rounded transition-colors"
+                                       title="Gérer les déploiements">
+                                        <i class="fas fa-rocket text-sm"></i>
+                                    </a>
+                                    {% endif %}
+                                    
+                                    <!-- Bouton Terminer -->
+                                    <button onclick="terminerTache('{{ tache.id }}')"
+                                            class="text-green-600 hover:text-green-800 p-1.5 rounded transition-colors"
+                                            title="Terminer">
+                                        <i class="fas fa-check text-sm"></i>
                                     </button>
-                                </div>
-                                {% endif %}
-                            </div>
-                            
-                            <!-- Progression (si > 0) -->
-                            {% if tache.pourcentage_completion > 0 %}
-                            <div class="mb-3">
-                                <div class="flex items-center justify-between text-xs text-gray-600 mb-1">
-                                    <span>Progression</span>
-                                    <span>{{ tache.pourcentage_completion }}%</span>
-                                </div>
-                                <div class="w-full bg-gray-200 rounded-full h-2">
-                                    <div class="bg-blue-600 h-2 rounded-full transition-all duration-300" 
-                                         style="width: {{ tache.pourcentage_completion }}%"></div>
-                                </div>
-                            </div>
-                            {% endif %}
-                            
-                            <!-- Informations essentielles -->
-                            <div class="space-y-1 text-xs text-gray-500">
-                                <!-- Responsable -->
-                                <div class="flex items-center">
-                                    {% if tache.responsable %}
-                                    <i class="fas fa-user mr-2 text-gray-400 w-3"></i>
-                                    <span>{{ tache.responsable.get_full_name }}</span>
                                     {% else %}
-                                    <i class="fas fa-user-slash mr-2 text-orange-400 w-3"></i>
-                                    <span class="text-orange-600">Non assignée</span>
+                                    <!-- Tâche terminée - Afficher bouton imprimer pour étape TEST -->
+                                    {% if etape.type_etape.nom == 'TESTS' %}
+                                    <button onclick="imprimerRapportTache('{{ tache.id }}', '{{ tache.nom|escapejs }}')"
+                                            class="text-blue-600 hover:text-blue-800 p-1.5 rounded transition-colors"
+                                            title="Imprimer le rapport de tests">
+                                        <i class="fas fa-print text-sm"></i>
+                                    </button>
+                                    {% endif %}
+                                    <span class="inline-flex items-center px-2 py-1 bg-green-50 text-green-700 rounded text-xs font-medium ml-2">
+                                        <i class="fas fa-check-circle mr-1"></i>Terminée
+                                    </span>
                                     {% endif %}
                                 </div>
-                                
-                                <!-- Date de création -->
-                                <div class="flex items-center">
-                                    <i class="fas fa-calendar-alt mr-2 text-gray-400 w-3"></i>
-                                    <span>{{ tache.date_creation|date:"d/m/Y" }}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
             {% else %}
             <!-- État vide -->
@@ -1366,5 +1406,296 @@ document.addEventListener('keydown', function(e) {
         fermerModalDetails();
     }
 });
+
+// Fonction pour imprimer le rapport d'une tâche terminée
+function imprimerRapportTache(tacheId, tacheNom) {
+    // Créer une fenêtre pour le rapport
+    const printWindow = window.open('', '_blank');
+    
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Rapport de Tests - ${tacheNom}</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    padding: 20px;
+                    color: #333;
+                    max-width: 1200px;
+                    margin: 0 auto;
+                }
+                .header {
+                    text-align: center;
+                    border-bottom: 3px solid #333;
+                    padding-bottom: 20px;
+                    margin-bottom: 30px;
+                }
+                .header h1 {
+                    font-size: 28px;
+                    margin: 0 0 10px 0;
+                    color: #1a1a1a;
+                }
+                .header h2 {
+                    font-size: 20px;
+                    color: #666;
+                    margin: 5px 0;
+                }
+                .stats-grid {
+                    display: grid;
+                    grid-template-columns: repeat(3, 1fr);
+                    gap: 15px;
+                    margin-bottom: 30px;
+                }
+                .stat-card {
+                    border: 1px solid #ddd;
+                    padding: 15px;
+                    border-radius: 5px;
+                    text-align: center;
+                }
+                .stat-card.success {
+                    border-color: #10B981;
+                    background: #ECFDF5;
+                }
+                .stat-card.error {
+                    border-color: #EF4444;
+                    background: #FEF2F2;
+                }
+                .stat-card.info {
+                    border-color: #3B82F6;
+                    background: #EFF6FF;
+                }
+                .stat-card.warning {
+                    border-color: #F59E0B;
+                    background: #FFFBEB;
+                }
+                .stat-card.purple {
+                    border-color: #8B5CF6;
+                    background: #F5F3FF;
+                }
+                .stat-label {
+                    margin: 0;
+                    font-size: 14px;
+                    color: #666;
+                }
+                .stat-value {
+                    margin: 5px 0 0 0;
+                    font-size: 32px;
+                    font-weight: bold;
+                }
+                .stat-card.success .stat-value { color: #059669; }
+                .stat-card.error .stat-value { color: #DC2626; }
+                .stat-card.info .stat-value { color: #2563EB; }
+                .stat-card.warning .stat-value { color: #D97706; }
+                .stat-card.purple .stat-value { color: #7C3AED; }
+                
+                .section-title {
+                    font-size: 20px;
+                    font-weight: bold;
+                    border-bottom: 2px solid #ddd;
+                    padding-bottom: 10px;
+                    margin: 30px 0 20px 0;
+                }
+                
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-bottom: 30px;
+                }
+                th {
+                    background: #f3f4f6;
+                    padding: 12px;
+                    text-align: left;
+                    font-weight: bold;
+                    border: 1px solid #ddd;
+                    font-size: 12px;
+                    text-transform: uppercase;
+                }
+                td {
+                    padding: 10px 12px;
+                    border: 1px solid #ddd;
+                    font-size: 13px;
+                }
+                tr:nth-child(even) {
+                    background: #f9fafb;
+                }
+                
+                .badge {
+                    display: inline-block;
+                    padding: 4px 10px;
+                    border-radius: 12px;
+                    font-size: 11px;
+                    font-weight: bold;
+                }
+                .badge-success { background: #D1FAE5; color: #065F46; }
+                .badge-error { background: #FEE2E2; color: #991B1B; }
+                .badge-info { background: #DBEAFE; color: #1E40AF; }
+                .badge-warning { background: #FEF3C7; color: #92400E; }
+                .badge-gray { background: #F3F4F6; color: #374151; }
+                
+                .footer {
+                    margin-top: 40px;
+                    padding-top: 20px;
+                    border-top: 2px solid #333;
+                    text-align: center;
+                    font-size: 12px;
+                    color: #666;
+                }
+                
+                .loading {
+                    text-align: center;
+                    padding: 40px;
+                    font-size: 18px;
+                    color: #666;
+                }
+                
+                @media print {
+                    body { padding: 10px; }
+                    .stat-card { page-break-inside: avoid; }
+                    table { page-break-inside: auto; }
+                    tr { page-break-inside: avoid; page-break-after: auto; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="loading">⏳ Chargement des données...</div>
+        </body>
+        </html>
+    `);
+    
+    // Charger les données via l'API
+    fetch('{% url "api_cas_tests_tache" projet.id etape.id "00000000-0000-0000-0000-000000000000" %}'.replace('00000000-0000-0000-0000-000000000000', tacheId))
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const stats = data.stats;
+                const casTests = data.cas_tests;
+                
+                // Générer le tableau des cas de test
+                let tableRows = '';
+                casTests.forEach((cas, index) => {
+                    let statutBadge = '';
+                    if (cas.statut === 'PASSE') {
+                        statutBadge = '<span class="badge badge-success">✓ ' + cas.statut_display + '</span>';
+                    } else if (cas.statut === 'ECHEC') {
+                        statutBadge = '<span class="badge badge-error">✗ ' + cas.statut_display + '</span>';
+                    } else if (cas.statut === 'EN_COURS') {
+                        statutBadge = '<span class="badge badge-info">▶ ' + cas.statut_display + '</span>';
+                    } else if (cas.statut === 'BLOQUE') {
+                        statutBadge = '<span class="badge badge-warning">⊘ ' + cas.statut_display + '</span>';
+                    } else {
+                        statutBadge = '<span class="badge badge-gray">○ ' + cas.statut_display + '</span>';
+                    }
+                    
+                    tableRows += '<tr>' +
+                        '<td style="text-align: center; font-weight: bold;">' + (index + 1) + '</td>' +
+                        '<td style="font-family: monospace; font-weight: bold;">' + cas.numero_cas + '</td>' +
+                        '<td><strong>' + cas.nom + '</strong><br><small style="color: #666;">' + cas.description + '</small></td>' +
+                        '<td style="text-align: center;">' + statutBadge + '</td>' +
+                        '<td style="text-align: center;">' + cas.priorite + '</td>' +
+                        '<td>' + cas.executeur + '</td>' +
+                        '<td style="font-size: 11px;">' + cas.date_execution + '</td>' +
+                        '<td style="font-size: 11px;">' + cas.resultats_obtenus + '</td>' +
+                        '</tr>';
+                });
+                
+                // Générer le tableau HTML
+                let tableHTML = '';
+                if (casTests.length > 0) {
+                    tableHTML = '<table>' +
+                        '<thead><tr>' +
+                        '<th style="width: 40px;">#</th>' +
+                        '<th style="width: 100px;">Numéro</th>' +
+                        '<th>Cas de Test</th>' +
+                        '<th style="width: 100px;">Statut</th>' +
+                        '<th style="width: 80px;">Priorité</th>' +
+                        '<th style="width: 120px;">Exécuteur</th>' +
+                        '<th style="width: 120px;">Date</th>' +
+                        '<th style="width: 200px;">Résultats</th>' +
+                        '</tr></thead>' +
+                        '<tbody>' + tableRows + '</tbody>' +
+                        '</table>';
+                } else {
+                    tableHTML = '<p style="text-align: center; padding: 40px; color: #999;">Aucun cas de test disponible</p>';
+                }
+                
+                // Générer le contenu complet
+                printWindow.document.body.innerHTML = 
+                    '<div class="header">' +
+                        '<h1>📋 Rapport de Tests</h1>' +
+                        '<h2>' + data.projet.nom + '</h2>' +
+                        '<p style="font-size: 16px; margin: 10px 0;">' + data.etape.nom + ' - ' + tacheNom + '</p>' +
+                        '<p style="font-size: 14px; color: #999;">Généré le ' + new Date().toLocaleString('fr-FR', { 
+                            day: '2-digit', 
+                            month: '2-digit', 
+                            year: 'numeric', 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                        }) + '</p>' +
+                    '</div>' +
+                    '<h3 class="section-title">📊 Statistiques Globales</h3>' +
+                    '<div class="stats-grid">' +
+                        '<div class="stat-card">' +
+                            '<p class="stat-label">Total des cas</p>' +
+                            '<p class="stat-value">' + stats.total + '</p>' +
+                        '</div>' +
+                        '<div class="stat-card success">' +
+                            '<p class="stat-label">Cas passés</p>' +
+                            '<p class="stat-value">' + stats.passes + '</p>' +
+                        '</div>' +
+                        '<div class="stat-card error">' +
+                            '<p class="stat-label">Cas échoués</p>' +
+                            '<p class="stat-value">' + stats.echecs + '</p>' +
+                        '</div>' +
+                        '<div class="stat-card info">' +
+                            '<p class="stat-label">En cours</p>' +
+                            '<p class="stat-value">' + stats.en_cours + '</p>' +
+                        '</div>' +
+                        '<div class="stat-card warning">' +
+                            '<p class="stat-label">Bloqués</p>' +
+                            '<p class="stat-value">' + stats.bloques + '</p>' +
+                        '</div>' +
+                        '<div class="stat-card purple">' +
+                            '<p class="stat-label">Taux de réussite</p>' +
+                            '<p class="stat-value">' + stats.pourcentage_reussite + '%</p>' +
+                        '</div>' +
+                    '</div>' +
+                    '<h3 class="section-title">📝 Détails des Cas de Test</h3>' +
+                    tableHTML +
+                    '<div class="footer">' +
+                        '<p><strong>' + data.projet.nom + '</strong> - Rapport de tests généré le ' + new Date().toLocaleString('fr-FR') + '</p>' +
+                        '<p>SI-Gouvernance JCM</p>' +
+                    '</div>';
+                
+                // Attendre un peu puis imprimer
+                setTimeout(function() {
+                    printWindow.print();
+                }, 500);
+            } else {
+                printWindow.document.body.innerHTML = 
+                    '<div class="header">' +
+                        '<h1>Rapport de Tests</h1>' +
+                        '<h2>{{ projet.nom }}</h2>' +
+                        '<p>{{ etape.type_etape.get_nom_display }} - ' + tacheNom + '</p>' +
+                    '</div>' +
+                    '<div style="text-align: center; padding: 40px; color: #DC2626;">' +
+                        '<p style="font-size: 18px;">❌ Erreur lors du chargement des données</p>' +
+                        '<p style="font-size: 14px;">' + data.error + '</p>' +
+                    '</div>';
+            }
+        })
+        .catch(function(error) {
+            printWindow.document.body.innerHTML = 
+                '<div class="header">' +
+                    '<h1>Rapport de Tests</h1>' +
+                    '<h2>{{ projet.nom }}</h2>' +
+                    '<p>{{ etape.type_etape.get_nom_display }} - ' + tacheNom + '</p>' +
+                '</div>' +
+                '<div style="text-align: center; padding: 40px; color: #DC2626;">' +
+                    '<p style="font-size: 18px;">❌ Erreur de communication</p>' +
+                    '<p style="font-size: 14px;">' + error.message + '</p>' +
+                '</div>';
+        });
+}
 </script>
 {% endblock %}

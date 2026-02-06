@@ -4,6 +4,8 @@ from . import views_affectation
 from . import views_taches_module
 from . import views_admin_profile
 from . import views_tests
+from . import views_deploiement
+from . import views_deploiement
 
 urlpatterns = [
     path('', views.dashboard_view, name='dashboard'),
@@ -83,7 +85,9 @@ urlpatterns = [
     path('projets/<uuid:projet_id>/etapes/<uuid:etape_id>/tests/<uuid:test_id>/modifier/', views.modifier_test_view, name='modifier_test'),
     
     # Gestion des cas de test (CasTest) - Hiérarchie
-    path('projets/<uuid:projet_id>/etapes/<uuid:etape_id>/tests/<uuid:test_id>/cas-tests/creer/', views_tests.creer_cas_test_view, name='creer_cas_test'),
+    path('projets/<uuid:projet_id>/etapes/<uuid:etape_id>/taches/<uuid:tache_id>/cas-tests/', views_tests.gestion_cas_tests_tache_view, name='gestion_cas_tests_tache'),
+    path('projets/<uuid:projet_id>/etapes/<uuid:etape_id>/taches/<uuid:tache_id>/cas-tests/creer/', views_tests.creer_cas_test_view, name='creer_cas_test'),
+    path('projets/<uuid:projet_id>/etapes/<uuid:etape_id>/taches/<uuid:tache_id>/cas-tests/api/', views_tests.api_cas_tests_tache_view, name='api_cas_tests_tache'),
     path('projets/<uuid:projet_id>/etapes/<uuid:etape_id>/cas-tests/<uuid:cas_test_id>/executer/', views_tests.executer_cas_test_view, name='executer_cas_test'),
     path('projets/<uuid:projet_id>/etapes/<uuid:etape_id>/cas-tests/<uuid:cas_test_id>/details/', views_tests.details_cas_test_view, name='details_cas_test'),
     
@@ -97,6 +101,16 @@ urlpatterns = [
     # Validation des tests
     path('projets/<uuid:projet_id>/etapes/<uuid:etape_id>/validation/', views.validation_test_view, name='validation_test'),
     path('projets/<uuid:projet_id>/etapes/<uuid:etape_id>/valider/', views.valider_etape_test_view, name='valider_etape_test'),
+    
+    # ============================================================================
+    # SYSTÈME DE DÉPLOIEMENT V2 - Architecture hiérarchique
+    # ============================================================================
+    
+    # Gestion des déploiements d'une tâche
+    path('projets/<uuid:projet_id>/etapes/<uuid:etape_id>/taches/<uuid:tache_id>/deploiements/', views_deploiement.gestion_deploiements_tache_view, name='gestion_deploiements_tache'),
+    path('projets/<uuid:projet_id>/etapes/<uuid:etape_id>/taches/<uuid:tache_id>/deploiements/creer/', views_deploiement.creer_deploiement_view, name='creer_deploiement'),
+    path('projets/<uuid:projet_id>/etapes/<uuid:etape_id>/taches/<uuid:tache_id>/deploiements/<uuid:deploiement_id>/autoriser/', views_deploiement.autoriser_deploiement_view, name='autoriser_deploiement'),
+    path('projets/<uuid:projet_id>/etapes/<uuid:etape_id>/taches/<uuid:tache_id>/deploiements/<uuid:deploiement_id>/executer/', views_deploiement.executer_deploiement_view, name='executer_deploiement'),
     
     # Gestion des tâches pour les membres
     path('projets/<uuid:projet_id>/mes-taches/', views.mes_taches_view, name='mes_taches'),

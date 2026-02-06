@@ -1,0 +1,218 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Nouveau Déploiement - {{ tache.nom }} - {{ projet.nom }}{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-6">
+        <a href="{% url 'gestion_deploiements_tache' projet.id etape.id tache.id %}" class="text-blue-600 hover:text-blue-800 text-sm mb-2 inline-flex items-center">
+            <i class="fas fa-arrow-left mr-2"></i> Retour aux déploiements
+        </a>
+        <h1 class="text-3xl font-bold text-gray-900 mt-2">
+            <i class="fas fa-rocket text-blue-600 mr-3"></i>Nouveau Déploiement
+        </h1>
+        <p class="text-gray-600 mt-1">{{ tache.nom }} - {{ projet.nom }}</p>
+    </div>
+
+    {% if not tests_valides %}
+    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+        <div class="flex">
+            <i class="fas fa-exclamation-triangle text-yellow-400 mr-3 mt-1"></i>
+            <div>
+                <p class="text-sm text-yellow-700">
+                    <strong>Attention:</strong> L'étape TESTS doit être terminée avant de créer des déploiements.
+                </p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <form method="POST" action="{% url 'creer_deploiement' projet.id etape.id tache.id %}">
+            {% csrf_token %}
+            
+            <div class="space-y-6">
+                <!-- Version -->
+                <div>
+                    <label for="version" class="block text-sm font-medium text-gray-700 mb-2">
+                        Version <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" 
+                           id="version" 
+                           name="version" 
+                           required 
+                           placeholder="Ex: v1.2.0, 2.0.0, Release-2024-01"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <p class="mt-1 text-xs text-gray-500">Format recommandé: vX.Y.Z (ex: v1.2.0)</p>
+                </div>
+
+                <!-- Environnement -->
+                <div>
+                    <label for="environnement" class="block text-sm font-medium text-gray-700 mb-2">
+                        Environnement <span class="text-red-500">*</span>
+                    </label>
+                    <select id="environnement" 
+                            name="environnement" 
+                            required 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="">Sélectionner un environnement...</option>
+                        <option value="DEV">🔵 Développement (DEV)</option>
+                        <option value="TEST">🟡 Test (TEST)</option>
+                        <option value="PREPROD">🟠 Pré-production (PREPROD)</option>
+                        <option value="PROD">🔴 Production (PROD)</option>
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500">Choisissez l'environnement cible du déploiement</p>
+                </div>
+
+                <!-- Priorité -->
+                <div>
+                    <label for="priorite" class="block text-sm font-medium text-gray-700 mb-2">
+                        Priorité <span class="text-red-500">*</span>
+                    </label>
+                    <select id="priorite" 
+                            name="priorite" 
+                            required 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="BASSE">⬇️ Basse</option>
+                        <option value="NORMALE" selected>➡️ Normale</option>
+                        <option value="HAUTE">⬆️ Haute</option>
+                        <option value="CRITIQUE">🔥 Critique</option>
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500">Définit l'urgence du déploiement</p>
+                </div>
+
+                <!-- Description -->
+                <div>
+                    <label for="description" class="block text-sm font-medium text-gray-700 mb-2">
+                        Description <span class="text-red-500">*</span>
+                    </label>
+                    <textarea id="description" 
+                              name="description" 
+                              required 
+                              rows="5"
+                              placeholder="Décrivez les changements, les fonctionnalités déployées, les points d'attention..."
+                              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
+                    <p class="mt-1 text-xs text-gray-500">Détaillez le contenu et les objectifs de ce déploiement</p>
+                </div>
+
+                <!-- Responsable -->
+                <div>
+                    <label for="responsable" class="block text-sm font-medium text-gray-700 mb-2">
+                        Responsable <span class="text-red-500">*</span>
+                    </label>
+                    <select id="responsable" 
+                            name="responsable" 
+                            required 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="">Sélectionner un responsable...</option>
+                        {% for membre in equipe %}
+                        <option value="{{ membre.id }}">
+                            {{ membre.get_full_name }}
+                            {% if membre.role_systeme %}
+                            - {{ membre.role_systeme.get_nom_display }}
+                            {% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500">Personne en charge de superviser ce déploiement</p>
+                </div>
+
+                <!-- Date prévue -->
+                <div>
+                    <label for="date_prevue" class="block text-sm font-medium text-gray-700 mb-2">
+                        Date prévue (optionnel)
+                    </label>
+                    <input type="datetime-local" 
+                           id="date_prevue" 
+                           name="date_prevue"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <p class="mt-1 text-xs text-gray-500">Date et heure prévues pour le déploiement</p>
+                </div>
+            </div>
+
+            <!-- Informations importantes -->
+            <div class="mt-6 bg-blue-50 border-l-4 border-blue-400 p-4">
+                <div class="flex">
+                    <i class="fas fa-info-circle text-blue-400 mr-3 mt-1"></i>
+                    <div>
+                        <p class="text-sm text-blue-700 font-medium mb-2">Workflow de déploiement</p>
+                        <ol class="text-xs text-blue-700 space-y-1 list-decimal ml-4">
+                            <li>Le déploiement sera créé avec le statut "Prévu"</li>
+                            <li>Un Chef de projet devra l'autoriser avant exécution</li>
+                            <li>Un Admin ou Développeur pourra ensuite l'exécuter</li>
+                            <li>En cas d'échec, un incident sera créé automatiquement</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Boutons d'action -->
+            <div class="flex justify-end space-x-3 mt-8 pt-6 border-t border-gray-200">
+                <a href="{% url 'gestion_deploiements_tache' projet.id etape.id tache.id %}" 
+                   class="px-6 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
+                    <i class="fas fa-times mr-2"></i>Annuler
+                </a>
+                <button type="submit" 
+                        class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                        {% if not tests_valides %}disabled{% endif %}>
+                    <i class="fas fa-rocket mr-2"></i>Créer le Déploiement
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Auto-focus sur le premier champ
+document.getElementById('version').focus();
+
+// Validation du formulaire
+document.querySelector('form').addEventListener('submit', function(e) {
+    const version = document.getElementById('version').value.trim();
+    const environnement = document.getElementById('environnement').value;
+    const description = document.getElementById('description').value.trim();
+    const responsable = document.getElementById('responsable').value;
+    
+    if (!version || !environnement || !description || !responsable) {
+        e.preventDefault();
+        alert('Veuillez remplir tous les champs obligatoires (*)');
+        return false;
+    }
+    
+    // Confirmation pour PROD
+    if (environnement === 'PROD') {
+        if (!confirm('⚠️ Vous êtes sur le point de créer un déploiement en PRODUCTION.\n\nÊtes-vous sûr de vouloir continuer ?')) {
+            e.preventDefault();
+            return false;
+        }
+    }
+});
+
+// Suggestion de version basée sur l'environnement
+document.getElementById('environnement').addEventListener('change', function() {
+    const env = this.value;
+    const versionInput = document.getElementById('version');
+    
+    if (!versionInput.value) {
+        const today = new Date();
+        const dateStr = today.toISOString().split('T')[0].replace(/-/g, '');
+        
+        switch(env) {
+            case 'DEV':
+                versionInput.placeholder = `Ex: dev-${dateStr}`;
+                break;
+            case 'TEST':
+                versionInput.placeholder = `Ex: test-${dateStr}`;
+                break;
+            case 'PREPROD':
+                versionInput.placeholder = `Ex: v1.0.0-rc1`;
+                break;
+            case 'PROD':
+                versionInput.placeholder = `Ex: v1.0.0`;
+                break;
+        }
+    }
+});
+</script>
+{% endblock %}

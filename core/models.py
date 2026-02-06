@@ -305,6 +305,23 @@ class Utilisateur(AbstractUser):
         if self.membre:
             return self.membre.taux_horaire
         return self.taux_horaire  # Fallback sur l'ancien champ
+    
+    def est_chef_projet_de(self, projet):
+        """Vérifie si l'utilisateur est chef de projet sur un projet"""
+        if self.est_super_admin():
+            return True
+        affectation = self.affectations.filter(
+            projet=projet, 
+            date_fin__isnull=True,
+            est_responsable_principal=True
+        ).first()
+        return affectation is not None
+    
+    def est_developpeur(self):
+        """Vérifie si l'utilisateur a le rôle système développeur"""
+        if self.role_systeme:
+            return self.role_systeme.nom == 'DEVELOPPEUR'
+        return False
 
 class StatutProjet(models.Model):
     """États possibles d'un projet dans son cycle de vie"""
@@ -1124,6 +1141,7 @@ class TacheEtape(models.Model):
         ('EN_COURS', 'En cours'),
         ('TERMINEE', 'Terminée'),
         ('BLOQUEE', 'Bloquée'),
+        ('ECHEC', 'Échec'),
     ]
     
     PRIORITE_CHOICES = [
@@ -1232,6 +1250,7 @@ class TacheEtape(models.Model):
         blank=True,
         help_text="Justification pour l'ajout de cette tâche après clôture de l'étape"
     )
+    
     
     class Meta:
         verbose_name = "Tâche d'Étape"
@@ -1438,6 +1457,10 @@ class TacheEtape(models.Model):
             if nouveau_statut == 'TERMINEE':
                 self.date_fin_reelle = timezone.now()
             self.save()
+    
+    def mettre_a_jour_progression_depuis_cas_tests(self):
+        """Alias pour mettre_a_jour_statut_avec_sous_taches - utilisé par CasTest"""
+        self.mettre_a_jour_statut_avec_sous_taches()
     
     def get_statistiques_cas_tests(self):
         """Retourne les statistiques des cas de test pour cette tâche"""
@@ -2054,7 +2077,7 @@ class TacheTest(models.Model):
 
 
 class CasTest(models.Model):
-    """Cas de test individuel dans une tâche de test"""
+    """Cas de test individuel dans une tâche d'étape"""
     
     STATUT_CHOICES = [
         ('EN_ATTENTE', 'En attente'),
@@ -2075,8 +2098,8 @@ class CasTest(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     numero_cas = models.CharField(max_length=30, help_text="Auto-généré: AUTH-001, AUTH-002, etc.")
     
-    # Relations
-    tache_test = models.ForeignKey('TacheTest', on_delete=models.CASCADE, related_name='cas_tests')
+    # Relations - Utilise TacheEtape directement (correspond à la base de données)
+    tache_etape = models.ForeignKey('TacheEtape', on_delete=models.CASCADE, related_name='cas_tests')
     
     # Informations du cas
     nom = models.CharField(max_length=200, help_text="Ex: Connexion avec email valide")
@@ -2123,7 +2146,7 @@ class CasTest(models.Model):
     
     class Meta:
         ordering = ['ordre', 'date_creation']
-        unique_together = ['tache_test', 'numero_cas']
+        unique_together = ['tache_etape', 'numero_cas']
         verbose_name = "Cas de test"
         verbose_name_plural = "Cas de tests"
     
@@ -2134,8 +2157,8 @@ class CasTest(models.Model):
         # Auto-générer le numéro de cas si pas défini
         if not self.numero_cas:
             # Prendre le préfixe de la tâche parent et ajouter un numéro séquentiel
-            prefix = self.tache_test.nom[:4].upper().replace(' ', '')
-            existing_count = CasTest.objects.filter(tache_test=self.tache_test).count()
+            prefix = self.tache_etape.nom[:4].upper().replace(' ', '')
+            existing_count = CasTest.objects.filter(tache_etape=self.tache_etape).count()
             self.numero_cas = f"{prefix}-{existing_count + 1:03d}"
         
         super().save(*args, **kwargs)
@@ -2163,8 +2186,8 @@ class CasTest(models.Model):
         self.date_execution = timezone.now()
         self.save()
         
-        # Mettre à jour le statut de la tâche parent
-        self.tache_test.mettre_a_jour_statut()
+        # Mettre à jour la progression de la tâche d'étape parente
+        self.tache_etape.mettre_a_jour_progression_depuis_cas_tests()
     
     def marquer_comme_echec(self, executeur, resultats_obtenus=""):
         """Marquer le cas comme échoué"""
@@ -2174,8 +2197,8 @@ class CasTest(models.Model):
         self.date_execution = timezone.now()
         self.save()
         
-        # Mettre à jour le statut de la tâche parent
-        self.tache_test.mettre_a_jour_statut()
+        # Mettre à jour la progression de la tâche d'étape parente
+        self.tache_etape.mettre_a_jour_progression_depuis_cas_tests()
 
 class BugTest(models.Model):
     """Bugs découverts lors des tests - Version 1 simplifiée"""
@@ -2412,3 +2435,137 @@ def mettre_a_jour_validation_test_bug(sender, instance, **kwargs):
         validation.calculer_metriques()
     except (AttributeError, ValidationTest.DoesNotExist):
         pass
+
+
+# ============================================================================
+# MODÈLE DEPLOIEMENT - Architecture hiérarchique
+# ============================================================================
+
+class Deploiement(models.Model):
+    """
+    Déploiement spécifique lié à une tâche de déploiement
+    Architecture: TacheEtape (tâche de déploiement) → Deploiement (action technique)
+    """
+    STATUT_CHOICES = [
+        ('PREVU', 'Prévu'),
+        ('EN_COURS', 'En cours'),
+        ('REUSSI', 'Réussi'),
+        ('ECHEC', 'Échec'),
+        ('ANNULE', 'Annulé'),
+    ]
+    
+    ENVIRONNEMENT_CHOICES = [
+        ('DEV', 'Développement'),
+        ('TEST', 'Test'),
+        ('PREPROD', 'Pré-production'),
+        ('PROD', 'Production'),
+    ]
+    
+    PRIORITE_CHOICES = [
+        ('BASSE', 'Basse'),
+        ('NORMALE', 'Normale'),
+        ('HAUTE', 'Haute'),
+        ('CRITIQUE', 'Critique'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # Lien vers la tâche de déploiement parente
+    tache_deploiement = models.ForeignKey(
+        TacheEtape,
+        on_delete=models.CASCADE,
+        related_name='deploiements',
+        verbose_name='Tâche de déploiement'
+    )
+    
+    # Informations du déploiement
+    version = models.CharField(max_length=50, verbose_name='Version')
+    environnement = models.CharField(max_length=20, choices=ENVIRONNEMENT_CHOICES, verbose_name='Environnement')
+    description = models.TextField(verbose_name='Description')
+    
+    # Statut et priorité
+    statut = models.CharField(max_length=20, choices=STATUT_CHOICES, default='PREVU')
+    priorite = models.CharField(max_length=20, choices=PRIORITE_CHOICES, default='NORMALE')
+    
+    # Responsables
+    responsable = models.ForeignKey(Utilisateur, on_delete=models.SET_NULL, null=True, blank=True, related_name='deploiements_responsable')
+    executant = models.ForeignKey(Utilisateur, on_delete=models.SET_NULL, null=True, blank=True, related_name='deploiements_executes')
+    
+    # Gouvernance
+    autorise_par = models.ForeignKey(Utilisateur, on_delete=models.SET_NULL, null=True, blank=True, related_name='deploiements_autorises')
+    date_autorisation = models.DateTimeField(null=True, blank=True)
+    
+    # Dates
+    date_prevue = models.DateTimeField(null=True, blank=True)
+    date_debut = models.DateTimeField(null=True, blank=True)
+    date_fin = models.DateTimeField(null=True, blank=True)
+    
+    # Logs et résultats
+    logs_deploiement = models.TextField(blank=True)
+    commentaires = models.TextField(blank=True)
+    
+    # Incident lié
+    incident_cree = models.ForeignKey(TacheEtape, on_delete=models.SET_NULL, null=True, blank=True, related_name='deploiement_origine_incident')
+    
+    # Métadonnées
+    date_creation = models.DateTimeField(auto_now_add=True)
+    date_modification = models.DateTimeField(auto_now=True)
+    createur = models.ForeignKey(Utilisateur, on_delete=models.PROTECT, related_name='deploiements_crees')
+    
+    class Meta:
+        verbose_name = "Déploiement"
+        verbose_name_plural = "Déploiements"
+        ordering = ['-date_creation']
+    
+    def __str__(self):
+        return f"{self.version} sur {self.get_environnement_display()} - {self.get_statut_display()}"
+    
+    def peut_etre_autorise(self):
+        return self.statut == 'PREVU' and not self.autorise_par
+    
+    def peut_etre_execute(self):
+        return self.statut == 'PREVU' and self.autorise_par is not None
+    
+    def autoriser(self, utilisateur):
+        if not self.peut_etre_autorise():
+            raise ValidationError('Ce déploiement ne peut pas être autorisé.')
+        self.autorise_par = utilisateur
+        self.date_autorisation = timezone.now()
+        self.save()
+    
+    def demarrer(self, executant):
+        if not self.peut_etre_execute():
+            raise ValidationError('Ce déploiement ne peut pas être exécuté.')
+        self.statut = 'EN_COURS'
+        self.executant = executant
+        self.date_debut = timezone.now()
+        self.save()
+    
+    def marquer_reussi(self, logs=''):
+        self.statut = 'REUSSI'
+        self.date_fin = timezone.now()
+        if logs:
+            self.logs_deploiement = logs
+        self.save()
+    
+    def marquer_echec(self, logs='', creer_incident=True):
+        self.statut = 'ECHEC'
+        self.date_fin = timezone.now()
+        if logs:
+            self.logs_deploiement = logs
+        self.save()
+        
+        if creer_incident and not self.incident_cree:
+            incident = TacheEtape.objects.create(
+                etape=self.tache_deploiement.etape,
+                nom=f"INCIDENT - Échec déploiement {self.version}",
+                description=f"Échec du déploiement {self.version} sur {self.get_environnement_display()}.\n\nLogs:\n{self.logs_deploiement}",
+                responsable=self.responsable,
+                statut='A_FAIRE',
+                priorite='CRITIQUE',
+                createur=self.executant or self.createur
+            )
+            self.incident_cree = incident
+            self.save()
+            return incident
+        return None

@@ -16,13 +16,77 @@ from .services_tests import ServiceTests, ServiceBugs, ServiceValidation, Servic
 
 
 @login_required
+def gestion_cas_tests_tache_view(request, projet_id, etape_id, tache_id):
+    """Vue de gestion des cas de test pour une tâche d'étape spécifique"""
+    user = request.user
+    projet = get_object_or_404(Projet, id=projet_id)
+    etape = get_object_or_404(EtapeProjet, id=etape_id, projet=projet)
+    
+    from .models import TacheEtape, CasTest
+    tache = get_object_or_404(TacheEtape, id=tache_id, etape=etape)
+    
+    # Vérifier les permissions
+    if not user.est_super_admin():
+        if not user.a_acces_projet(projet) and projet.createur != user:
+            messages.error(request, 'Vous n\'avez pas accès à ce projet.')
+            return redirect('projets_list')
+    
+    # Vérifier que c'est bien une étape de tests
+    if etape.type_etape.nom != 'TESTS':
+        messages.error(request, 'Cette fonctionnalité n\'est disponible que pour les étapes de tests.')
+        return redirect('gestion_taches_etape', projet_id=projet.id, etape_id=etape.id)
+    
+    # Récupérer les cas de test pour cette tâche d'étape
+    cas_tests = CasTest.objects.filter(tache_etape=tache).order_by('ordre', 'date_creation')
+    
+    # Calculer les statistiques
+    total_cas = cas_tests.count()
+    cas_passes = cas_tests.filter(statut='PASSE').count()
+    cas_echecs = cas_tests.filter(statut='ECHEC').count()
+    cas_en_cours = cas_tests.filter(statut='EN_COURS').count()
+    cas_en_attente = cas_tests.filter(statut='EN_ATTENTE').count()
+    cas_bloques = cas_tests.filter(statut='BLOQUE').count()
+    
+    stats = {
+        'total': total_cas,
+        'passes': cas_passes,
+        'echecs': cas_echecs,
+        'en_cours': cas_en_cours,
+        'en_attente': cas_en_attente,
+        'bloques': cas_bloques,
+        'pourcentage_reussite': int((cas_passes / total_cas) * 100) if total_cas > 0 else 0,
+    }
+    
+    # Permissions utilisateur
+    peut_creer = ServiceTests._peut_creer_tests(user, projet)
+    peut_executer = ServiceTests._peut_executer_tests(user, projet)
+    
+    # Récupérer l'équipe du projet pour l'assignation
+    equipe = projet.get_equipe()
+    
+    context = {
+        'projet': projet,
+        'etape': etape,
+        'tache': tache,
+        'cas_tests': cas_tests,
+        'stats': stats,
+        'peut_creer': peut_creer,
+        'peut_executer': peut_executer,
+        'equipe': equipe,
+    }
+    
+    return render(request, 'core/gestion_cas_tests_tache.html', context)
+
+
+@login_required
 @require_http_methods(["POST"])
-def creer_cas_test_view(request, projet_id, etape_id, test_id):
+def creer_cas_test_view(request, projet_id, etape_id, tache_id):
     """Vue de création d'un cas de test"""
     user = request.user
     projet = get_object_or_404(Projet, id=projet_id)
     etape = get_object_or_404(EtapeProjet, id=etape_id, projet=projet)
-    tache_test = get_object_or_404(TacheTest, id=test_id, etape=etape)
+    from .models import TacheEtape, CasTest
+    tache_etape = get_object_or_404(TacheEtape, id=tache_id, etape=etape)
     
     # Vérifier les permissions
     if not ServiceTests._peut_creer_tests(user, projet):
@@ -49,9 +113,8 @@ def creer_cas_test_view(request, projet_id, etape_id, test_id):
             return JsonResponse({'success': False, 'error': 'Les résultats attendus sont obligatoires'})
         
         # Créer le cas de test
-        from .models import CasTest
         cas_test = CasTest.objects.create(
-            tache_test=tache_test,
+            tache_etape=tache_etape,
             nom=nom,
             description=description,
             priorite=priorite,
@@ -87,7 +150,7 @@ def executer_cas_test_view(request, projet_id, etape_id, cas_test_id):
     etape = get_object_or_404(EtapeProjet, id=etape_id, projet=projet)
     
     from .models import CasTest
-    cas_test = get_object_or_404(CasTest, id=cas_test_id, tache_test__etape=etape)
+    cas_test = get_object_or_404(CasTest, id=cas_test_id, tache_etape__etape=etape)
     
     # Vérifier les permissions
     if not ServiceTests._peut_executer_tests(user, projet):
@@ -112,7 +175,7 @@ def executer_cas_test_view(request, projet_id, etape_id, cas_test_id):
             'success': True,
             'message': message,
             'nouveau_statut': cas_test.statut,
-            'statut_tache_test': cas_test.tache_test.statut
+            'statut_tache_test': cas_test.tache_etape.statut
         })
         
     except Exception as e:
@@ -127,7 +190,7 @@ def details_cas_test_view(request, projet_id, etape_id, cas_test_id):
     etape = get_object_or_404(EtapeProjet, id=etape_id, projet=projet)
     
     from .models import CasTest
-    cas_test = get_object_or_404(CasTest, id=cas_test_id, tache_test__etape=etape)
+    cas_test = get_object_or_404(CasTest, id=cas_test_id, tache_etape__etape=etape)
     
     # Vérifier les permissions
     if not ServiceTests._peut_voir_tests(user, projet):
@@ -589,67 +652,6 @@ def modifier_test_view(request, projet_id, etape_id, test_id):
 # VUES POUR LA HIÉRARCHIE CASTEST
 # ============================================================================
 
-@login_required
-@require_http_methods(["POST"])
-def creer_cas_test_view(request, projet_id, etape_id, test_id):
-    """Vue de création d'un cas de test"""
-    user = request.user
-    projet = get_object_or_404(Projet, id=projet_id)
-    etape = get_object_or_404(EtapeProjet, id=etape_id, projet=projet)
-    tache_test = get_object_or_404(TacheTest, id=test_id, etape=etape)
-    
-    # Vérifier les permissions
-    if not ServiceTests._peut_creer_tests(user, projet):
-        return JsonResponse({'success': False, 'error': 'Permissions insuffisantes'})
-    
-    try:
-        # Récupérer les données du formulaire
-        nom = request.POST.get('nom', '').strip()
-        description = request.POST.get('description', '').strip()
-        priorite = request.POST.get('priorite', 'MOYENNE')
-        donnees_entree = request.POST.get('donnees_entree', '').strip()
-        preconditions = request.POST.get('preconditions', '').strip()
-        etapes_execution = request.POST.get('etapes_execution', '').strip()
-        resultats_attendus = request.POST.get('resultats_attendus', '').strip()
-        
-        # Validation
-        if not nom:
-            return JsonResponse({'success': False, 'error': 'Le nom du cas de test est obligatoire'})
-        if not description:
-            return JsonResponse({'success': False, 'error': 'La description est obligatoire'})
-        if not etapes_execution:
-            return JsonResponse({'success': False, 'error': 'Les étapes d\'exécution sont obligatoires'})
-        if not resultats_attendus:
-            return JsonResponse({'success': False, 'error': 'Les résultats attendus sont obligatoires'})
-        
-        # Créer le cas de test
-        from .models import CasTest
-        cas_test = CasTest.objects.create(
-            tache_test=tache_test,
-            nom=nom,
-            description=description,
-            priorite=priorite,
-            donnees_entree=donnees_entree,
-            preconditions=preconditions,
-            etapes_execution=etapes_execution,
-            resultats_attendus=resultats_attendus,
-            createur=user
-        )
-        
-        return JsonResponse({
-            'success': True,
-            'message': f'Cas de test "{cas_test.numero_cas}" créé avec succès',
-            'cas_test': {
-                'id': str(cas_test.id),
-                'numero_cas': cas_test.numero_cas,
-                'nom': cas_test.nom
-            }
-        })
-        
-    except ValidationError as e:
-        return JsonResponse({'success': False, 'error': str(e)})
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': f'Erreur lors de la création : {str(e)}'})
 
 
 @login_required
@@ -661,7 +663,7 @@ def executer_cas_test_view(request, projet_id, etape_id, cas_test_id):
     etape = get_object_or_404(EtapeProjet, id=etape_id, projet=projet)
     
     from .models import CasTest
-    cas_test = get_object_or_404(CasTest, id=cas_test_id, tache_test__etape=etape)
+    cas_test = get_object_or_404(CasTest, id=cas_test_id, tache_etape__etape=etape)
     
     # Vérifier les permissions
     if not ServiceTests._peut_executer_tests(user, projet):
@@ -686,7 +688,7 @@ def executer_cas_test_view(request, projet_id, etape_id, cas_test_id):
             'success': True,
             'message': message,
             'nouveau_statut': cas_test.statut,
-            'statut_tache_test': cas_test.tache_test.statut
+            'statut_tache_test': cas_test.tache_etape.statut
         })
         
     except Exception as e:
@@ -701,7 +703,7 @@ def details_cas_test_view(request, projet_id, etape_id, cas_test_id):
     etape = get_object_or_404(EtapeProjet, id=etape_id, projet=projet)
     
     from .models import CasTest
-    cas_test = get_object_or_404(CasTest, id=cas_test_id, tache_test__etape=etape)
+    cas_test = get_object_or_404(CasTest, id=cas_test_id, tache_etape__etape=etape)
     
     # Vérifier les permissions
     if not ServiceTests._peut_voir_tests(user, projet):
@@ -728,6 +730,78 @@ def details_cas_test_view(request, projet_id, etape_id, cas_test_id):
                 'date_execution': cas_test.date_execution.strftime('%d/%m/%Y à %H:%M') if cas_test.date_execution else None,
                 'executeur': cas_test.executeur.get_full_name() if cas_test.executeur else None,
                 'createur': cas_test.createur.get_full_name() if cas_test.createur else None,
+            }
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'Erreur lors du chargement : {str(e)}'})
+
+
+@login_required
+def api_cas_tests_tache_view(request, projet_id, etape_id, tache_id):
+    """API pour récupérer tous les cas de test d'une tâche (pour impression)"""
+    user = request.user
+    projet = get_object_or_404(Projet, id=projet_id)
+    etape = get_object_or_404(EtapeProjet, id=etape_id, projet=projet)
+    
+    from .models import TacheEtape, CasTest
+    tache = get_object_or_404(TacheEtape, id=tache_id, etape=etape)
+    
+    # Vérifier les permissions - l'utilisateur doit avoir accès au projet
+    if not user.est_super_admin():
+        if not user.a_acces_projet(projet) and projet.createur != user:
+            return JsonResponse({'success': False, 'error': 'Permissions insuffisantes'})
+    
+    try:
+        # Récupérer tous les cas de test
+        cas_tests = CasTest.objects.filter(tache_etape=tache).order_by('ordre', 'date_creation')
+        
+        # Calculer les statistiques
+        total_cas = cas_tests.count()
+        cas_passes = cas_tests.filter(statut='PASSE').count()
+        cas_echecs = cas_tests.filter(statut='ECHEC').count()
+        cas_en_cours = cas_tests.filter(statut='EN_COURS').count()
+        cas_en_attente = cas_tests.filter(statut='EN_ATTENTE').count()
+        cas_bloques = cas_tests.filter(statut='BLOQUE').count()
+        
+        # Préparer les données des cas de test
+        cas_tests_data = []
+        for cas in cas_tests:
+            cas_tests_data.append({
+                'numero_cas': cas.numero_cas,
+                'nom': cas.nom,
+                'description': cas.description,
+                'priorite': cas.get_priorite_display(),
+                'statut': cas.statut,
+                'statut_display': cas.get_statut_display(),
+                'etapes_execution': cas.etapes_execution,
+                'resultats_attendus': cas.resultats_attendus,
+                'resultats_obtenus': cas.resultats_obtenus or '-',
+                'executeur': cas.executeur.get_full_name() if cas.executeur else '-',
+                'date_execution': cas.date_execution.strftime('%d/%m/%Y à %H:%M') if cas.date_execution else '-',
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'stats': {
+                'total': total_cas,
+                'passes': cas_passes,
+                'echecs': cas_echecs,
+                'en_cours': cas_en_cours,
+                'en_attente': cas_en_attente,
+                'bloques': cas_bloques,
+                'pourcentage_reussite': int((cas_passes / total_cas) * 100) if total_cas > 0 else 0,
+            },
+            'cas_tests': cas_tests_data,
+            'tache': {
+                'nom': tache.nom,
+                'description': tache.description,
+            },
+            'etape': {
+                'nom': etape.type_etape.get_nom_display(),
+            },
+            'projet': {
+                'nom': projet.nom,
             }
         })
         

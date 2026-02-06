@@ -1,0 +1,824 @@
+{% extends 'base.html' %}
+
+{% block title %}Cas de Test - {{ tache.nom }} - SI-Gouvernance JCM{% endblock %}
+{% block page_title %}Gestion des Cas de Test{% endblock %}
+
+{% block content %}
+<div class="bg-gray-50 min-h-screen p-4">
+    <div class="max-w-7xl mx-auto space-y-4">
+        
+        <!-- Header professionnel -->
+        <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-lg flex items-center justify-center shadow-sm bg-purple-100 border border-purple-200">
+                        <i class="fas fa-vial text-lg text-purple-600"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-semibold text-gray-900">Cas de Test</h1>
+                        <p class="text-sm text-gray-600">
+                            <i class="fas fa-tasks mr-1"></i>
+                            {{ tache.nom }} • {{ etape.type_etape.get_nom_display }} • {{ projet.nom }}
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                    {% if peut_creer %}
+                    <button onclick="ouvrirModalCreerCas()" 
+                       class="inline-flex items-center px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-md text-sm transition-colors">
+                        <i class="fas fa-plus mr-2"></i>Nouveau Cas
+                    </button>
+                    {% endif %}
+                    <a href="{% url 'gestion_taches_etape' projet.id etape.id %}" 
+                       class="inline-flex items-center px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md font-medium text-sm transition-colors">
+                        <i class="fas fa-arrow-left mr-2"></i>Retour
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistiques des cas de test -->
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Total</p>
+                        <p class="text-2xl font-bold text-gray-900">{{ stats.total }}</p>
+                    </div>
+                    <div class="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-vial text-gray-600"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Passés</p>
+                        <p class="text-2xl font-bold text-green-600">{{ stats.passes }}</p>
+                    </div>
+                    <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-check text-green-600"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Échecs</p>
+                        <p class="text-2xl font-bold text-red-600">{{ stats.echecs }}</p>
+                    </div>
+                    <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-times text-red-600"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">En Cours</p>
+                        <p class="text-2xl font-bold text-blue-600">{{ stats.en_cours }}</p>
+                    </div>
+                    <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-play text-blue-600"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">En Attente</p>
+                        <p class="text-2xl font-bold text-gray-600">{{ stats.en_attente }}</p>
+                    </div>
+                    <div class="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-clock text-gray-600"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Réussite</p>
+                        <p class="text-2xl font-bold text-purple-600">{{ stats.pourcentage_reussite }}%</p>
+                    </div>
+                    <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-chart-pie text-purple-600"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tableau des cas de test -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div class="p-4 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <i class="fas fa-table text-gray-600 mr-2"></i>
+                        <h2 class="text-lg font-semibold text-gray-900">Liste des Cas de Test</h2>
+                    </div>
+                    <span class="text-sm text-gray-500">{{ cas_tests.count }} cas</span>
+                </div>
+            </div>
+            
+            {% if cas_tests %}
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50 border-b border-gray-200">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                <i class="fas fa-hashtag mr-1"></i>Numéro
+                            </th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                <i class="fas fa-vial mr-1"></i>Cas de Test
+                            </th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                <i class="fas fa-info-circle mr-1"></i>Statut
+                            </th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                <i class="fas fa-exclamation-circle mr-1"></i>Priorité
+                            </th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                <i class="fas fa-user mr-1"></i>Exécuteur
+                            </th>
+                            <th class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                <i class="fas fa-cog mr-1"></i>Actions
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        {% for cas in cas_tests %}
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <!-- Numéro -->
+                            <td class="px-4 py-4">
+                                <span class="text-sm font-mono font-medium text-gray-900">{{ cas.numero_cas }}</span>
+                            </td>
+                            
+                            <!-- Nom du cas -->
+                            <td class="px-4 py-4">
+                                <div class="text-sm font-medium text-gray-900">{{ cas.nom }}</div>
+                                <div class="text-xs text-gray-500 line-clamp-1">{{ cas.description }}</div>
+                            </td>
+                            
+                            <!-- Statut -->
+                            <td class="px-4 py-4">
+                                {% if cas.statut == 'EN_ATTENTE' %}
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                    <i class="fas fa-clock mr-1"></i>En Attente
+                                </span>
+                                {% elif cas.statut == 'EN_COURS' %}
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                    <i class="fas fa-play mr-1"></i>En Cours
+                                </span>
+                                {% elif cas.statut == 'PASSE' %}
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    <i class="fas fa-check mr-1"></i>Passé
+                                </span>
+                                {% elif cas.statut == 'ECHEC' %}
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                    <i class="fas fa-times mr-1"></i>Échec
+                                </span>
+                                {% elif cas.statut == 'BLOQUE' %}
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                    <i class="fas fa-ban mr-1"></i>Bloqué
+                                </span>
+                                {% endif %}
+                            </td>
+                            
+                            <!-- Priorité -->
+                            <td class="px-4 py-4">
+                                {% if cas.priorite == 'CRITIQUE' %}
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                                    <i class="fas fa-exclamation-circle mr-1"></i>Critique
+                                </span>
+                                {% elif cas.priorite == 'HAUTE' %}
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
+                                    <i class="fas fa-arrow-up mr-1"></i>Haute
+                                </span>
+                                {% elif cas.priorite == 'MOYENNE' %}
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                                    <i class="fas fa-minus mr-1"></i>Moyenne
+                                </span>
+                                {% else %}
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                                    <i class="fas fa-arrow-down mr-1"></i>Basse
+                                </span>
+                                {% endif %}
+                            </td>
+                            
+                            <!-- Exécuteur -->
+                            <td class="px-4 py-4">
+                                {% if cas.executeur %}
+                                <div class="flex items-center text-sm">
+                                    <div class="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center mr-2">
+                                        <span class="text-white text-xs font-bold">{{ cas.executeur.first_name.0 }}</span>
+                                    </div>
+                                    <span class="text-gray-700">{{ cas.executeur.get_full_name }}</span>
+                                </div>
+                                {% else %}
+                                <span class="text-gray-400 text-sm">-</span>
+                                {% endif %}
+                            </td>
+                            
+                            <!-- Actions -->
+                            <td class="px-4 py-4">
+                                {% if peut_executer %}
+                                <div class="flex items-center justify-center space-x-2">
+                                    <!-- Bouton Voir -->
+                                    <button onclick="voirDetailsCas('{{ cas.id }}')"
+                                            class="text-blue-600 hover:text-blue-800 p-1.5 rounded transition-colors"
+                                            title="Voir détails">
+                                        <i class="fas fa-eye text-sm"></i>
+                                    </button>
+                                    
+                                    {% if cas.statut != 'PASSE' %}
+                                    <!-- Bouton Marquer comme Passé -->
+                                    <button onclick="executerCas('{{ cas.id }}', 'PASSE', '{{ cas.nom|escapejs }}')"
+                                            class="text-green-600 hover:text-green-800 p-1.5 rounded transition-colors"
+                                            title="Marquer comme réussi">
+                                        <i class="fas fa-check text-sm"></i>
+                                    </button>
+                                    {% endif %}
+                                    
+                                    {% if cas.statut != 'ECHEC' %}
+                                    <!-- Bouton Marquer comme Échoué -->
+                                    <button onclick="executerCas('{{ cas.id }}', 'ECHEC', '{{ cas.nom|escapejs }}')"
+                                            class="text-red-600 hover:text-red-800 p-1.5 rounded transition-colors"
+                                            title="Marquer comme échoué">
+                                        <i class="fas fa-times text-sm"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <!-- État vide -->
+            <div class="p-8 text-center">
+                <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-vial text-purple-400 text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-medium text-gray-500 mb-2">Aucun cas de test</h3>
+                <p class="text-sm text-gray-400 mb-4">Créez votre premier cas de test pour cette tâche</p>
+                {% if peut_creer %}
+                <button onclick="ouvrirModalCreerCas()" 
+                   class="inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-md text-sm transition-colors">
+                    <i class="fas fa-plus mr-2"></i>Créer un Cas de Test
+                </button>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal Exécuter Cas de Test -->
+<div id="executerCasModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-lg w-full">
+        <div id="executerCasHeader" class="rounded-t-lg px-4 py-3 text-white">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-semibold" id="executerCasTitle">
+                    <i class="fas fa-check-circle mr-2"></i>Exécuter le Cas de Test
+                </h3>
+                <button onclick="fermerModalExecuter()" class="text-white hover:text-gray-200 p-1 rounded transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+        </div>
+        
+        <form id="executerCasForm" class="p-6 space-y-4">
+            {% csrf_token %}
+            <input type="hidden" id="casTestId" name="cas_test_id">
+            <input type="hidden" id="casTestStatut" name="statut">
+            
+            <div class="text-center mb-4">
+                <div id="executerCasIcon" class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <i id="executerCasIconClass" class="text-3xl"></i>
+                </div>
+                <p class="text-lg font-medium text-gray-900" id="executerCasMessage"></p>
+                <p class="text-sm text-gray-600 mt-1" id="executerCasNom"></p>
+            </div>
+            
+            <div>
+                <label for="resultatsObtenus" class="block text-sm font-medium text-gray-700 mb-1">
+                    <i class="fas fa-clipboard-list text-blue-600 mr-1"></i>
+                    Résultats obtenus
+                </label>
+                <textarea id="resultatsObtenus" name="resultats_obtenus" rows="4" required
+                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          placeholder="Décrivez les résultats obtenus lors de l'exécution..."></textarea>
+            </div>
+        </form>
+        
+        <div class="bg-gray-50 rounded-b-lg px-4 py-3 flex items-center justify-end space-x-3">
+            <button onclick="fermerModalExecuter()" 
+                    class="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium text-sm transition-colors">
+                <i class="fas fa-times mr-1"></i>Annuler
+            </button>
+            <button onclick="confirmerExecution()" id="btnConfirmerExecution"
+                    class="px-4 py-2 text-white font-medium rounded-md text-sm transition-colors">
+                <i class="fas fa-check mr-1"></i>Confirmer
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Détails Cas de Test -->
+<div id="detailsCasModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-hidden">
+        <div class="bg-blue-600 rounded-t-lg px-4 py-3 text-white">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-semibold">
+                    <i class="fas fa-info-circle mr-2"></i>Détails du Cas de Test
+                </h3>
+                <button onclick="fermerModalDetails()" class="text-white hover:text-gray-200 p-1 rounded transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+        </div>
+        
+        <div id="detailsCasContent" class="p-6 overflow-y-auto max-h-[70vh] space-y-4">
+            <!-- Le contenu sera chargé dynamiquement -->
+        </div>
+        
+        <div class="bg-gray-50 rounded-b-lg px-4 py-3 flex items-center justify-end">
+            <button onclick="fermerModalDetails()" 
+                    class="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium text-sm transition-colors">
+                <i class="fas fa-times mr-1"></i>Fermer
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Notification -->
+<div id="notificationModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full transform transition-all">
+        <div id="notificationHeader" class="rounded-t-lg px-4 py-3 text-white">
+            <div class="flex items-center">
+                <i id="notificationIcon" class="text-2xl mr-3"></i>
+                <h3 class="text-lg font-semibold" id="notificationTitle"></h3>
+            </div>
+        </div>
+        
+        <div class="p-6">
+            <p class="text-gray-700" id="notificationMessage"></p>
+        </div>
+        
+        <div class="bg-gray-50 rounded-b-lg px-4 py-3 flex items-center justify-end">
+            <button onclick="fermerNotification()" 
+                    class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md text-sm transition-colors">
+                <i class="fas fa-check mr-1"></i>OK
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Créer Cas de Test -->
+<div id="creerCasModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
+        <div class="bg-purple-600 rounded-t-lg px-4 py-3 text-white">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-semibold">
+                    <i class="fas fa-plus mr-2"></i>Nouveau Cas de Test
+                </h3>
+                <button onclick="fermerModalCreerCas()" class="text-white hover:text-gray-200 p-1 rounded transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+        </div>
+        
+        <form id="creerCasForm" class="p-6 overflow-y-auto max-h-[70vh] space-y-4">
+            {% csrf_token %}
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                    <i class="fas fa-tag text-purple-600 mr-1"></i>Nom du cas de test
+                </label>
+                <input type="text" name="nom" required 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                       placeholder="Ex: Connexion avec email valide">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                    <i class="fas fa-align-left text-purple-600 mr-1"></i>Description
+                </label>
+                <textarea name="description" rows="3" required 
+                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                          placeholder="Description détaillée du cas de test"></textarea>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                    <i class="fas fa-exclamation-circle text-purple-600 mr-1"></i>Priorité
+                </label>
+                <select name="priorite" 
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                    <option value="MOYENNE">Moyenne</option>
+                    <option value="BASSE">Basse</option>
+                    <option value="HAUTE">Haute</option>
+                    <option value="CRITIQUE">Critique</option>
+                </select>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                    <i class="fas fa-list-ol text-purple-600 mr-1"></i>Étapes d'exécution
+                </label>
+                <textarea name="etapes_execution" rows="4" required 
+                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                          placeholder="1. Ouvrir la page de connexion&#10;2. Saisir l'email&#10;3. Saisir le mot de passe&#10;4. Cliquer sur Se connecter"></textarea>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                    <i class="fas fa-check-circle text-purple-600 mr-1"></i>Résultats attendus
+                </label>
+                <textarea name="resultats_attendus" rows="3" required 
+                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                          placeholder="L'utilisateur doit être connecté et redirigé vers le dashboard"></textarea>
+            </div>
+        </form>
+        
+        <div class="bg-gray-50 rounded-b-lg px-4 py-3 flex items-center justify-end space-x-3">
+            <button onclick="fermerModalCreerCas()" 
+                    class="px-3 py-1.5 text-gray-600 hover:text-gray-800 font-medium text-sm transition-colors">
+                Annuler
+            </button>
+            <button onclick="confirmerCreerCas()" 
+                    class="px-4 py-1.5 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-md text-sm transition-colors">
+                <i class="fas fa-check mr-1"></i>Créer
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+// Variables globales
+let casTestEnCours = null;
+
+function ouvrirModalCreerCas() {
+    document.getElementById('creerCasModal').classList.remove('hidden');
+}
+
+function fermerModalCreerCas() {
+    document.getElementById('creerCasModal').classList.add('hidden');
+    document.getElementById('creerCasForm').reset();
+}
+
+function confirmerCreerCas() {
+    const form = document.getElementById('creerCasForm');
+    const formData = new FormData(form);
+    
+    // Validation basique
+    if (!formData.get('nom') || !formData.get('description') || !formData.get('etapes_execution') || !formData.get('resultats_attendus')) {
+        afficherNotification('error', 'Champs manquants', 'Veuillez remplir tous les champs obligatoires');
+        return;
+    }
+    
+    const submitBtn = event.target;
+    const originalText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Création...';
+    
+    // Envoyer la requête vers l'URL correcte avec tache_id
+    fetch('{% url "creer_cas_test" projet.id etape.id tache.id %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            fermerModalCreerCas();
+            afficherNotification('success', 'Succès', data.message);
+            setTimeout(() => {
+                location.reload();
+            }, 1500);
+        } else {
+            afficherNotification('error', 'Erreur', data.error);
+        }
+    })
+    .catch(error => {
+        afficherNotification('error', 'Erreur', 'Erreur de communication avec le serveur');
+    })
+    .finally(() => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+    });
+}
+
+function executerCas(casId, statut, casNom) {
+    casTestEnCours = { id: casId, statut: statut, nom: casNom };
+    
+    const modal = document.getElementById('executerCasModal');
+    const header = document.getElementById('executerCasHeader');
+    const icon = document.getElementById('executerCasIcon');
+    const iconClass = document.getElementById('executerCasIconClass');
+    const message = document.getElementById('executerCasMessage');
+    const nomElement = document.getElementById('executerCasNom');
+    const btnConfirmer = document.getElementById('btnConfirmerExecution');
+    
+    document.getElementById('casTestId').value = casId;
+    document.getElementById('casTestStatut').value = statut;
+    
+    if (statut === 'PASSE') {
+        header.className = 'bg-green-600 rounded-t-lg px-4 py-3 text-white';
+        icon.className = 'w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3';
+        iconClass.className = 'fas fa-check-circle text-green-600 text-3xl';
+        message.textContent = 'Marquer ce cas de test comme réussi ?';
+        btnConfirmer.className = 'px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-md text-sm transition-colors';
+    } else {
+        header.className = 'bg-red-600 rounded-t-lg px-4 py-3 text-white';
+        icon.className = 'w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3';
+        iconClass.className = 'fas fa-times-circle text-red-600 text-3xl';
+        message.textContent = 'Marquer ce cas de test comme échoué ?';
+        btnConfirmer.className = 'px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-md text-sm transition-colors';
+    }
+    
+    nomElement.textContent = casNom || 'Cas de test';
+    document.getElementById('resultatsObtenus').value = '';
+    
+    modal.classList.remove('hidden');
+}
+
+function fermerModalExecuter() {
+    document.getElementById('executerCasModal').classList.add('hidden');
+    document.getElementById('executerCasForm').reset();
+    casTestEnCours = null;
+}
+
+function confirmerExecution() {
+    if (!casTestEnCours) return;
+    
+    const resultats = document.getElementById('resultatsObtenus').value.trim();
+    if (!resultats) {
+        afficherNotification('error', 'Champ requis', 'Veuillez décrire les résultats obtenus');
+        return;
+    }
+    
+    const btnConfirmer = document.getElementById('btnConfirmerExecution');
+    const originalText = btnConfirmer.innerHTML;
+    btnConfirmer.disabled = true;
+    btnConfirmer.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Traitement...';
+    
+    fetch(`{% url 'executer_cas_test' projet.id etape.id '00000000-0000-0000-0000-000000000000' %}`.replace('00000000-0000-0000-0000-000000000000', casTestEnCours.id), {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `statut=${casTestEnCours.statut}&resultats_obtenus=${encodeURIComponent(resultats)}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            fermerModalExecuter();
+            afficherNotification('success', 'Succès', data.message);
+            setTimeout(() => {
+                location.reload();
+            }, 1500);
+        } else {
+            afficherNotification('error', 'Erreur', data.error);
+        }
+    })
+    .catch(error => {
+        afficherNotification('error', 'Erreur', 'Erreur de communication avec le serveur');
+    })
+    .finally(() => {
+        btnConfirmer.disabled = false;
+        btnConfirmer.innerHTML = originalText;
+    });
+}
+
+function voirDetailsCas(casId) {
+    const modal = document.getElementById('detailsCasModal');
+    const content = document.getElementById('detailsCasContent');
+    
+    content.innerHTML = `
+        <div class="text-center py-8">
+            <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-spinner fa-spin text-blue-600 text-xl"></i>
+            </div>
+            <p class="text-gray-600">Chargement des détails...</p>
+        </div>
+    `;
+    
+    modal.classList.remove('hidden');
+    
+    fetch(`{% url 'details_cas_test' projet.id etape.id '00000000-0000-0000-0000-000000000000' %}`.replace('00000000-0000-0000-0000-000000000000', casId), {
+        method: 'GET',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const cas = data.cas;
+            
+            // Déterminer la couleur du statut
+            let statutBadge = '';
+            if (cas.statut === 'PASSE') {
+                statutBadge = '<span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800"><i class="fas fa-check-circle mr-1"></i>' + cas.statut_display + '</span>';
+            } else if (cas.statut === 'ECHEC') {
+                statutBadge = '<span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800"><i class="fas fa-times-circle mr-1"></i>' + cas.statut_display + '</span>';
+            } else if (cas.statut === 'EN_COURS') {
+                statutBadge = '<span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800"><i class="fas fa-play-circle mr-1"></i>' + cas.statut_display + '</span>';
+            } else if (cas.statut === 'BLOQUE') {
+                statutBadge = '<span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800"><i class="fas fa-ban mr-1"></i>' + cas.statut_display + '</span>';
+            } else {
+                statutBadge = '<span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800"><i class="fas fa-clock mr-1"></i>' + cas.statut_display + '</span>';
+            }
+            
+            // Déterminer la couleur de la priorité
+            let prioriteBadge = '';
+            if (cas.priorite === 'CRITIQUE') {
+                prioriteBadge = '<span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-700"><i class="fas fa-exclamation-circle mr-1"></i>' + cas.priorite_display + '</span>';
+            } else if (cas.priorite === 'HAUTE') {
+                prioriteBadge = '<span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-orange-100 text-orange-700"><i class="fas fa-arrow-up mr-1"></i>' + cas.priorite_display + '</span>';
+            } else if (cas.priorite === 'MOYENNE') {
+                prioriteBadge = '<span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-700"><i class="fas fa-minus mr-1"></i>' + cas.priorite_display + '</span>';
+            } else {
+                prioriteBadge = '<span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600"><i class="fas fa-arrow-down mr-1"></i>' + cas.priorite_display + '</span>';
+            }
+            
+            content.innerHTML = `
+                <div class="space-y-4">
+                    <!-- En-tête -->
+                    <div class="border-b border-gray-200 pb-4">
+                        <div class="flex items-start justify-between mb-2">
+                            <div>
+                                <h4 class="text-xl font-semibold text-gray-900">${cas.nom}</h4>
+                                <p class="text-sm text-gray-500 mt-1"><i class="fas fa-hashtag mr-1"></i>${cas.numero_cas}</p>
+                            </div>
+                            <div class="flex flex-col items-end space-y-2">
+                                ${statutBadge}
+                                ${prioriteBadge}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Description -->
+                    <div>
+                        <h5 class="text-sm font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-align-left text-blue-600 mr-1"></i>Description
+                        </h5>
+                        <p class="text-gray-700 bg-gray-50 p-3 rounded-md">${cas.description}</p>
+                    </div>
+                    
+                    <!-- Étapes d'exécution -->
+                    <div>
+                        <h5 class="text-sm font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-list-ol text-purple-600 mr-1"></i>Étapes d'exécution
+                        </h5>
+                        <pre class="text-gray-700 bg-gray-50 p-3 rounded-md whitespace-pre-wrap font-sans text-sm">${cas.etapes_execution}</pre>
+                    </div>
+                    
+                    <!-- Résultats attendus -->
+                    <div>
+                        <h5 class="text-sm font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-bullseye text-green-600 mr-1"></i>Résultats attendus
+                        </h5>
+                        <p class="text-gray-700 bg-gray-50 p-3 rounded-md">${cas.resultats_attendus}</p>
+                    </div>
+                    
+                    ${cas.donnees_entree ? `
+                    <div>
+                        <h5 class="text-sm font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-database text-indigo-600 mr-1"></i>Données d'entrée
+                        </h5>
+                        <p class="text-gray-700 bg-gray-50 p-3 rounded-md">${cas.donnees_entree}</p>
+                    </div>
+                    ` : ''}
+                    
+                    ${cas.preconditions ? `
+                    <div>
+                        <h5 class="text-sm font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-check-square text-teal-600 mr-1"></i>Préconditions
+                        </h5>
+                        <p class="text-gray-700 bg-gray-50 p-3 rounded-md">${cas.preconditions}</p>
+                    </div>
+                    ` : ''}
+                    
+                    ${cas.resultats_obtenus ? `
+                    <div>
+                        <h5 class="text-sm font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-clipboard-check text-orange-600 mr-1"></i>Résultats obtenus
+                        </h5>
+                        <p class="text-gray-700 bg-gray-50 p-3 rounded-md">${cas.resultats_obtenus}</p>
+                    </div>
+                    ` : ''}
+                    
+                    <!-- Métadonnées -->
+                    <div class="border-t border-gray-200 pt-4 grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <p class="text-gray-500 mb-1"><i class="fas fa-calendar-plus text-gray-400 mr-1"></i>Créé le</p>
+                            <p class="text-gray-700 font-medium">${cas.date_creation}</p>
+                            ${cas.createur ? `<p class="text-gray-500 text-xs mt-1">par ${cas.createur}</p>` : ''}
+                        </div>
+                        ${cas.date_execution ? `
+                        <div>
+                            <p class="text-gray-500 mb-1"><i class="fas fa-calendar-check text-gray-400 mr-1"></i>Exécuté le</p>
+                            <p class="text-gray-700 font-medium">${cas.date_execution}</p>
+                            ${cas.executeur ? `<p class="text-gray-500 text-xs mt-1">par ${cas.executeur}</p>` : ''}
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        } else {
+            content.innerHTML = `
+                <div class="text-center py-8">
+                    <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-exclamation-triangle text-red-600 text-2xl"></i>
+                    </div>
+                    <p class="text-gray-600">${data.error}</p>
+                </div>
+            `;
+        }
+    })
+    .catch(error => {
+        content.innerHTML = `
+            <div class="text-center py-8">
+                <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-exclamation-triangle text-red-600 text-2xl"></i>
+                </div>
+                <p class="text-gray-600">Erreur lors du chargement des détails</p>
+            </div>
+        `;
+    });
+}
+
+function fermerModalDetails() {
+    document.getElementById('detailsCasModal').classList.add('hidden');
+}
+
+function afficherNotification(type, titre, message) {
+    const modal = document.getElementById('notificationModal');
+    const header = document.getElementById('notificationHeader');
+    const icon = document.getElementById('notificationIcon');
+    const titleElement = document.getElementById('notificationTitle');
+    const messageElement = document.getElementById('notificationMessage');
+    
+    if (type === 'success') {
+        header.className = 'bg-green-600 rounded-t-lg px-4 py-3 text-white';
+        icon.className = 'fas fa-check-circle text-2xl mr-3';
+    } else if (type === 'error') {
+        header.className = 'bg-red-600 rounded-t-lg px-4 py-3 text-white';
+        icon.className = 'fas fa-exclamation-circle text-2xl mr-3';
+    } else if (type === 'warning') {
+        header.className = 'bg-yellow-600 rounded-t-lg px-4 py-3 text-white';
+        icon.className = 'fas fa-exclamation-triangle text-2xl mr-3';
+    } else {
+        header.className = 'bg-blue-600 rounded-t-lg px-4 py-3 text-white';
+        icon.className = 'fas fa-info-circle text-2xl mr-3';
+    }
+    
+    titleElement.textContent = titre;
+    messageElement.textContent = message;
+    
+    modal.classList.remove('hidden');
+}
+
+function fermerNotification() {
+    document.getElementById('notificationModal').classList.add('hidden');
+}
+
+// Fermer modals en cliquant à l'extérieur
+document.getElementById('creerCasModal').addEventListener('click', function(e) {
+    if (e.target === this) fermerModalCreerCas();
+});
+
+document.getElementById('executerCasModal').addEventListener('click', function(e) {
+    if (e.target === this) fermerModalExecuter();
+});
+
+document.getElementById('detailsCasModal').addEventListener('click', function(e) {
+    if (e.target === this) fermerModalDetails();
+});
+
+document.getElementById('notificationModal').addEventListener('click', function(e) {
+    if (e.target === this) fermerNotification();
+});
+
+// Fermer modals avec Escape
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        fermerModalCreerCas();
+        fermerModalExecuter();
+        fermerModalDetails();
+        fermerNotification();
+    }
+});
+</script>
+{% endblock %}

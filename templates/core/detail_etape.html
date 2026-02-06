@@ -35,7 +35,7 @@
         </div>
 
         <!-- Statistiques Rapides - Professional Cards -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="grid gap-4 {% if etape.type_etape.nom == 'DEVELOPPEMENT' %}grid-cols-2 lg:grid-cols-4{% else %}grid-cols-1 sm:grid-cols-3{% endif %}">
             <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200 text-center">
                 <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-3">
                     <i class="fas fa-info-circle text-blue-600"></i>
@@ -64,6 +64,7 @@
                 <div class="text-xs text-gray-600">Progression</div>
             </div>
             
+            {% if etape.type_etape.nom == 'DEVELOPPEMENT' %}
             <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200 text-center">
                 <div class="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center mx-auto mb-3">
                     <i class="fas fa-puzzle-piece text-emerald-600"></i>
@@ -71,6 +72,7 @@
                 <div class="text-lg font-bold text-emerald-600 mb-1">{{ stats.modules_crees }}</div>
                 <div class="text-xs text-gray-600">Modules</div>
             </div>
+            {% endif %}
         </div>
 
         <!-- Détails de l'étape - Professional Layout -->
@@ -150,7 +152,6 @@
                     <a href="{% url 'gestion_taches_etape' projet.id etape.id %}" class="w-full inline-flex items-center justify-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium transition-colors">
                         <i class="fas fa-cog mr-2"></i>Gérer les tâches
                     </a>
-                    
 
                     {% endif %}
                     
@@ -329,7 +330,7 @@
         </div>
 
         <!-- Modules (si applicable) - Professional Design -->
-        {% if modules_crees %}
+        {% if modules_crees and etape.type_etape.nom == 'DEVELOPPEMENT' %}
         <div class="bg-white rounded-lg shadow-sm border border-gray-200">
             <div class="p-4 border-b border-gray-200">
                 <h3 class="text-lg font-semibold text-gray-900 flex items-center">
