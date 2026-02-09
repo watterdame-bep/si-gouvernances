@@ -201,16 +201,22 @@ def creer_tache_module_nouvelle_view(request, projet_id, module_id):
         if responsable and responsable != user:
             try:
                 NotificationModule.objects.create(
-                    utilisateur=responsable,
-                    type_notification='TACHE_ASSIGNEE',
+                    destinataire=responsable,
+                    type_notification='NOUVELLE_TACHE',
                     titre=f'Nouvelle tâche assignée',
                     message=f'La tâche "{nom}" vous a été assignée dans le module "{module.nom}"',
                     module=module,
-                    tache_module=tache,
-                    createur=user
+                    emetteur=user,
+                    donnees_contexte={
+                        'tache_id': str(tache.id),
+                        'tache_nom': nom,
+                        'module_id': str(module.id),
+                        'module_nom': module.nom,
+                    }
                 )
             except Exception as e:
                 # Les notifications ne doivent pas faire échouer la création
+                print(f"Erreur création notification: {e}")
                 pass
         
         return JsonResponse({
@@ -323,15 +329,22 @@ def assigner_tache_module_view(request, projet_id, module_id, tache_id):
         if responsable != user:
             try:
                 NotificationModule.objects.create(
-                    utilisateur=responsable,
-                    type_notification='TACHE_ASSIGNEE',
+                    destinataire=responsable,
+                    type_notification='NOUVELLE_TACHE',
                     titre=f'Tâche assignée',
                     message=f'La tâche "{tache.nom}" vous a été assignée dans le module "{module.nom}"',
                     module=module,
-                    tache_module=tache,
-                    createur=user
+                    emetteur=user,
+                    donnees_contexte={
+                        'tache_id': str(tache.id),
+                        'tache_nom': tache.nom,
+                        'module_id': str(module.id),
+                        'module_nom': module.nom,
+                    }
                 )
             except Exception as e:
+                print(f"Erreur création notification: {e}")
+                pass
                 pass
         
         return JsonResponse({
@@ -406,6 +419,59 @@ def modifier_statut_tache_module_view(request, projet_id, module_id, tache_id):
         ancien_statut = tache.statut
         tache.statut = nouveau_statut
         tache.save()
+        
+        # Si la tâche est terminée, notifier le responsable du module ET le responsable du projet
+        if nouveau_statut == 'TERMINEE' and ancien_statut != 'TERMINEE':
+            try:
+                from .models import NotificationModule
+                
+                # 1. Notifier le responsable du module
+                affectation_responsable = module.affectations.filter(
+                    role_module='RESPONSABLE',
+                    date_fin_affectation__isnull=True
+                ).first()
+                
+                if affectation_responsable and affectation_responsable.utilisateur != user:
+                    NotificationModule.objects.create(
+                        destinataire=affectation_responsable.utilisateur,
+                        module=module,
+                        type_notification='TACHE_TERMINEE',
+                        titre=f'Tâche terminée: {tache.nom}',
+                        message=f'✅ {user.get_full_name()} a terminé la tâche "{tache.nom}" dans le module "{module.nom}" du projet {projet.nom}',
+                        emetteur=user,
+                        donnees_contexte={
+                            'tache_id': str(tache.id),
+                            'tache_nom': tache.nom,
+                            'module_id': str(module.id),
+                            'module_nom': module.nom,
+                            'projet_id': str(projet.id),
+                            'projet_nom': projet.nom,
+                        }
+                    )
+                
+                # 2. Notifier le responsable du projet
+                responsable_projet = projet.get_responsable_principal()
+                if responsable_projet and responsable_projet != user:
+                    # Ne pas notifier deux fois si le responsable projet est aussi responsable module
+                    if not affectation_responsable or affectation_responsable.utilisateur != responsable_projet:
+                        NotificationModule.objects.create(
+                            destinataire=responsable_projet,
+                            module=module,
+                            type_notification='TACHE_TERMINEE',
+                            titre=f'Tâche module terminée: {tache.nom}',
+                            message=f'✅ {user.get_full_name()} a terminé la tâche "{tache.nom}" dans le module "{module.nom}" du projet {projet.nom}',
+                            emetteur=user,
+                            donnees_contexte={
+                                'tache_id': str(tache.id),
+                                'tache_nom': tache.nom,
+                                'module_id': str(module.id),
+                                'module_nom': module.nom,
+                                'projet_id': str(projet.id),
+                                'projet_nom': projet.nom,
+                            }
+                        )
+            except Exception as e:
+                print(f"Erreur création notification tâche terminée: {e}")
         
         # Audit
         enregistrer_audit(
@@ -524,15 +590,21 @@ def assigner_tache_module_view(request, projet_id, module_id, tache_id):
         if responsable != user:
             try:
                 NotificationModule.objects.create(
-                    utilisateur=responsable,
-                    type_notification='TACHE_ASSIGNEE',
+                    destinataire=responsable,
+                    type_notification='NOUVELLE_TACHE',
                     titre=f'Tâche assignée',
                     message=f'La tâche "{tache.nom}" vous a été assignée dans le module "{module.nom}"',
                     module=module,
-                    tache_module=tache,
-                    createur=user
+                    emetteur=user,
+                    donnees_contexte={
+                        'tache_id': str(tache.id),
+                        'tache_nom': tache.nom,
+                        'module_id': str(module.id),
+                        'module_nom': module.nom,
+                    }
                 )
-            except Exception:
+            except Exception as e:
+                print(f"Erreur création notification: {e}")
                 pass
         
         return JsonResponse({

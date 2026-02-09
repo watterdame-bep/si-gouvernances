@@ -380,6 +380,32 @@ class Projet(models.Model):
     createur = models.ForeignKey(Utilisateur, on_delete=models.PROTECT, related_name='projets_crees')
     commentaires = models.TextField(blank=True)
     
+    # Paramètres de notifications
+    notifications_admin_activees = models.BooleanField(
+        default=False,
+        help_text="Si activé, l'administrateur recevra les notifications liées à ce projet (étapes terminées, tâches importantes, etc.)"
+    )
+    
+    # Gestion temporelle du projet
+    duree_projet = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text="Durée prévue du projet en jours",
+        verbose_name="Durée du projet (jours)"
+    )
+    date_debut = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Date de démarrage effectif du projet",
+        verbose_name="Date de début"
+    )
+    date_fin = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Date de fin prévue du projet (calculée automatiquement)",
+        verbose_name="Date de fin prévue"
+    )
+    
     class Meta:
         verbose_name = "Projet"
         verbose_name_plural = "Projets"
@@ -469,6 +495,202 @@ class Projet(models.Model):
             'courante': etapes.filter(statut='EN_COURS').first(),
             'futures': etapes.filter(statut='A_VENIR')
         }
+    
+    # ========================================================================
+    # MÉTHODES DE GESTION DU DÉMARRAGE ET SUIVI TEMPOREL
+    # ========================================================================
+    
+    def peut_etre_demarre(self):
+        """
+        Vérifie si le projet peut être démarré
+        
+        Returns:
+            bool: True si le projet peut être démarré
+        """
+        # Statuts depuis lesquels un projet peut être démarré
+        statuts_demarrables = ['CREE', 'IDEE', 'AFFECTE', 'PLANIFIE']
+        
+        return (
+            self.date_debut is None and
+            self.duree_projet is not None and
+            self.duree_projet > 0 and
+            self.statut.nom in statuts_demarrables
+        )
+    
+    def demarrer_projet(self, utilisateur):
+        """
+        Démarre le projet : calcule les dates et change le statut
+        
+        Args:
+            utilisateur: L'utilisateur qui démarre le projet (doit être le responsable)
+        
+        Returns:
+            dict: Résultat de l'opération avec succès et message
+        
+        Raises:
+            ValidationError: Si le projet ne peut pas être démarré
+        """
+        from datetime import timedelta
+        from .utils import enregistrer_audit
+        
+        # Vérifications
+        if not self.peut_etre_demarre():
+            return {
+                'success': False,
+                'message': 'Le projet ne peut pas être démarré (déjà démarré ou durée non définie)'
+            }
+        
+        # Vérifier que l'utilisateur est le responsable
+        responsable = self.get_responsable_principal()
+        if not responsable or responsable.id != utilisateur.id:
+            return {
+                'success': False,
+                'message': 'Seul le responsable du projet peut le démarrer'
+            }
+        
+        # Calculer les dates
+        self.date_debut = timezone.now().date()
+        self.date_fin = self.date_debut + timedelta(days=self.duree_projet)
+        
+        # Changer le statut vers EN_COURS
+        try:
+            statut_en_cours = StatutProjet.objects.get(nom='EN_COURS')
+            self.statut = statut_en_cours
+        except StatutProjet.DoesNotExist:
+            return {
+                'success': False,
+                'message': 'Statut EN_COURS non trouvé dans le système'
+            }
+        
+        self.save()
+        
+        # Enregistrer l'audit
+        enregistrer_audit(
+            utilisateur=utilisateur,
+            type_action='DEMARRAGE_PROJET',
+            description=f'Démarrage du projet {self.nom}',
+            projet=self,
+            donnees_apres={
+                'date_debut': self.date_debut.isoformat(),
+                'date_fin': self.date_fin.isoformat(),
+                'duree_jours': self.duree_projet,
+                'responsable': responsable.get_full_name()
+            }
+        )
+        
+        # Créer des notifications pour l'équipe
+        self._notifier_demarrage_projet(utilisateur)
+        
+        return {
+            'success': True,
+            'message': f'Projet démarré avec succès. Date de fin prévue : {self.date_fin.strftime("%d/%m/%Y")}',
+            'date_debut': self.date_debut,
+            'date_fin': self.date_fin
+        }
+    
+    def _notifier_demarrage_projet(self, utilisateur_demarreur):
+        """
+        Crée des notifications pour l'équipe lors du démarrage du projet
+        
+        Args:
+            utilisateur_demarreur: L'utilisateur qui a démarré le projet
+        """
+        equipe = self.get_equipe()
+        
+        for membre in equipe:
+            if membre.id != utilisateur_demarreur.id:  # Pas de notification pour celui qui démarre
+                NotificationProjet.objects.create(
+                    destinataire=membre,
+                    projet=self,
+                    type_notification='PROJET_DEMARRE',
+                    titre=f"Le projet {self.nom} a démarré",
+                    message=f"Le projet a été démarré par {utilisateur_demarreur.get_full_name()}. Date de fin prévue : {self.date_fin.strftime('%d/%m/%Y')}",
+                    lue=False
+                )
+    
+    def jours_restants(self):
+        """
+        Calcule le nombre de jours restants jusqu'à la fin du projet
+        
+        Returns:
+            int or None: Nombre de jours restants, None si pas démarré
+        """
+        if not self.date_fin:
+            return None
+        
+        aujourd_hui = timezone.now().date()
+        delta = self.date_fin - aujourd_hui
+        return delta.days
+    
+    def est_proche_fin(self, jours=7):
+        """
+        Vérifie si le projet est proche de sa fin
+        
+        Args:
+            jours: Nombre de jours avant la fin pour considérer "proche" (défaut: 7)
+        
+        Returns:
+            bool: True si le projet se termine dans X jours ou moins
+        """
+        jours_rest = self.jours_restants()
+        if jours_rest is None:
+            return False
+        
+        return 0 <= jours_rest <= jours
+    
+    def pourcentage_avancement_temps(self):
+        """
+        Calcule le pourcentage d'avancement basé sur le temps écoulé
+        
+        Returns:
+            float or None: Pourcentage (0-100), None si pas démarré
+        """
+        if not self.date_debut or not self.date_fin:
+            return None
+        
+        aujourd_hui = timezone.now().date()
+        
+        # Si pas encore commencé
+        if aujourd_hui < self.date_debut:
+            return 0.0
+        
+        # Si déjà terminé
+        if aujourd_hui > self.date_fin:
+            return 100.0
+        
+        # Calcul du pourcentage
+        duree_totale = (self.date_fin - self.date_debut).days
+        duree_ecoulee = (aujourd_hui - self.date_debut).days
+        
+        if duree_totale == 0:
+            return 100.0
+        
+        return round((duree_ecoulee / duree_totale) * 100, 1)
+    
+    def get_badge_jours_restants(self):
+        """
+        Retourne un badge coloré selon les jours restants
+        
+        Returns:
+            dict: {'classe': 'badge-success', 'texte': 'X jours restants'}
+        """
+        jours = self.jours_restants()
+        
+        if jours is None:
+            return {'classe': 'badge-secondary', 'texte': 'Non démarré'}
+        
+        if jours < 0:
+            return {'classe': 'badge-danger', 'texte': f'{abs(jours)} jours de retard'}
+        elif jours == 0:
+            return {'classe': 'badge-danger', 'texte': 'Dernier jour'}
+        elif jours <= 3:
+            return {'classe': 'badge-danger', 'texte': f'{jours} jours restants'}
+        elif jours <= 7:
+            return {'classe': 'badge-warning', 'texte': f'{jours} jours restants'}
+        elif jours <= 14:
+            return {'classe': 'badge-info', 'texte': f'{jours} jours restants'}
+        else:
+            return {'classe': 'badge-success', 'texte': f'{jours} jours restants'}
 
 class Affectation(models.Model):
     """Relation entre un utilisateur et un projet avec un rôle spécifique au projet"""
@@ -493,6 +715,35 @@ class Affectation(models.Model):
             models.Index(fields=['utilisateur', 'projet', 'date_fin']),
             models.Index(fields=['projet', 'date_fin']),
         ]
+    
+    def save(self, *args, **kwargs):
+        """
+        Synchronise automatiquement role_projet avec est_responsable_principal
+        pour maintenir la cohérence
+        """
+        # Synchroniser le rôle avec le flag responsable
+        if self.est_responsable_principal:
+            # Si responsable, forcer le rôle RESPONSABLE_PRINCIPAL
+            try:
+                self.role_projet = RoleProjet.objects.get(nom='RESPONSABLE_PRINCIPAL')
+            except RoleProjet.DoesNotExist:
+                # Créer le rôle s'il n'existe pas
+                self.role_projet = RoleProjet.objects.create(
+                    nom='RESPONSABLE_PRINCIPAL',
+                    description='Responsable Principal du Projet'
+                )
+        else:
+            # Si pas responsable, forcer le rôle MEMBRE
+            try:
+                self.role_projet = RoleProjet.objects.get(nom='MEMBRE')
+            except RoleProjet.DoesNotExist:
+                # Créer le rôle s'il n'existe pas
+                self.role_projet = RoleProjet.objects.create(
+                    nom='MEMBRE',
+                    description='Membre de l\'équipe projet'
+                )
+        
+        super().save(*args, **kwargs)
     
     def clean(self):
         """Validation des règles d'affectation"""
@@ -1760,6 +2011,9 @@ class NotificationTache(models.Model):
         ('ECHEANCE', 'Échéance approchante'),
         ('RETARD', 'Tâche en retard'),
         ('PIECE_JOINTE', 'Nouvelle pièce jointe'),
+        ('ALERTE_ECHEANCE', 'Alerte échéance (2j ou 1j)'),
+        ('ALERTE_CRITIQUE', 'Alerte critique (jour J)'),
+        ('ALERTE_RETARD', 'Alerte retard'),
     ]
     
     destinataire = models.ForeignKey(Utilisateur, on_delete=models.CASCADE, related_name='notifications_taches')
@@ -1903,6 +2157,60 @@ class NotificationModule(models.Model):
             self.date_lecture = timezone.now()
             self.save()
 
+
+class NotificationProjet(models.Model):
+    """Notifications liées aux projets (démarrage, alertes fin, etc.)"""
+    
+    TYPE_NOTIFICATION_CHOICES = [
+        ('AFFECTATION_RESPONSABLE', 'Affectation comme responsable'),
+        ('PROJET_DEMARRE', 'Projet démarré'),
+        ('ALERTE_FIN_PROJET', 'Alerte fin de projet (J-7)'),
+        ('PROJET_TERMINE', 'Projet terminé'),
+        ('PROJET_SUSPENDU', 'Projet suspendu'),
+        ('CHANGEMENT_ECHEANCE', 'Changement d\'échéance'),
+    ]
+    
+    destinataire = models.ForeignKey(Utilisateur, on_delete=models.CASCADE, related_name='notifications_projets')
+    projet = models.ForeignKey(Projet, on_delete=models.CASCADE, related_name='notifications')
+    type_notification = models.CharField(max_length=30, choices=TYPE_NOTIFICATION_CHOICES)
+    titre = models.CharField(max_length=200, help_text="Titre de la notification")
+    message = models.TextField(help_text="Contenu de la notification")
+    
+    # État
+    lue = models.BooleanField(default=False)
+    date_creation = models.DateTimeField(auto_now_add=True)
+    date_lecture = models.DateTimeField(null=True, blank=True)
+    
+    # Métadonnées
+    emetteur = models.ForeignKey(
+        Utilisateur, 
+        on_delete=models.PROTECT, 
+        related_name='notifications_projets_emises',
+        null=True, 
+        blank=True
+    )
+    donnees_contexte = models.JSONField(null=True, blank=True, help_text="Données contextuelles")
+    
+    class Meta:
+        verbose_name = "Notification de Projet"
+        verbose_name_plural = "Notifications de Projets"
+        ordering = ['-date_creation']
+        indexes = [
+            models.Index(fields=['destinataire', 'lue', '-date_creation']),
+            models.Index(fields=['projet', '-date_creation']),
+        ]
+    
+    def __str__(self):
+        return f"{self.titre} - {self.destinataire.get_full_name()}"
+    
+    def marquer_comme_lue(self):
+        """Marque la notification comme lue"""
+        if not self.lue:
+            self.lue = True
+            self.date_lecture = timezone.now()
+            self.save()
+
+
 # ============================================================================
 # SIGNAUX DJANGO
 # ============================================================================
@@ -1921,6 +2229,53 @@ def marquer_tache_speciale_automatiquement(sender, instance, created, **kwargs):
                 instance.justification_ajout_tardif = "Tâche ajoutée automatiquement à une étape terminée"
             # Utiliser update_fields pour éviter une boucle infinie
             instance.save(update_fields=['ajoutee_apres_cloture', 'justification_ajout_tardif'])
+
+
+@receiver(post_save, sender=Affectation)
+def notifier_responsable_projet(sender, instance, created, **kwargs):
+    """
+    Signal qui notifie automatiquement un utilisateur lorsqu'il est désigné
+    comme responsable principal d'un projet
+    """
+    # Vérifier si c'est une nouvelle affectation ou une modification
+    if instance.est_responsable_principal and instance.date_fin is None:
+        # Vérifier si une notification n'existe pas déjà pour éviter les doublons
+        notification_existante = NotificationProjet.objects.filter(
+            destinataire=instance.utilisateur,
+            projet=instance.projet,
+            type_notification='AFFECTATION_RESPONSABLE',
+            date_creation__gte=timezone.now() - timezone.timedelta(minutes=5)
+        ).exists()
+        
+        if not notification_existante:
+            # Déterminer le message selon l'état du projet
+            if instance.projet.peut_etre_demarre():
+                message_action = "Vous pouvez maintenant démarrer le projet en cliquant sur le bouton 'Commencer le projet'."
+            elif instance.projet.date_debut:
+                message_action = f"Le projet a déjà été démarré le {instance.projet.date_debut.strftime('%d/%m/%Y')}."
+            else:
+                message_action = "Définissez une durée pour le projet avant de pouvoir le démarrer."
+            
+            # Créer la notification
+            NotificationProjet.objects.create(
+                destinataire=instance.utilisateur,
+                projet=instance.projet,
+                type_notification='AFFECTATION_RESPONSABLE',
+                titre=f"🎯 Vous êtes responsable du projet {instance.projet.nom}",
+                message=f"Vous avez été désigné(e) comme responsable principal du projet '{instance.projet.nom}'. "
+                        f"{message_action} "
+                        f"Budget: {instance.projet.budget_previsionnel} {instance.projet.devise}. "
+                        f"Client: {instance.projet.client}.",
+                emetteur=None,  # Notification système
+                lue=False,
+                donnees_contexte={
+                    'role': 'RESPONSABLE_PRINCIPAL',
+                    'date_affectation': instance.date_debut.isoformat() if instance.date_debut else timezone.now().isoformat(),
+                    'projet_id': str(instance.projet.id),
+                    'peut_demarrer': instance.projet.peut_etre_demarre(),
+                    'projet_demarre': instance.projet.date_debut is not None
+                }
+            )
 
 # ============================================================================
 # SYSTÈME DE TESTS V1 - GESTION QUALITÉ

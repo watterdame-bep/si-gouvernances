@@ -5,10 +5,12 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Q, Case, When, Value, IntegerField
+from django.db import models
 from django.utils import timezone
-from django.core.exceptions import ValidationError
-from .models import Utilisateur, Projet, Affectation, ActionAudit, RoleSysteme, RoleProjet, StatutProjet, Membre, TypeEtape, EtapeProjet, ModuleProjet, TacheModule, TacheEtape, TacheTest, BugTest, ValidationTest
+from django.core.exceptions import ValidationError, PermissionDenied
+from django.db import transaction
+from .models import Utilisateur, Projet, Affectation, ActionAudit, RoleSysteme, RoleProjet, StatutProjet, Membre, TypeEtape, EtapeProjet, ModuleProjet, TacheModule, TacheEtape, NotificationModule, TacheTest, BugTest, ValidationTest
 from .utils import enregistrer_audit, envoyer_notification_changement_mot_de_passe
 import json
 
@@ -471,6 +473,24 @@ def creer_projet_view(request):
         statut_nom = request.POST.get('statut')
         priorite = request.POST.get('priorite', 'MOYENNE')
         
+        # Récupérer et convertir la durée en jours
+        duree_valeur = request.POST.get('duree_valeur', '').strip()
+        duree_unite = request.POST.get('duree_unite', 'JOURS')
+        duree_projet_jours = None
+        
+        if duree_valeur:
+            try:
+                duree_valeur = int(duree_valeur)
+                # Convertir en jours selon l'unité
+                if duree_unite == 'JOURS':
+                    duree_projet_jours = duree_valeur
+                elif duree_unite == 'SEMAINES':
+                    duree_projet_jours = duree_valeur * 7
+                elif duree_unite == 'MOIS':
+                    duree_projet_jours = duree_valeur * 30  # Approximation
+            except ValueError:
+                pass
+        
         # Validation minimale
         errors = []
         
@@ -481,6 +501,9 @@ def creer_projet_view(request):
             
         if not description:
             errors.append('La description du projet est obligatoire.')
+        
+        if not duree_projet_jours or duree_projet_jours <= 0:
+            errors.append('La durée du projet doit être supérieure à 0.')
             
         # Vérifier que le statut existe
         try:
@@ -504,7 +527,8 @@ def creer_projet_view(request):
                     devise='EUR',
                     statut=statut,
                     priorite=priorite,
-                    createur=request.user
+                    createur=request.user,
+                    duree_projet=duree_projet_jours  # Nouvelle: durée en jours
                 )
                 
                 # Initialiser automatiquement les étapes standard
@@ -522,24 +546,15 @@ def creer_projet_view(request):
                         'client': client if client else 'À définir',
                         'statut': statut.nom,
                         'priorite': priorite,
+                        'duree_projet': duree_projet_jours,
                         'etapes_initialisees': True
                     }
                 )
                 
                 messages.success(request, f'Projet "{projet.nom}" créé avec succès !')
                 
-                # Stocker temporairement les informations du projet pour l'affichage
-                request.session['nouveau_projet'] = {
-                    'id': str(projet.id),
-                    'nom': projet.nom,
-                    'client': projet.client,
-                    'statut': projet.statut.get_nom_display(),
-                    'priorite': projet.get_priorite_display(),
-                    'description': projet.description,
-                    'date_creation': projet.date_creation.strftime('%d/%m/%Y %H:%M')
-                }
-                
-                return redirect('projet_cree_success')
+                # Rediriger directement vers les détails du projet
+                return redirect('projet_detail', projet_id=projet.id)
                 
             except Exception as e:
                 messages.error(request, f'Erreur lors de la création : {str(e)}')
@@ -981,6 +996,31 @@ def parametres_projet_view(request, projet_id):
     # Récupérer tous les rôles projet disponibles
     roles_disponibles = RoleProjet.objects.all()
     
+    # Récupérer l'étape courante pour la gestion des modules
+    etape_courante = projet.etapes.filter(statut='EN_COURS').first()
+    modules_disponibles = etape_courante and etape_courante.type_etape.nom == 'DEVELOPPEMENT' if etape_courante else False
+    
+    # Calculer les statistiques des modules si disponibles
+    modules_stats = None
+    if modules_disponibles:
+        modules = projet.modules.all()
+        total_affectations = sum(module.affectations.filter(date_fin_affectation__isnull=True).count() for module in modules)
+        total_taches = sum(module.taches.count() for module in modules)
+        
+        # Calculer la progression moyenne
+        if modules.exists():
+            progressions = [module.get_progression_taches() for module in modules]
+            progression_moyenne = sum(progressions) / len(progressions) if progressions else 0
+        else:
+            progression_moyenne = 0
+            
+        modules_stats = {
+            'total_modules': modules.count(),
+            'total_affectations': total_affectations,
+            'total_taches': total_taches,
+            'progression_moyenne': round(progression_moyenne)
+        }
+    
     context = {
         'projet': projet,
         'affectations': affectations,
@@ -989,9 +1029,65 @@ def parametres_projet_view(request, projet_id):
         'can_manage': can_manage,
         'responsable': projet.get_responsable_principal(),
         'is_creator': projet.createur == user,
+        'etape_courante': etape_courante,
+        'modules_disponibles': modules_disponibles,
+        'modules_stats': modules_stats,
     }
     
     return render(request, 'core/parametres_projet.html', context)
+
+@login_required
+@require_http_methods(["POST"])
+def toggle_notifications_admin(request, projet_id):
+    """Activer/désactiver les notifications admin pour un projet"""
+    user = request.user
+    projet = get_object_or_404(Projet, id=projet_id)
+    
+    # Vérifier les permissions (Admin + Chef de projet uniquement)
+    can_manage = user.est_super_admin() or projet.createur == user
+    if not can_manage:
+        affectation_user = projet.affectations.filter(
+            utilisateur=user, 
+            est_responsable_principal=True,
+            date_fin__isnull=True
+        ).first()
+        can_manage = affectation_user is not None
+    
+    if not can_manage:
+        return JsonResponse({'success': False, 'error': 'Permission refusée'})
+    
+    try:
+        actif = request.POST.get('actif', 'false').lower() == 'true'
+        
+        # Mettre à jour le projet
+        projet.notifications_admin_activees = actif
+        projet.save()
+        
+        # Audit
+        enregistrer_audit(
+            utilisateur=user,
+            type_action='MODIFICATION_PARAMETRES_PROJET',
+            description=f'{"Activation" if actif else "Désactivation"} des notifications administrateur pour le projet {projet.nom}',
+            projet=projet,
+            request=request,
+            donnees_apres={
+                'notifications_admin_activees': actif
+            }
+        )
+        
+        message = f'Notifications administrateur {"activées" if actif else "désactivées"} avec succès'
+        
+        return JsonResponse({
+            'success': True,
+            'message': message,
+            'actif': actif
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Erreur lors de la modification : {str(e)}'
+        })
 
 @login_required
 @require_http_methods(["POST"])
@@ -1015,8 +1111,9 @@ def ajouter_membre_projet(request, projet_id):
     
     try:
         utilisateur_id = request.POST.get('utilisateur_id')
+        est_responsable = request.POST.get('est_responsable', 'false').lower() == 'true'
         
-        # Validation - Plus besoin de rôle
+        # Validation
         if not utilisateur_id:
             return JsonResponse({'success': False, 'error': 'Utilisateur requis'})
         
@@ -1030,19 +1127,37 @@ def ajouter_membre_projet(request, projet_id):
         if projet.affectations.filter(utilisateur=utilisateur, date_fin__isnull=True).exists():
             return JsonResponse({'success': False, 'error': 'Cet utilisateur fait déjà partie de l\'équipe'})
         
-        # Obtenir le rôle par défaut "MEMBRE" ou créer une affectation sans rôle spécifique
-        role_par_defaut = None
-        try:
-            role_par_defaut = RoleProjet.objects.filter(nom='MEMBRE').first()
-        except:
-            pass
+        # Si on ajoute un responsable, vérifier qu'il n'y en a pas déjà un
+        if est_responsable:
+            responsable_existant = projet.affectations.filter(
+                est_responsable_principal=True,
+                date_fin__isnull=True
+            ).first()
+            
+            if responsable_existant:
+                return JsonResponse({
+                    'success': False, 
+                    'error': f'Un responsable existe déjà : {responsable_existant.utilisateur.get_full_name()}'
+                })
         
-        # Créer l'affectation comme membre normal (sans responsabilité)
+        # Obtenir le rôle approprié
+        if est_responsable:
+            try:
+                role = RoleProjet.objects.get(nom='RESPONSABLE_PRINCIPAL')
+            except RoleProjet.DoesNotExist:
+                role = RoleProjet.objects.create(
+                    nom='RESPONSABLE_PRINCIPAL',
+                    description='Responsable Principal du Projet'
+                )
+        else:
+            role = RoleProjet.objects.filter(nom='MEMBRE').first()
+        
+        # Créer l'affectation
         affectation = Affectation(
             utilisateur=utilisateur,
             projet=projet,
-            role_projet=role_par_defaut,  # Peut être None si pas de rôle MEMBRE
-            est_responsable_principal=False  # Toujours False lors de l'ajout
+            role_projet=role,
+            est_responsable_principal=est_responsable
         )
         
         # Valider avant de sauvegarder
@@ -1058,17 +1173,21 @@ def ajouter_membre_projet(request, projet_id):
         enregistrer_audit(
             utilisateur=user,
             type_action='AFFECTATION_UTILISATEUR',
-            description=f'Ajout de {utilisateur.get_full_name()} au projet {projet.nom} comme membre normal',
+            description=f'Ajout de {utilisateur.get_full_name()} au projet {projet.nom} comme {"responsable principal" if est_responsable else "membre normal"}',
             projet=projet,
             request=request,
             donnees_apres={
                 'utilisateur': utilisateur.get_full_name(),
-                'role': role_par_defaut.nom if role_par_defaut else 'Membre',
-                'est_responsable': False
+                'role': role.nom if role else 'Membre',
+                'est_responsable': est_responsable
             }
         )
         
-        messages.success(request, f'{utilisateur.get_full_name()} ajouté à l\'équipe comme membre normal !')
+        if est_responsable:
+            messages.success(request, f'{utilisateur.get_full_name()} désigné comme responsable du projet !')
+        else:
+            messages.success(request, f'{utilisateur.get_full_name()} ajouté à l\'équipe comme membre !')
+        
         return JsonResponse({'success': True, 'message': 'Membre ajouté avec succès'})
         
     except Exception as e:
@@ -1077,7 +1196,10 @@ def ajouter_membre_projet(request, projet_id):
 @login_required
 @require_http_methods(["POST"])
 def retirer_membre_projet(request, projet_id):
-    """Retirer un membre de l'équipe du projet"""
+    """
+    Retirer un membre de l'équipe du projet
+    L'administrateur peut retirer n'importe quel membre, y compris le responsable
+    """
     user = request.user
     projet = get_object_or_404(Projet, id=projet_id)
     
@@ -1102,27 +1224,30 @@ def retirer_membre_projet(request, projet_id):
         
         affectation = get_object_or_404(Affectation, id=affectation_id, projet=projet, date_fin__isnull=True)
         
-        # Ne pas permettre de retirer le créateur du projet
-        if affectation.utilisateur == projet.createur:
-            return JsonResponse({'success': False, 'error': 'Le créateur du projet ne peut pas être retiré'})
-        
-        # Ne pas permettre de se retirer soi-même si on est le seul responsable
-        if affectation.utilisateur == user and affectation.est_responsable_principal:
-            autres_responsables = projet.affectations.filter(
-                est_responsable_principal=True,
-                date_fin__isnull=True
-            ).exclude(id=affectation.id).exists()
+        # L'admin peut retirer n'importe qui, même le responsable
+        # Les autres ne peuvent pas retirer le créateur du projet
+        if not user.est_super_admin():
+            if affectation.utilisateur == projet.createur:
+                return JsonResponse({'success': False, 'error': 'Le créateur du projet ne peut pas être retiré'})
             
-            if not autres_responsables and not user.est_super_admin():
-                return JsonResponse({'success': False, 'error': 'Vous ne pouvez pas vous retirer en tant que seul responsable'})
+            # Ne pas permettre de se retirer soi-même si on est le seul responsable
+            if affectation.utilisateur == user and affectation.est_responsable_principal:
+                autres_responsables = projet.affectations.filter(
+                    est_responsable_principal=True,
+                    date_fin__isnull=True
+                ).exclude(id=affectation.id).exists()
+                
+                if not autres_responsables:
+                    return JsonResponse({'success': False, 'error': 'Vous ne pouvez pas vous retirer en tant que seul responsable'})
         
-        # Terminer l'affectation
+        # Sauvegarder les infos avant suppression
         utilisateur_nom = affectation.utilisateur.get_full_name()
         role_nom = (affectation.role_projet.get_nom_display() if affectation.role_projet 
                    else affectation.role_sur_projet.get_nom_display() if affectation.role_sur_projet 
                    else "Aucun rôle")
         etait_responsable = affectation.est_responsable_principal
         
+        # Terminer l'affectation
         affectation.terminer_affectation()
         
         # Audit
@@ -1139,8 +1264,16 @@ def retirer_membre_projet(request, projet_id):
             }
         )
         
-        messages.success(request, f'{utilisateur_nom} retiré de l\'équipe avec succès !')
-        return JsonResponse({'success': True, 'message': 'Membre retiré avec succès'})
+        message = f'{utilisateur_nom} retiré de l\'équipe avec succès !'
+        if etait_responsable:
+            message += ' Le projet n\'a plus de responsable. Veuillez en désigner un nouveau.'
+        
+        messages.success(request, message)
+        return JsonResponse({
+            'success': True, 
+            'message': message,
+            'etait_responsable': etait_responsable
+        })
         
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
@@ -2266,7 +2399,7 @@ def detail_etape_view(request, projet_id, etape_id):
             messages.error(request, 'Vous n\'avez pas accès à ce projet.')
             return redirect('projets_list')
     
-    # Récupérer les tâches de cette étape
+    # Récupérer les tâches de cette étape (récentes en premier)
     taches_etape = etape.taches_etape.all().order_by('-date_creation')
     
     # Récupérer les modules créés dans cette étape
@@ -2292,9 +2425,23 @@ def detail_etape_view(request, projet_id, etape_id):
         'taches_terminees': taches_etape.filter(statut='TERMINEE').count(),
         'taches_en_cours': taches_etape.filter(statut='EN_COURS').count(),
         'taches_bloquees': taches_etape.filter(statut='BLOQUEE').count(),
+        'taches_speciales': taches_etape.filter(ajoutee_apres_cloture=True).count(),
         'modules_crees': modules_crees.count(),
         'duree_etape': None
     }
+    
+    # Statistiques spécifiques pour MAINTENANCE
+    if etape.type_etape.nom == 'MAINTENANCE':
+        # Importer les modèles de maintenance
+        from .models import ContratGarantie, TicketMaintenance
+        
+        # Contrats actifs
+        contrats = projet.contrats_garantie.all()
+        stats['contrats_actifs'] = len([c for c in contrats if c.est_actif])
+        
+        # Tickets ouverts
+        tickets = projet.tickets_maintenance.all()
+        stats['tickets_ouverts'] = tickets.filter(statut__in=['OUVERT', 'EN_COURS']).count()
     
     # Calculer la durée de l'étape si elle est terminée
     if etape.statut == 'TERMINEE' and etape.date_debut_reelle and etape.date_fin_reelle:
@@ -2330,46 +2477,7 @@ def detail_etape_view(request, projet_id, etape_id):
     
     return render(request, 'core/detail_etape.html', context)
 
-@login_required
-def gestion_modules_view(request, projet_id):
-    """Vue de gestion des modules d'un projet"""
-    user = request.user
-    projet = get_object_or_404(Projet, id=projet_id)
-    
-    # Vérifier les permissions
-    if not user.est_super_admin():
-        if not user.a_acces_projet(projet) and projet.createur != user:
-            messages.error(request, 'Vous n\'avez pas accès à ce projet.')
-            return redirect('projets_list')
-    
-    # Récupérer les modules
-    modules = projet.modules.all().order_by('date_creation')
-    
-    # Étape courante
-    etape_courante = projet.get_etape_courante()
-    
-    # Permissions
-    can_manage = user.est_super_admin() or projet.createur == user
-    if not can_manage:
-        affectation_user = projet.affectations.filter(
-            utilisateur=user, 
-            est_responsable_principal=True,
-            date_fin__isnull=True
-        ).first()
-        can_manage = affectation_user is not None
-    
-    # Vérifier si on peut créer des modules librement
-    peut_creer_librement = etape_courante and etape_courante.peut_creer_modules_librement() if etape_courante else False
-    
-    context = {
-        'projet': projet,
-        'modules': modules,
-        'etape_courante': etape_courante,
-        'can_manage': can_manage,
-        'peut_creer_librement': peut_creer_librement,
-    }
-    
-    return render(request, 'core/gestion_modules.html', context)
+
 
 @login_required
 def creer_module_view(request, projet_id):
@@ -2404,12 +2512,21 @@ def creer_module_view(request, projet_id):
         messages.error(request, 'La création de modules n\'est autorisée qu\'en phase de développement.')
         return redirect('gestion_modules', projet_id=projet.id)
     
+    # Récupérer l'équipe du projet pour les affectations
+    equipe_projet = []
+    for affectation in projet.affectations.filter(date_fin__isnull=True).select_related('utilisateur'):
+        equipe_projet.append(affectation.utilisateur)
+    
     if request.method == 'POST':
         nom = request.POST.get('nom', '').strip()
         description = request.POST.get('description', '').strip()
         justification = request.POST.get('justification', '').strip()
         couleur = request.POST.get('couleur', '#10B981')
         icone_emoji = request.POST.get('icone_emoji', '🧩')
+        
+        # Récupérer les affectations
+        responsable_id = request.POST.get('responsable')
+        contributeurs_ids = request.POST.getlist('contributeurs')
         
         # Validation
         errors = []
@@ -2422,9 +2539,34 @@ def creer_module_view(request, projet_id):
         if not description:
             errors.append('La description du module est obligatoire.')
         
+        if not responsable_id:
+            errors.append('Un responsable du module est obligatoire.')
+        
         # Si création tardive, justification obligatoire
         if not peut_creer_librement and not justification:
             errors.append('Une justification est obligatoire pour créer un module après la phase de conception.')
+        
+        # Vérifier que le responsable fait partie de l'équipe
+        if responsable_id:
+            try:
+                responsable = Utilisateur.objects.get(id=responsable_id)
+                if responsable not in equipe_projet:
+                    errors.append('Le responsable sélectionné ne fait pas partie de l\'équipe du projet.')
+            except Utilisateur.DoesNotExist:
+                errors.append('Responsable invalide.')
+        
+        # Vérifier que les contributeurs font partie de l'équipe
+        contributeurs = []
+        if contributeurs_ids:
+            for contributeur_id in contributeurs_ids:
+                try:
+                    contributeur = Utilisateur.objects.get(id=contributeur_id)
+                    if contributeur not in equipe_projet:
+                        errors.append(f'{contributeur.get_full_name()} ne fait pas partie de l\'équipe du projet.')
+                    else:
+                        contributeurs.append(contributeur)
+                except Utilisateur.DoesNotExist:
+                    errors.append(f'Contributeur invalide (ID: {contributeur_id}).')
         
         if errors:
             for error in errors:
@@ -2443,23 +2585,81 @@ def creer_module_view(request, projet_id):
                     justification_creation_tardive=justification if not peut_creer_librement else ''
                 )
                 
+                # Créer les affectations
+                from .models import AffectationModule  # Import local pour éviter les problèmes de cache
+                affectations_creees = []
+                
+                # Affectation du responsable
+                affectation_responsable = AffectationModule.objects.create(
+                    module=module,
+                    utilisateur=responsable,
+                    role_module='RESPONSABLE',
+                    affecte_par=user,
+                    peut_creer_taches=True,
+                    peut_voir_toutes_taches=True
+                )
+                affectations_creees.append(affectation_responsable)
+                
+                # Affectations des contributeurs
+                for contributeur in contributeurs:
+                    # Éviter les doublons (si le responsable est aussi dans les contributeurs)
+                    if contributeur != responsable:
+                        affectation_contributeur = AffectationModule.objects.create(
+                            module=module,
+                            utilisateur=contributeur,
+                            role_module='CONTRIBUTEUR',
+                            affecte_par=user,
+                            peut_creer_taches=False,
+                            peut_voir_toutes_taches=False
+                        )
+                        affectations_creees.append(affectation_contributeur)
+                
                 # Audit
                 type_audit = 'CREATION_MODULE_TARDIVE' if not peut_creer_librement else 'CREATION_MODULE'
                 enregistrer_audit(
                     utilisateur=user,
                     type_action=type_audit,
-                    description=f'Création du module "{nom}" dans l\'étape {etape_courante.type_etape.get_nom_display()}',
+                    description=f'Création du module "{nom}" avec affectations dans l\'étape {etape_courante.type_etape.get_nom_display()}',
                     projet=projet,
                     request=request,
                     donnees_apres={
                         'module': nom,
                         'etape_creation': etape_courante.type_etape.nom,
                         'creation_tardive': not peut_creer_librement,
-                        'justification': justification if not peut_creer_librement else None
+                        'justification': justification if not peut_creer_librement else None,
+                        'responsable': responsable.get_full_name(),
+                        'contributeurs': [c.get_full_name() for c in contributeurs],
+                        'total_affectations': len(affectations_creees)
                     }
                 )
                 
-                messages.success(request, f'Module "{nom}" créé avec succès !')
+                # Envoyer les notifications par email et créer les notifications in-app
+                try:
+                    from .utils import envoyer_notification_affectation_module, creer_notification_affectation_module
+                    
+                    # Créer les notifications in-app
+                    notifications_app_creees = creer_notification_affectation_module(
+                        module, affectations_creees, user
+                    )
+                    
+                    # Envoyer les emails
+                    resultat_notification = envoyer_notification_affectation_module(
+                        module, affectations_creees, user, request
+                    )
+                    
+                    if resultat_notification.get('success'):
+                        messages.success(
+                            request, 
+                            f'Module "{nom}" créé avec succès ! {notifications_app_creees} notification(s) créée(s) et {resultat_notification.get("emails_envoyes")}/{resultat_notification.get("total_destinataires")} email(s) envoyé(s).'
+                        )
+                    else:
+                        messages.success(request, f'Module "{nom}" créé avec succès ! {notifications_app_creees} notification(s) créée(s).')
+                        if resultat_notification.get('error'):
+                            messages.warning(request, f'Erreur lors de l\'envoi des emails : {resultat_notification.get("error")}')
+                except Exception as e:
+                    messages.success(request, f'Module "{nom}" créé avec succès !')
+                    messages.warning(request, f'Erreur lors de l\'envoi des notifications : {str(e)}')
+                
                 return redirect('detail_module', projet_id=projet.id, module_id=module.id)
                 
             except Exception as e:
@@ -2469,6 +2669,7 @@ def creer_module_view(request, projet_id):
         'projet': projet,
         'etape_courante': etape_courante,
         'peut_creer_librement': peut_creer_librement,
+        'equipe_projet': equipe_projet,
     }
     
     return render(request, 'core/creer_module.html', context)
@@ -2486,8 +2687,8 @@ def detail_module_view(request, projet_id, module_id):
             messages.error(request, 'Vous n\'avez pas accès à ce projet.')
             return redirect('projets_list')
     
-    # Récupérer les tâches
-    taches = module.taches.all().order_by('priorite', 'date_creation')
+    # Récupérer les tâches (récentes en premier)
+    taches = module.taches.all().order_by('-date_creation')
     
     # Permissions
     can_manage = user.est_super_admin() or projet.createur == user
@@ -2535,7 +2736,7 @@ def gestion_taches_view(request, module_id):
             return redirect('projets_list')
     
     # Récupérer les tâches
-    taches = module.taches.all().order_by('-date_creation')
+    taches = module.taches.all().order_by('statut', 'priorite', 'date_creation')
     
     # Permissions
     can_manage = user.est_super_admin() or projet.createur == user
@@ -2561,16 +2762,25 @@ def gestion_taches_view(request, module_id):
 @login_required
 def creer_tache_view(request, module_id):
     """Vue de création d'une tâche"""
-    from .utils import peut_creer_taches
+    from .utils import peut_creer_taches_module, peut_assigner_taches_module
     
     module = get_object_or_404(ModuleProjet, id=module_id)
     projet = module.projet
     user = request.user
     
-    # Vérifier les permissions avec la nouvelle fonction
-    if not peut_creer_taches(user, projet):
-        messages.error(request, 'Vous n\'avez pas les permissions pour créer des tâches sur ce projet.')
+    # Vérifier les permissions avec la nouvelle fonction spécifique aux modules
+    if not peut_creer_taches_module(user, module):
+        messages.error(request, 'Vous n\'avez pas les permissions pour créer des tâches dans ce module. Seuls les responsables du module peuvent créer des tâches.')
         return redirect('detail_module', projet_id=projet.id, module_id=module.id)
+    
+    # Récupérer les utilisateurs assignables (membres du module)
+    utilisateurs_assignables = []
+    for affectation in module.affectations.filter(date_fin_affectation__isnull=True):
+        if peut_assigner_taches_module(user, module, affectation.utilisateur):
+            utilisateurs_assignables.append({
+                'utilisateur': affectation.utilisateur,
+                'role': affectation.get_role_module_display()
+            })
     
     if request.method == 'POST':
         nom = request.POST.get('nom', '').strip()
@@ -2594,9 +2804,9 @@ def creer_tache_view(request, module_id):
         if responsable_id:
             try:
                 responsable = Utilisateur.objects.get(id=responsable_id)
-                # Vérifier que le responsable fait partie de l'équipe
-                if not projet.affectations.filter(utilisateur=responsable, date_fin__isnull=True).exists():
-                    errors.append('Le responsable doit faire partie de l\'équipe du projet.')
+                # Vérifier que l'utilisateur peut assigner à ce responsable
+                if not peut_assigner_taches_module(user, module, responsable):
+                    errors.append('Vous ne pouvez pas assigner de tâche à cet utilisateur.')
             except Utilisateur.DoesNotExist:
                 errors.append('Responsable invalide.')
         
@@ -2636,7 +2846,8 @@ def creer_tache_view(request, module_id):
                         'tache': nom,
                         'module': module.nom,
                         'responsable': responsable.get_full_name() if responsable else None,
-                        'priorite': priorite
+                        'priorite': priorite,
+                        'role_createur': module.affectations.filter(utilisateur=user, date_fin_affectation__isnull=True).first().get_role_module_display() if module.affectations.filter(utilisateur=user, date_fin_affectation__isnull=True).exists() else 'Administrateur'
                     }
                 )
                 
@@ -2646,11 +2857,14 @@ def creer_tache_view(request, module_id):
             except Exception as e:
                 messages.error(request, f'Erreur lors de la création : {str(e)}')
     
+    # Récupérer les étapes du projet pour l'assignation
+    etapes_projet = projet.etapes.all().order_by('ordre')
+    
     context = {
-        'projet': projet,
         'module': module,
-        'equipe': projet.get_equipe(),
-        'etapes': projet.etapes.all().order_by('ordre'),
+        'projet': projet,
+        'utilisateurs_assignables': utilisateurs_assignables,
+        'etapes_projet': etapes_projet,
         'priorites': TacheModule.PRIORITE_CHOICES,
     }
     
@@ -2735,8 +2949,9 @@ def gestion_taches_etape_view(request, projet_id, etape_id):
             messages.error(request, 'Vous n\'avez pas accès à ce projet.')
             return redirect('projets_list')
     
-    # Récupérer les tâches
+    # Récupérer les tâches (récentes en premier, puis par statut et priorité)
     taches = etape.taches_etape.all().order_by('-date_creation')
+    taches_terminees = taches.filter(statut='TERMINEE')
     
     # Permissions de création
     can_create = peut_creer_taches(user, projet)
@@ -2745,8 +2960,10 @@ def gestion_taches_etape_view(request, projet_id, etape_id):
         'projet': projet,
         'etape': etape,
         'taches': taches,
+        'taches_terminees': taches_terminees,
         'can_create': can_create,
         'equipe': projet.get_equipe(),
+        'etape_terminee': etape.statut == 'TERMINEE',
     }
     
     return render(request, 'core/gestion_taches_etape.html', context)
@@ -2768,7 +2985,30 @@ def creer_tache_etape_view(request, projet_id, etape_id):
         return redirect('detail_etape', projet_id=projet.id, etape_id=etape.id)
     
     # Permettre l'ajout de tâches aux étapes terminées (avec justification)
-    etape_terminee = etape.statut == 'TERMINEE' 
+    etape_terminee = etape.statut == 'TERMINEE'
+    
+    # Debug dans un fichier
+    with open('debug_taches.log', 'a') as f:
+        f.write(f"GET: etape.statut='{etape.statut}', etape_terminee={etape_terminee}\n")
+    
+    if request.method == 'POST':
+        user = request.user
+    projet = get_object_or_404(Projet, id=projet_id)
+    etape = get_object_or_404(EtapeProjet, id=etape_id, projet=projet)
+    
+    # Vérifier les permissions
+    if not peut_creer_taches(user, projet):
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'error': 'Vous n\'avez pas les permissions pour créer des tâches sur ce projet.'})
+        messages.error(request, 'Vous n\'avez pas les permissions pour créer des tâches sur ce projet.')
+        return redirect('detail_etape', projet_id=projet.id, etape_id=etape.id)
+    
+    # Permettre l'ajout de tâches aux étapes terminées (avec justification)
+    etape_terminee = etape.statut == 'TERMINEE'
+    
+    # Debug dans un fichier
+    with open('debug_taches.log', 'a') as f:
+        f.write(f"GET: etape.statut='{etape.statut}', etape_terminee={etape_terminee}\n")
     
     if request.method == 'POST':
         nom = request.POST.get('nom', '').strip()
@@ -2777,6 +3017,11 @@ def creer_tache_etape_view(request, projet_id, etape_id):
         priorite = request.POST.get('priorite', 'MOYENNE')
         date_debut = request.POST.get('date_debut')
         date_fin = request.POST.get('date_fin')
+        justification_etape_terminee = request.POST.get('justification_etape_terminee', '').strip()
+        
+        # Debug dans un fichier
+        with open('debug_taches.log', 'a') as f:
+            f.write(f"POST: etape_terminee={etape_terminee}, justification='{justification_etape_terminee}'\n")
         
         # Validation
         errors = []
@@ -2786,6 +3031,10 @@ def creer_tache_etape_view(request, projet_id, etape_id):
         
         if not description:
             errors.append('La description de la tâche est obligatoire.')
+        
+        # Si l'étape est terminée, une justification est requise
+        if etape_terminee and not justification_etape_terminee:
+            errors.append('Une justification est requise pour ajouter une tâche à une étape terminée.')
         
         responsable = None
         if responsable_id:
@@ -2808,6 +3057,9 @@ def creer_tache_etape_view(request, projet_id, etape_id):
         else:
             try:
                 # Créer la tâche
+                with open('debug_taches.log', 'a') as f:
+                    f.write(f"CREATION: ajoutee_apres_cloture={etape_terminee}, justification='{justification_etape_terminee if etape_terminee else ''}'\n")
+                
                 tache = TacheEtape.objects.create(
                     etape=etape,
                     nom=nom,
@@ -2816,29 +3068,41 @@ def creer_tache_etape_view(request, projet_id, etape_id):
                     priorite=priorite,
                     date_debut=date_debut if date_debut else None,
                     date_fin=date_fin if date_fin else None,
-                    createur=user
+                    createur=user,
+                    ajoutee_apres_cloture=etape_terminee,
+                    justification_ajout_tardif=justification_etape_terminee if etape_terminee else ''
                 )
                 
-                # Audit
+                # Audit avec justification si étape terminée
+                audit_description = f'Création de la tâche d\'étape "{nom}" dans l\'étape {etape.type_etape.get_nom_display()}'
+                if etape_terminee:
+                    audit_description += f' (étape terminée - justification: {justification_etape_terminee})'
+                
                 enregistrer_audit(
                     utilisateur=user,
                     type_action='CREATION_TACHE',
-                    description=f'Création de la tâche d\'étape "{nom}" dans l\'étape {etape.type_etape.get_nom_display()}',
+                    description=audit_description,
                     projet=projet,
                     request=request,
                     donnees_apres={
                         'tache': nom,
                         'etape': etape.type_etape.nom,
+                        'etape_terminee': etape_terminee,
+                        'justification': justification_etape_terminee if etape_terminee else None,
                         'responsable': responsable.get_full_name() if responsable else None,
                         'priorite': priorite
                     }
                 )
                 
                 # Réponse pour AJAX
+                success_message = f'Tâche d\'étape "{nom}" créée avec succès !'
+                if etape_terminee:
+                    success_message += ' (ajoutée à une étape terminée)'
+                
                 if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                     return JsonResponse({
                         'success': True, 
-                        'message': f'Tâche d\'étape "{nom}" créée avec succès !',
+                        'message': success_message,
                         'tache': {
                             'id': str(tache.id),
                             'nom': tache.nom,
@@ -2866,6 +3130,7 @@ def creer_tache_etape_view(request, projet_id, etape_id):
         'etape': etape,
         'equipe': projet.get_equipe(),
         'priorites': TacheEtape.PRIORITE_CHOICES,
+        'etape_terminee': etape_terminee,
     }
     
     return render(request, 'core/creer_tache_etape.html', context)
@@ -3091,7 +3356,7 @@ def terminer_tache_etape(request, projet_id, etape_id, tache_id):
                 destinataire=responsable_principal,
                 tache=tache,
                 type_notification='COMPLETION',
-                message=f'La tâche "{tache.nom}" a été marquée comme terminée par {user.get_full_name() or user.username}'
+                message=f'✅ {user.get_full_name() or user.username} a terminé la tâche "{tache.nom}" dans le projet {projet.nom}'
             )
         
         # 2. Notification pour le responsable de la tâche (si différent)
@@ -3100,7 +3365,7 @@ def terminer_tache_etape(request, projet_id, etape_id, tache_id):
                 destinataire=tache.responsable,
                 tache=tache,
                 type_notification='COMPLETION',
-                message=f'Votre tâche "{tache.nom}" a été marquée comme terminée'
+                message=f'✅ Votre tâche "{tache.nom}" a été terminée avec succès'
             )
         
         # 3. NOUVEAU: Notifications pour TOUS les administrateurs (sauf celui qui termine)
@@ -3114,7 +3379,7 @@ def terminer_tache_etape(request, projet_id, etape_id, tache_id):
                 destinataire=admin,
                 tache=tache,
                 type_notification='COMPLETION',
-                message=f'Tâche "{tache.nom}" terminée par {user.get_full_name() or user.username} dans le projet {projet.nom}'
+                message=f'✅ {user.get_full_name() or user.username} a terminé la tâche "{tache.nom}" dans le projet {projet.nom}'
             )
         
         # Audit
@@ -3312,63 +3577,56 @@ def marquer_notification_lue(request, notification_id):
 
 # API Endpoints pour les notifications
 @login_required
-def api_notifications(request):
-    """API pour récupérer les notifications de l'utilisateur connecté"""
-    user = request.user
-    
-    try:
-        from .models import NotificationTache
-        
-        # Récupérer les notifications non lues
-        notifications_non_lues = NotificationTache.objects.filter(
-            destinataire=user,
-            lue=False
-        ).order_by('-date_creation')
-        
-        # Récupérer les notifications récentes (dernières 10)
-        notifications_recentes = NotificationTache.objects.filter(
-            destinataire=user
-        ).order_by('-date_creation')[:10]
-        
-        # Préparer les données pour JSON
-        notifications_data = []
-        for notif in notifications_recentes:
-            notifications_data.append({
-                'id': notif.id,
-                'message': notif.message,
-                'date_creation': notif.date_creation.isoformat(),
-                'lue': notif.lue,
-                'type_notification': notif.type_notification,
-            })
-        
-        return JsonResponse({
-            'success': True,
-            'notifications': notifications_data,
-            'total_non_lues': notifications_non_lues.count(),
-        })
-        
-    except Exception as e:
-        return JsonResponse({
-            'success': False,
-            'error': str(e),
-            'notifications': [],
-            'total_non_lues': 0,
-        })
-
-@login_required
 @require_http_methods(["POST"])
 def api_mark_notification_read(request, notification_id):
-    """API pour marquer une notification comme lue"""
+    """API pour marquer une notification comme lue (tâches, étapes, modules et projets)"""
     user = request.user
     
     try:
-        from .models import NotificationTache
-        notification = get_object_or_404(NotificationTache, id=notification_id, destinataire=user)
+        from .models import NotificationTache, NotificationEtape, NotificationModule, NotificationProjet
         
-        if not notification.lue:
-            notification.marquer_comme_lue()
+        # Essayer d'abord avec NotificationTache
+        try:
+            notification = NotificationTache.objects.get(id=notification_id, destinataire=user)
+            if not notification.lue:
+                notification.marquer_comme_lue()
+            return JsonResponse({'success': True, 'type': 'tache'})
+        except NotificationTache.DoesNotExist:
+            pass
         
-        return JsonResponse({'success': True})
+        # Essayer avec NotificationEtape
+        try:
+            notification = NotificationEtape.objects.get(id=notification_id, destinataire=user)
+            if not notification.lue:
+                notification.lue = True
+                notification.date_lecture = timezone.now()
+                notification.save()
+            return JsonResponse({'success': True, 'type': 'etape'})
+        except NotificationEtape.DoesNotExist:
+            pass
+        
+        # Essayer avec NotificationModule
+        try:
+            notification = NotificationModule.objects.get(id=notification_id, destinataire=user)
+            if not notification.lue:
+                notification.lue = True
+                notification.date_lecture = timezone.now()
+                notification.save()
+            return JsonResponse({'success': True, 'type': 'module'})
+        except NotificationModule.DoesNotExist:
+            pass
+        
+        # Essayer avec NotificationProjet
+        try:
+            notification = NotificationProjet.objects.get(id=notification_id, destinataire=user)
+            if not notification.lue:
+                notification.marquer_comme_lue()
+            return JsonResponse({'success': True, 'type': 'projet'})
+        except NotificationProjet.DoesNotExist:
+            pass
+        
+        # Aucune notification trouvée
+        return JsonResponse({'success': False, 'error': 'Notification non trouvée'})
         
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
@@ -3376,20 +3634,55 @@ def api_mark_notification_read(request, notification_id):
 @login_required
 @require_http_methods(["POST"])
 def api_mark_all_notifications_read(request):
-    """API pour marquer toutes les notifications comme lues"""
+    """API pour marquer toutes les notifications comme lues (tâches, étapes et modules)"""
     user = request.user
     
     try:
-        from .models import NotificationTache
+        from .models import NotificationTache, NotificationEtape, NotificationModule, NotificationProjet
         
-        # Marquer toutes les notifications non lues comme lues
-        notifications_non_lues = NotificationTache.objects.filter(
+        count = 0
+        
+        # Marquer toutes les notifications de tâches non lues comme lues
+        notifications_taches_non_lues = NotificationTache.objects.filter(
             destinataire=user,
             lue=False
         )
         
-        count = 0
-        for notification in notifications_non_lues:
+        for notification in notifications_taches_non_lues:
+            notification.marquer_comme_lue()
+            count += 1
+        
+        # Marquer toutes les notifications d'étapes non lues comme lues
+        notifications_etapes_non_lues = NotificationEtape.objects.filter(
+            destinataire=user,
+            lue=False
+        )
+        
+        for notification in notifications_etapes_non_lues:
+            notification.lue = True
+            notification.date_lecture = timezone.now()
+            notification.save()
+            count += 1
+        
+        # Marquer toutes les notifications de modules non lues comme lues
+        notifications_modules_non_lues = NotificationModule.objects.filter(
+            destinataire=user,
+            lue=False
+        )
+        
+        for notification in notifications_modules_non_lues:
+            notification.lue = True
+            notification.date_lecture = timezone.now()
+            notification.save()
+            count += 1
+        
+        # Marquer toutes les notifications de projets non lues comme lues
+        notifications_projets_non_lues = NotificationProjet.objects.filter(
+            destinataire=user,
+            lue=False
+        )
+        
+        for notification in notifications_projets_non_lues:
             notification.marquer_comme_lue()
             count += 1
         
@@ -3400,6 +3693,85 @@ def api_mark_all_notifications_read(request):
         
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
+
+@login_required
+def notification_redirect_view(request, notification_id):
+    """Vue intermédiaire qui marque la notification comme lue puis redirige"""
+    try:
+        from .models import NotificationTache, NotificationEtape, NotificationModule, NotificationProjet
+        
+        user = request.user
+        redirect_url = '/dashboard/'
+        
+        # Chercher dans NotificationTache
+        try:
+            notif = NotificationTache.objects.get(id=notification_id, destinataire=user)
+            if not notif.lue:
+                notif.lue = True
+                notif.date_lecture = timezone.now()
+                notif.save()
+            
+            # Construire l'URL de redirection
+            if notif.tache and notif.tache.etape:
+                redirect_url = f'/projets/{notif.tache.etape.projet.id}/etapes/{notif.tache.etape.id}/taches/'
+            
+            return redirect(redirect_url)
+        except NotificationTache.DoesNotExist:
+            pass
+        
+        # Chercher dans NotificationEtape
+        try:
+            notif = NotificationEtape.objects.get(id=notification_id, destinataire=user)
+            if not notif.lue:
+                notif.lue = True
+                notif.date_lecture = timezone.now()
+                notif.save()
+            
+            # Construire l'URL de redirection
+            if notif.etape:
+                redirect_url = f'/projets/{notif.etape.projet.id}/etapes/{notif.etape.id}/'
+            
+            return redirect(redirect_url)
+        except NotificationEtape.DoesNotExist:
+            pass
+        
+        # Chercher dans NotificationModule
+        try:
+            notif = NotificationModule.objects.get(id=notification_id, destinataire=user)
+            if not notif.lue:
+                notif.lue = True
+                notif.date_lecture = timezone.now()
+                notif.save()
+            
+            # Construire l'URL de redirection
+            if notif.module:
+                redirect_url = f'/projets/{notif.module.projet.id}/modules/{notif.module.id}/taches/'
+            
+            return redirect(redirect_url)
+        except NotificationModule.DoesNotExist:
+            pass
+        
+        # Chercher dans NotificationProjet
+        try:
+            notif = NotificationProjet.objects.get(id=notification_id, destinataire=user)
+            if not notif.lue:
+                notif.marquer_comme_lue()
+            
+            # Construire l'URL de redirection
+            if notif.projet:
+                redirect_url = f'/projets/{notif.projet.id}/'
+            
+            return redirect(redirect_url)
+        except NotificationProjet.DoesNotExist:
+            pass
+        
+        # Si aucune notification trouvée, rediriger vers le dashboard
+        messages.warning(request, 'Notification introuvable.')
+        return redirect('dashboard')
+        
+    except Exception as e:
+        messages.error(request, f'Erreur: {str(e)}')
+        return redirect('dashboard')
 
 # ============================================================================
 # API NOTIFICATIONS - FONCTIONS COMPLÈTES
@@ -3422,32 +3794,114 @@ def api_notifications(request):
     user = request.user
     
     try:
-        from .models import NotificationTache
+        from .models import NotificationTache, NotificationEtape, NotificationModule, NotificationProjet
         
-        # Pour l'icône : seulement les notifications NON LUES (dernières 10)
-        notifications_non_lues = NotificationTache.objects.filter(
+        # Récupérer les notifications de tâches non lues (dernières 5)
+        notifications_taches_non_lues = NotificationTache.objects.filter(
             destinataire=user,
             lue=False
-        ).order_by('-date_creation')[:10]
+        ).order_by('-date_creation')[:5]
+        
+        # Récupérer les notifications d'étapes non lues (dernières 5)
+        notifications_etapes_non_lues = NotificationEtape.objects.filter(
+            destinataire=user,
+            lue=False
+        ).order_by('-date_creation')[:5]
+        
+        # Récupérer les notifications de modules non lues (dernières 5)
+        notifications_modules_non_lues = NotificationModule.objects.filter(
+            destinataire=user,
+            lue=False
+        ).order_by('-date_creation')[:5]
+        
+        # Récupérer les notifications de projets non lues (dernières 5)
+        notifications_projets_non_lues = NotificationProjet.objects.filter(
+            destinataire=user,
+            lue=False
+        ).order_by('-date_creation')[:5]
         
         # Compter le total des non lues pour le badge
-        total_non_lues = NotificationTache.objects.filter(
+        total_taches_non_lues = NotificationTache.objects.filter(
             destinataire=user,
             lue=False
         ).count()
         
+        total_etapes_non_lues = NotificationEtape.objects.filter(
+            destinataire=user,
+            lue=False
+        ).count()
+        
+        total_modules_non_lues = NotificationModule.objects.filter(
+            destinataire=user,
+            lue=False
+        ).count()
+        
+        total_projets_non_lues = NotificationProjet.objects.filter(
+            destinataire=user,
+            lue=False
+        ).count()
+        
+        total_non_lues = total_taches_non_lues + total_etapes_non_lues + total_modules_non_lues + total_projets_non_lues
+        
         # Préparer les données pour JSON
         notifications_data = []
-        for notif in notifications_non_lues:
+        
+        # Ajouter les notifications de tâches
+        for notif in notifications_taches_non_lues:
             notifications_data.append({
                 'id': notif.id,
                 'message': notif.message,
                 'date_creation': notif.date_creation.isoformat(),
                 'lue': False,
                 'type_notification': notif.type_notification,
+                'source_type': 'tache',
                 'tache_id': notif.tache.id if notif.tache else None,
                 'projet_nom': notif.tache.etape.projet.nom if notif.tache and notif.tache.etape else None,
             })
+        
+        # Ajouter les notifications d'étapes
+        for notif in notifications_etapes_non_lues:
+            notifications_data.append({
+                'id': notif.id,
+                'message': notif.message,
+                'date_creation': notif.date_creation.isoformat(),
+                'lue': False,
+                'type_notification': notif.type_notification,
+                'source_type': 'etape',
+                'etape_id': notif.etape.id if notif.etape else None,
+                'projet_nom': notif.etape.projet.nom if notif.etape else None,
+            })
+        
+        # Ajouter les notifications de modules
+        for notif in notifications_modules_non_lues:
+            notifications_data.append({
+                'id': notif.id,
+                'message': notif.message,
+                'date_creation': notif.date_creation.isoformat(),
+                'lue': False,
+                'type_notification': notif.type_notification,
+                'source_type': 'module',
+                'module_id': notif.module.id if notif.module else None,
+                'projet_nom': notif.module.projet.nom if notif.module else None,
+            })
+        
+        # Ajouter les notifications de projets
+        for notif in notifications_projets_non_lues:
+            notifications_data.append({
+                'id': notif.id,
+                'message': notif.message,
+                'titre': notif.titre,
+                'date_creation': notif.date_creation.isoformat(),
+                'lue': False,
+                'type_notification': notif.type_notification,
+                'source_type': 'projet',
+                'projet_id': notif.projet.id if notif.projet else None,
+                'projet_nom': notif.projet.nom if notif.projet else None,
+            })
+        
+        # Trier par date (plus récentes en premier) et limiter à 10
+        notifications_data.sort(key=lambda x: x['date_creation'], reverse=True)
+        notifications_data = notifications_data[:10]
         
         return JsonResponse({
             'success': True,
@@ -3469,52 +3923,191 @@ def api_notifications_detailed(request):
     user = request.user
     
     try:
-        from .models import NotificationTache
+        from .models import NotificationTache, NotificationEtape, NotificationModule, NotificationProjet
         
-        # Récupérer les notifications non lues
-        notifications_non_lues = NotificationTache.objects.filter(
+        # Récupérer les notifications de tâches non lues
+        notifications_taches_non_lues = NotificationTache.objects.filter(
             destinataire=user,
             lue=False
         ).order_by('-date_creation')
         
-        # Récupérer les notifications lues récentes (dernières 50)
-        notifications_lues = NotificationTache.objects.filter(
+        # Récupérer les notifications d'étapes non lues
+        notifications_etapes_non_lues = NotificationEtape.objects.filter(
+            destinataire=user,
+            lue=False
+        ).order_by('-date_creation')
+        
+        # Récupérer les notifications de modules non lues
+        notifications_modules_non_lues = NotificationModule.objects.filter(
+            destinataire=user,
+            lue=False
+        ).order_by('-date_creation')
+        
+        # Récupérer les notifications de projets non lues
+        notifications_projets_non_lues = NotificationProjet.objects.filter(
+            destinataire=user,
+            lue=False
+        ).order_by('-date_creation')
+        
+        # Récupérer les notifications de tâches lues récentes (dernières 25)
+        notifications_taches_lues = NotificationTache.objects.filter(
             destinataire=user,
             lue=True
-        ).order_by('-date_creation')[:50]
+        ).order_by('-date_creation')[:25]
         
-        # Préparer les données pour JSON - Non lues
+        # Récupérer les notifications d'étapes lues récentes (dernières 25)
+        notifications_etapes_lues = NotificationEtape.objects.filter(
+            destinataire=user,
+            lue=True
+        ).order_by('-date_creation')[:25]
+        
+        # Récupérer les notifications de modules lues récentes (dernières 25)
+        notifications_modules_lues = NotificationModule.objects.filter(
+            destinataire=user,
+            lue=True
+        ).order_by('-date_creation')[:25]
+        
+        # Récupérer les notifications de projets lues récentes (dernières 25)
+        notifications_projets_lues = NotificationProjet.objects.filter(
+            destinataire=user,
+            lue=True
+        ).order_by('-date_creation')[:25]
+        
+        # Préparer les données pour JSON - Non lues (tâches)
         notifications_non_lues_data = []
-        for notif in notifications_non_lues:
+        for notif in notifications_taches_non_lues:
             notifications_non_lues_data.append({
                 'id': notif.id,
                 'message': notif.message,
                 'date_creation': notif.date_creation.isoformat(),
                 'lue': False,
                 'type_notification': notif.type_notification,
+                'source_type': 'tache',
                 'tache_id': notif.tache.id if notif.tache else None,
+                'etape_id': notif.tache.etape.id if notif.tache and notif.tache.etape else None,
+                'projet_id': str(notif.tache.etape.projet.id) if notif.tache and notif.tache.etape else None,
                 'projet_nom': notif.tache.etape.projet.nom if notif.tache and notif.tache.etape else None,
             })
         
-        # Préparer les données pour JSON - Lues
+        # Ajouter les notifications d'étapes non lues
+        for notif in notifications_etapes_non_lues:
+            notifications_non_lues_data.append({
+                'id': notif.id,
+                'message': notif.message,
+                'date_creation': notif.date_creation.isoformat(),
+                'lue': False,
+                'type_notification': notif.type_notification,
+                'source_type': 'etape',
+                'etape_id': notif.etape.id if notif.etape else None,
+                'projet_id': str(notif.etape.projet.id) if notif.etape else None,
+                'projet_nom': notif.etape.projet.nom if notif.etape else None,
+            })
+        
+        # Ajouter les notifications de modules non lues
+        for notif in notifications_modules_non_lues:
+            notifications_non_lues_data.append({
+                'id': notif.id,
+                'message': notif.message,
+                'date_creation': notif.date_creation.isoformat(),
+                'lue': False,
+                'type_notification': notif.type_notification,
+                'source_type': 'module',
+                'id': notif.id,
+                'message': notif.message,
+                'date_creation': notif.date_creation.isoformat(),
+                'lue': False,
+                'type_notification': notif.type_notification,
+                'source_type': 'module',
+                'module_id': notif.module.id if notif.module else None,
+                'projet_id': str(notif.module.projet.id) if notif.module else None,
+                'projet_nom': notif.module.projet.nom if notif.module else None,
+            })
+        
+        # Ajouter les notifications de projets non lues
+        for notif in notifications_projets_non_lues:
+            notifications_non_lues_data.append({
+                'id': notif.id,
+                'message': notif.message,
+                'titre': notif.titre,
+                'date_creation': notif.date_creation.isoformat(),
+                'lue': False,
+                'type_notification': notif.type_notification,
+                'source_type': 'projet',
+                'projet_id': str(notif.projet.id) if notif.projet else None,
+                'projet_nom': notif.projet.nom if notif.projet else None,
+            })
+        
+        # Préparer les données pour JSON - Lues (tâches)
         notifications_lues_data = []
-        for notif in notifications_lues:
+        for notif in notifications_taches_lues:
             notifications_lues_data.append({
                 'id': notif.id,
                 'message': notif.message,
                 'date_creation': notif.date_creation.isoformat(),
                 'lue': True,
                 'type_notification': notif.type_notification,
+                'source_type': 'tache',
                 'tache_id': notif.tache.id if notif.tache else None,
+                'etape_id': notif.tache.etape.id if notif.tache and notif.tache.etape else None,
+                'projet_id': str(notif.tache.etape.projet.id) if notif.tache and notif.tache.etape else None,
                 'projet_nom': notif.tache.etape.projet.nom if notif.tache and notif.tache.etape else None,
             })
+        
+        # Ajouter les notifications d'étapes lues
+        for notif in notifications_etapes_lues:
+            notifications_lues_data.append({
+                'id': notif.id,
+                'message': notif.message,
+                'date_creation': notif.date_creation.isoformat(),
+                'lue': True,
+                'type_notification': notif.type_notification,
+                'source_type': 'etape',
+                'etape_id': notif.etape.id if notif.etape else None,
+                'projet_id': str(notif.etape.projet.id) if notif.etape else None,
+                'projet_nom': notif.etape.projet.nom if notif.etape else None,
+            })
+        
+        # Ajouter les notifications de modules lues
+        for notif in notifications_modules_lues:
+            notifications_lues_data.append({
+                'id': notif.id,
+                'message': notif.message,
+                'date_creation': notif.date_creation.isoformat(),
+                'lue': True,
+                'type_notification': notif.type_notification,
+                'source_type': 'module',
+                'module_id': notif.module.id if notif.module else None,
+                'projet_id': str(notif.module.projet.id) if notif.module else None,
+                'projet_nom': notif.module.projet.nom if notif.module else None,
+            })
+        
+        # Ajouter les notifications de projets lues
+        for notif in notifications_projets_lues:
+            notifications_lues_data.append({
+                'id': notif.id,
+                'message': notif.message,
+                'titre': notif.titre,
+                'date_creation': notif.date_creation.isoformat(),
+                'lue': True,
+                'type_notification': notif.type_notification,
+                'source_type': 'projet',
+                'projet_id': str(notif.projet.id) if notif.projet else None,
+                'projet_nom': notif.projet.nom if notif.projet else None,
+            })
+        
+        # Trier toutes les notifications par date (plus récentes en premier)
+        notifications_non_lues_data.sort(key=lambda x: x['date_creation'], reverse=True)
+        notifications_lues_data.sort(key=lambda x: x['date_creation'], reverse=True)
+        
+        # Limiter les notifications lues à 50 au total
+        notifications_lues_data = notifications_lues_data[:50]
         
         return JsonResponse({
             'success': True,
             'notifications_non_lues': notifications_non_lues_data,
             'notifications_lues': notifications_lues_data,
-            'total_non_lues': notifications_non_lues.count(),
-            'total_lues': notifications_lues.count(),
+            'total_non_lues': len(notifications_non_lues_data),
+            'total_lues': len(notifications_lues_data),
         })
         
     except Exception as e:
@@ -3526,52 +4119,6 @@ def api_notifications_detailed(request):
             'total_non_lues': 0,
             'total_lues': 0,
         })
-
-@login_required
-@require_http_methods(["POST"])
-def api_mark_notification_read(request, notification_id):
-    """API pour marquer une notification comme lue"""
-    user = request.user
-    
-    try:
-        from .models import NotificationTache
-        notification = get_object_or_404(NotificationTache, id=notification_id, destinataire=user)
-        
-        if not notification.lue:
-            notification.marquer_comme_lue()
-        
-        return JsonResponse({'success': True})
-        
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)})
-
-@login_required
-@require_http_methods(["POST"])
-def api_mark_all_notifications_read(request):
-    """API pour marquer toutes les notifications comme lues"""
-    user = request.user
-    
-    try:
-        from .models import NotificationTache
-        
-        # Marquer toutes les notifications non lues comme lues
-        notifications_non_lues = NotificationTache.objects.filter(
-            destinataire=user,
-            lue=False
-        )
-        
-        count = 0
-        for notification in notifications_non_lues:
-            notification.marquer_comme_lue()
-            count += 1
-        
-        return JsonResponse({
-            'success': True,
-            'marked_count': count
-        })
-        
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)})
 
 @login_required
 def mes_taches_view(request, projet_id):
@@ -3849,8 +4396,6 @@ def profil_view(request):
     """Vue du profil utilisateur - permet de voir et modifier ses informations personnelles"""
     user = request.user
     
-    
-    
     # Enregistrer la consultation du profil
     enregistrer_audit(
         utilisateur=user,
@@ -3860,14 +4405,10 @@ def profil_view(request):
     )
     
     # Récupérer les projets de l'utilisateur pour affichage
-    if user.est_super_admin():
-        # Pour les admins, afficher tous les projets
-        mes_projets = Projet.objects.all()[:5]
-    else:
-        mes_projets = Projet.objects.filter(
-            affectations__utilisateur=user,
-            affectations__date_fin__isnull=True
-        ).distinct()[:5]  # Limiter à 5 projets récents
+    mes_projets = Projet.objects.filter(
+        affectations__utilisateur=user, 
+        affectations__date_fin__isnull=True
+    ).distinct()[:5]  # Limiter à 5 projets récents
     
     # Récupérer les informations du membre associé (profil RH)
     membre = None
@@ -3899,14 +4440,16 @@ def profil_view(request):
     except:
         pass
     
+    # Déterminer si l'admin peut créer un profil membre
+    peut_creer_profil_membre = user.is_superuser and not membre
+    
     context = {
         'user': user,
         'membre': membre,  # Ajouter les informations du membre
         'mes_projets': mes_projets,
         'stats': stats,
-        'peut_modifier': True,  # L'utilisateur peut toujours modifier son propre profil
-        'peut_creer_profil_membre': user.est_super_admin() and not membre,
-        'est_admin': user.est_super_admin(),
+        'peut_modifier': True,  # Tous les utilisateurs peuvent modifier leurs informations de base
+        'peut_creer_profil_membre': peut_creer_profil_membre,  # Nouveau flag pour les admins
     }
     
     return render(request, 'core/profil.html', context)
@@ -3917,7 +4460,13 @@ def modifier_profil_view(request):
     """Modification des informations personnelles du profil"""
     user = request.user
     
-    # Restriction admin supprimée - les administrateurs peuvent maintenant modifier leurs informations
+    print(f"DEBUG: Entrée dans modifier_profil_view")
+    print(f"DEBUG: User: {user}")
+    print(f"DEBUG: POST data: {dict(request.POST)}")
+    
+    # Forcer l'affichage immédiat
+    import sys
+    sys.stdout.flush()
     
     try:
         # Sauvegarder l'état avant modification pour l'audit
@@ -3927,10 +4476,14 @@ def modifier_profil_view(request):
             'telephone': user.telephone,
         }
         
+        print(f"DEBUG: Données avant: {donnees_avant}")
+        
         # Récupérer les nouvelles données
         first_name = request.POST.get('first_name', '').strip()
         last_name = request.POST.get('last_name', '').strip()
         telephone = request.POST.get('telephone', '').strip()
+        
+        print(f"DEBUG: Nouvelles données extraites: {first_name}, {last_name}, {telephone}")
         
         # Validation
         errors = []
@@ -3939,6 +4492,8 @@ def modifier_profil_view(request):
             errors.append('Le prénom est obligatoire.')
         if not last_name:
             errors.append('Le nom est obligatoire.')
+        
+        print(f"DEBUG: Erreurs de validation: {errors}")
         
         if errors:
             return JsonResponse({'success': False, 'error': ' '.join(errors)})
@@ -3949,6 +4504,10 @@ def modifier_profil_view(request):
             # Mettre à jour le membre et l'utilisateur de manière coordonnée
             membre = user.membre
             
+            # Debug: vérifier les valeurs avant modification
+            print(f"DEBUG: Avant modification - Membre: {membre.prenom} {membre.nom}")
+            print(f"DEBUG: Nouvelles valeurs - {first_name} {last_name}")
+            
             # Mettre à jour le membre
             membre.prenom = first_name
             membre.nom = last_name
@@ -3956,11 +4515,15 @@ def modifier_profil_view(request):
                 membre.telephone = telephone
             membre.save()
             
+            print(f"DEBUG: Après membre.save() - Membre: {membre.prenom} {membre.nom}")
+            
             # Mettre à jour l'utilisateur en empêchant la synchronisation automatique
             user.first_name = first_name
             user.last_name = last_name
             user.telephone = telephone
             user.save(sync_from_membre=True)
+            
+            print(f"DEBUG: Après user.save() - User: {user.first_name} {user.last_name}")
         else:
             # Cas 2: L'utilisateur n'a pas de profil membre (admin sans profil)
             user.first_name = first_name
@@ -3973,36 +4536,29 @@ def modifier_profil_view(request):
         
         # Données après modification pour l'audit
         donnees_apres = {
-            'first_name': first_name,
-            'last_name': last_name,
-            'telephone': telephone,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'telephone': user.telephone,
         }
         
         # Audit
         enregistrer_audit(
             utilisateur=user,
             type_action='MODIFICATION_PROFIL',
-            description='Modification des informations personnelles',
+            description=f'Modification des informations personnelles',
             request=request,
             donnees_avant=donnees_avant,
             donnees_apres=donnees_apres
         )
         
         return JsonResponse({
-            'success': True, 
-            'message': 'Profil mis à jour avec succès !',
+            'success': True,
+            'message': 'Informations mises à jour avec succès',
             'nom_complet': user.get_full_name()
         })
         
     except Exception as e:
-        # Audit de l'erreur
-        enregistrer_audit(
-            utilisateur=user,
-            type_action='ERREUR_MODIFICATION_PROFIL',
-            description=f'Erreur lors de la modification du profil: {str(e)}',
-            request=request
-        )
-        return JsonResponse({'success': False, 'error': 'Une erreur est survenue lors de la modification'})
+        return JsonResponse({'success': False, 'error': f'Erreur lors de la mise à jour : {str(e)}'})
 
 @login_required
 @require_http_methods(["POST"])
@@ -4010,7 +4566,9 @@ def changer_mot_de_passe_view(request):
     """Changement du mot de passe utilisateur avec notification par email"""
     user = request.user
     
-    # Restriction admin supprimée - les administrateurs peuvent maintenant modifier leurs informations
+    # Suppression de la restriction admin - les administrateurs peuvent maintenant modifier leurs informations
+    # if user.est_super_admin():
+    #     return JsonResponse({'success': False, 'error': 'Accès non autorisé pour les administrateurs'})
     
     try:
         # Récupérer les données
@@ -4106,14 +4664,25 @@ def changer_mot_de_passe_view(request):
 
 @login_required
 def gestion_modules_view(request, projet_id):
-    """Interface de gestion des modules pour la phase développement"""
+    """Vue de gestion des modules d'un projet avec statistiques améliorées"""
     user = request.user
     projet = get_object_or_404(Projet, id=projet_id)
     
     # Vérifier les permissions
+    if not user.est_super_admin():
+        if not user.a_acces_projet(projet) and projet.createur != user:
+            messages.error(request, 'Vous n\'avez pas accès à ce projet.')
+            return redirect('projets_list')
+    
+    # Récupérer les modules avec leurs relations
+    modules = projet.modules.all().prefetch_related('affectations', 'taches').order_by('date_creation')
+    
+    # Étape courante
+    etape_courante = projet.get_etape_courante()
+    
+    # Permissions
     can_manage = user.est_super_admin() or projet.createur == user
     if not can_manage:
-        # Vérifier si l'utilisateur est responsable principal du projet
         affectation_user = projet.affectations.filter(
             utilisateur=user, 
             est_responsable_principal=True,
@@ -4121,38 +4690,75 @@ def gestion_modules_view(request, projet_id):
         ).first()
         can_manage = affectation_user is not None
     
-    if not can_manage:
-        messages.error(request, 'Vous n\'avez pas les permissions pour gérer les modules de ce projet.')
-        return redirect('projet_detail', projet_id=projet_id)
+    # Vérifier si on peut créer des modules librement
+    peut_creer_librement = etape_courante and etape_courante.peut_creer_modules_librement() if etape_courante else False
     
-    # Vérifier que le projet est en phase développement
-    etape_courante = projet.etapes.filter(statut='EN_COURS').first()
-    if not etape_courante or etape_courante.type_etape.nom != 'DEVELOPPEMENT':
-        messages.warning(request, 'La gestion des modules n\'est disponible qu\'en phase de développement.')
-        return redirect('projet_detail', projet_id=projet_id)
-    
-    # Récupérer les modules du projet
-    modules = projet.modules.all().prefetch_related('affectations__utilisateur', 'taches')
-    
-    # Récupérer l'équipe du projet pour les affectations
-    equipe = []
-    for aff in projet.affectations.filter(date_fin__isnull=True).select_related('utilisateur'):
-        try:
-            equipe.append(aff.utilisateur)
-        except:
-            aff.delete()  # Nettoyer les affectations invalides
+    # Calculer les statistiques côté serveur pour éviter les problèmes de template
+    stats = {
+        'modules_totaux': modules.count(),
+        'modules_affectes': sum(1 for module in modules if module.affectations.filter(date_fin_affectation__isnull=True).exists()),
+        'total_taches': sum(module.taches.count() for module in modules),
+        'phase_actuelle': etape_courante.type_etape.get_nom_display() if etape_courante else 'Non définie'
+    }
     
     context = {
         'projet': projet,
         'modules': modules,
-        'equipe': equipe,
         'etape_courante': etape_courante,
-        'can_create_modules': True,
-        'is_super_admin': user.est_super_admin(),
+        'can_manage': can_manage,
+        'peut_creer_librement': peut_creer_librement,
+        'stats': stats,
     }
     
     return render(request, 'core/gestion_modules.html', context)
 
+@login_required
+@require_http_methods(["POST"])
+def affecter_module_view(request, projet_id, module_id):
+    """Affecter un module à un membre de l'équipe - Version debug simplifiée"""
+    
+    # Test immédiat d'import pour isoler le problème
+    try:
+        # Test 1: Import direct
+        from .models import AffectationModule
+        return JsonResponse({
+            'success': True,
+            'message': 'Import direct réussi !',
+            'debug': {
+                'import_method': 'direct',
+                'model': str(AffectationModule),
+                'model_name': AffectationModule.__name__
+            }
+        })
+    except Exception as e1:
+        try:
+            # Test 2: Import via apps
+            from django.apps import apps
+            AffectationModule = apps.get_model('core', 'AffectationModule')
+            return JsonResponse({
+                'success': True,
+                'message': 'Import via apps réussi !',
+                'debug': {
+                    'import_method': 'apps',
+                    'model': str(AffectationModule),
+                    'model_name': AffectationModule.__name__,
+                    'direct_import_error': str(e1)
+                }
+            })
+        except Exception as e2:
+            # Les deux imports ont échoué
+            import traceback
+            return JsonResponse({
+                'success': False,
+                'error': 'Tous les imports ont échoué',
+                'debug': {
+                    'direct_import_error': str(e1),
+                    'apps_import_error': str(e2),
+                    'direct_traceback': traceback.format_exc(),
+                    'available_models': [model.__name__ for model in apps.get_app_config('core').get_models()]
+                }
+            })
+            
 
 @login_required
 def mes_modules_view(request, projet_id):
@@ -4166,6 +4772,7 @@ def mes_modules_view(request, projet_id):
         return redirect('projets_list')
     
     # Récupérer les modules affectés à l'utilisateur
+    from .models import AffectationModule  # Import local pour éviter les problèmes de cache
     mes_affectations = AffectationModule.objects.filter(
         utilisateur=user,
         module__projet=projet,
@@ -4313,6 +4920,805 @@ def modifier_statut_tache_module_view(request, projet_id, tache_id):
         
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
+
+@login_required
+@require_http_methods(["POST"])
+def affecter_module_nouveau(request, projet_id, module_id):
+    """Nouvelle vue d'affectation de module - Approche fraîche et moderne"""
+    user = request.user
+    
+    try:
+        # Récupération des objets de base
+        projet = get_object_or_404(Projet, id=projet_id)
+        module = get_object_or_404(ModuleProjet, id=module_id, projet=projet)
+        
+        # Vérification des permissions
+        can_manage = (
+            user.est_super_admin() or 
+            projet.createur == user or
+            projet.affectations.filter(
+                utilisateur=user, 
+                est_responsable_principal=True,
+                date_fin__isnull=True
+            ).exists()
+        )
+        
+        if not can_manage:
+            return JsonResponse({
+                'success': False, 
+                'error': 'Vous n\'avez pas les permissions pour affecter des modules.',
+                'type': 'permission'
+            })
+        
+        # Récupération des données du formulaire
+        utilisateur_id = request.POST.get('utilisateur_id')
+        role_module = request.POST.get('role_module', 'CONTRIBUTEUR')
+        
+        if not utilisateur_id:
+            return JsonResponse({
+                'success': False, 
+                'error': 'Veuillez sélectionner un membre de l\'équipe.',
+                'type': 'validation'
+            })
+        
+        utilisateur = get_object_or_404(Utilisateur, id=utilisateur_id)
+        
+        # Vérifier que l'utilisateur fait partie de l'équipe
+        if not projet.affectations.filter(utilisateur=utilisateur, date_fin__isnull=True).exists():
+            return JsonResponse({
+                'success': False, 
+                'error': f'{utilisateur.get_full_name()} doit d\'abord être membre de l\'équipe du projet.',
+                'type': 'validation'
+            })
+        
+        # Configuration des permissions selon le rôle
+        permissions = {
+            'RESPONSABLE': {
+                'peut_creer_taches': True,
+                'peut_voir_toutes_taches': True
+            },
+            'CONTRIBUTEUR': {
+                'peut_creer_taches': False,
+                'peut_voir_toutes_taches': False
+            }
+        }
+        
+        role_permissions = permissions.get(role_module, permissions['CONTRIBUTEUR'])
+        
+        # Import dynamique du modèle pour éviter les problèmes
+        from django.apps import apps
+        AffectationModule = apps.get_model('core', 'AffectationModule')
+        
+        # Vérifier les affectations existantes
+        affectation_existante = AffectationModule.objects.filter(
+            module=module,
+            utilisateur=utilisateur,
+            date_fin_affectation__isnull=True
+        ).first()
+        
+        if affectation_existante:
+            return JsonResponse({
+                'success': False, 
+                'error': f'{utilisateur.get_full_name()} est déjà affecté à ce module.',
+                'type': 'duplicate'
+            })
+        
+        # Créer la nouvelle affectation
+        nouvelle_affectation = AffectationModule.objects.create(
+            module=module,
+            utilisateur=utilisateur,
+            role_module=role_module,
+            peut_creer_taches=role_permissions['peut_creer_taches'],
+            peut_voir_toutes_taches=role_permissions['peut_voir_toutes_taches'],
+            affecte_par=user
+        )
+        
+        # Enregistrer l'audit
+        enregistrer_audit(
+            utilisateur=user,
+            type_action='AFFECTATION_MODULE',
+            description=f'Affectation de {utilisateur.get_full_name()} au module "{module.nom}" avec le rôle {role_module}',
+            projet=projet,
+            donnees_apres={
+                'module_id': module.id,
+                'module_nom': module.nom,
+                'utilisateur_id': str(utilisateur.id),
+                'utilisateur_nom': utilisateur.get_full_name(),
+                'role': role_module,
+                'permissions': role_permissions
+            },
+            request=request
+        )
+        
+        # Créer les notifications
+        try:
+            from .utils import creer_notification_affectation_module, envoyer_notification_affectation_module
+            
+            # Notification in-app
+            creer_notification_affectation_module(module, [nouvelle_affectation], user)
+            
+            # Notification par email
+            envoyer_notification_affectation_module(module, [nouvelle_affectation], user, request)
+            
+        except Exception as e:
+            # Les notifications ne doivent pas faire échouer l'affectation
+            pass
+        
+        # Message de succès
+        messages.success(
+            request, 
+            f'✅ {utilisateur.get_full_name()} a été affecté au module "{module.nom}" avec le rôle {role_module}.'
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'{utilisateur.get_full_name()} affecté avec succès !',
+            'data': {
+                'affectation_id': nouvelle_affectation.id,
+                'utilisateur': {
+                    'id': str(utilisateur.id),
+                    'nom': utilisateur.get_full_name(),
+                    'initiales': f"{utilisateur.first_name[0]}{utilisateur.last_name[0]}" if utilisateur.first_name and utilisateur.last_name else "??"
+                },
+                'role': {
+                    'code': role_module,
+                    'libelle': nouvelle_affectation.get_role_module_display()
+                },
+                'permissions': role_permissions,
+                'module': {
+                    'id': module.id,
+                    'nom': module.nom
+                }
+            }
+        })
+        
+    except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
+        
+        return JsonResponse({
+            'success': False,
+            'error': f'Une erreur inattendue s\'est produite : {str(e)}',
+            'type': 'system',
+            'debug': error_trace if request.user.est_super_admin() else None
+        })
+
+@login_required
+@require_http_methods(["POST"])
+def affecter_module_nouveau(request, projet_id, module_id):
+    """Nouvelle vue d'affectation de module - Approche fraîche et moderne"""
+    user = request.user
+    
+    try:
+        # Récupération des objets de base
+        projet = get_object_or_404(Projet, id=projet_id)
+        module = get_object_or_404(ModuleProjet, id=module_id, projet=projet)
+        
+        # Vérification des permissions
+        can_manage = (
+            user.est_super_admin() or 
+            projet.createur == user or
+            projet.affectations.filter(
+                utilisateur=user, 
+                est_responsable_principal=True,
+                date_fin__isnull=True
+            ).exists()
+        )
+        
+        if not can_manage:
+            return JsonResponse({
+                'success': False, 
+                'error': 'Vous n\'avez pas les permissions pour affecter des modules.',
+                'type': 'permission'
+            })
+        
+        # Récupération des données du formulaire
+        utilisateur_id = request.POST.get('utilisateur_id')
+        role_module = request.POST.get('role_module', 'CONTRIBUTEUR')
+        
+        if not utilisateur_id:
+            return JsonResponse({
+                'success': False, 
+                'error': 'Veuillez sélectionner un membre de l\'équipe.',
+                'type': 'validation'
+            })
+        
+        utilisateur = get_object_or_404(Utilisateur, id=utilisateur_id)
+        
+        # Vérifier que l'utilisateur fait partie de l'équipe
+        if not projet.affectations.filter(utilisateur=utilisateur, date_fin__isnull=True).exists():
+            return JsonResponse({
+                'success': False, 
+                'error': f'{utilisateur.get_full_name()} doit d\'abord être membre de l\'équipe du projet.',
+                'type': 'validation'
+            })
+        
+        # Configuration des permissions selon le rôle
+        permissions = {
+            'RESPONSABLE': {
+                'peut_creer_taches': True,
+                'peut_voir_toutes_taches': True
+            },
+            'CONTRIBUTEUR': {
+                'peut_creer_taches': False,
+                'peut_voir_toutes_taches': False
+            }
+        }
+        
+        role_permissions = permissions.get(role_module, permissions['CONTRIBUTEUR'])
+        
+        # Import dynamique du modèle pour éviter les problèmes
+        from django.apps import apps
+        AffectationModule = apps.get_model('core', 'AffectationModule')
+        
+        # Vérifier les affectations existantes
+        affectation_existante = AffectationModule.objects.filter(
+            module=module,
+            utilisateur=utilisateur,
+            date_fin_affectation__isnull=True
+        ).first()
+        
+        if affectation_existante:
+            return JsonResponse({
+                'success': False, 
+                'error': f'{utilisateur.get_full_name()} est déjà affecté à ce module.',
+                'type': 'duplicate'
+            })
+        
+        # Créer la nouvelle affectation
+        nouvelle_affectation = AffectationModule.objects.create(
+            module=module,
+            utilisateur=utilisateur,
+            role_module=role_module,
+            peut_creer_taches=role_permissions['peut_creer_taches'],
+            peut_voir_toutes_taches=role_permissions['peut_voir_toutes_taches'],
+            affecte_par=user
+        )
+        
+        # Enregistrer l'audit
+        enregistrer_audit(
+            utilisateur=user,
+            type_action='AFFECTATION_MODULE',
+            description=f'Affectation de {utilisateur.get_full_name()} au module "{module.nom}" avec le rôle {role_module}',
+            projet=projet,
+            donnees_apres={
+                'module_id': module.id,
+                'module_nom': module.nom,
+                'utilisateur_id': str(utilisateur.id),
+                'utilisateur_nom': utilisateur.get_full_name(),
+                'role': role_module,
+                'permissions': role_permissions
+            },
+            request=request
+        )
+        
+        # Créer les notifications
+        try:
+            from .utils import creer_notification_affectation_module, envoyer_notification_affectation_module
+            
+            # Notification in-app
+            creer_notification_affectation_module(module, [nouvelle_affectation], user)
+            
+            # Notification par email
+            envoyer_notification_affectation_module(module, [nouvelle_affectation], user, request)
+            
+        except Exception as e:
+            # Les notifications ne doivent pas faire échouer l'affectation
+            pass
+        
+        # Message de succès
+        messages.success(
+            request, 
+            f'✅ {utilisateur.get_full_name()} a été affecté au module "{module.nom}" avec le rôle {role_module}.'
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'{utilisateur.get_full_name()} affecté avec succès !',
+            'data': {
+                'affectation_id': nouvelle_affectation.id,
+                'utilisateur': {
+                    'id': str(utilisateur.id),
+                    'nom': utilisateur.get_full_name(),
+                    'initiales': f"{utilisateur.first_name[0]}{utilisateur.last_name[0]}" if utilisateur.first_name and utilisateur.last_name else "??"
+                },
+                'role': {
+                    'code': role_module,
+                    'libelle': nouvelle_affectation.get_role_module_display()
+                },
+                'permissions': role_permissions,
+                'module': {
+                    'id': module.id,
+                    'nom': module.nom
+                }
+            }
+        })
+        
+    except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
+        
+        return JsonResponse({
+            'success': False,
+            'error': f'Une erreur inattendue s\'est produite : {str(e)}',
+            'type': 'system',
+            'debug': error_trace if request.user.est_super_admin() else None
+        })
+
+@login_required
+def gestion_taches_module_view(request, projet_id, module_id):
+    """Vue de gestion des tâches d'un module avec l'URL complète projet/module"""
+    user = request.user
+    projet = get_object_or_404(Projet, id=projet_id)
+    module = get_object_or_404(ModuleProjet, id=module_id, projet=projet)
+    
+    # Vérifier les permissions d'accès au projet
+    if not user.est_super_admin():
+        if not user.a_acces_projet(projet) and projet.createur != user:
+            messages.error(request, 'Vous n\'avez pas accès à ce projet.')
+            return redirect('projets_list')
+    
+    # Vérifier les permissions de gestion des tâches du module
+    peut_gerer_taches = False
+    
+    # Super admin peut tout faire
+    if user.est_super_admin():
+        peut_gerer_taches = True
+    # Créateur du projet peut tout faire
+    elif projet.createur == user:
+        peut_gerer_taches = True
+    # Responsable principal du projet peut tout faire
+    else:
+        affectation_projet = projet.affectations.filter(
+            utilisateur=user, 
+            est_responsable_principal=True,
+            date_fin__isnull=True
+        ).first()
+        if affectation_projet:
+            peut_gerer_taches = True
+        else:
+            # Responsable du module peut gérer les tâches
+            affectation_module = module.affectations.filter(
+                utilisateur=user,
+                role_module='RESPONSABLE',
+                date_fin_affectation__isnull=True
+            ).first()
+            if affectation_module:
+                peut_gerer_taches = True
+    
+    if not peut_gerer_taches:
+        messages.error(request, 'Vous n\'avez pas les permissions pour gérer les tâches de ce module.')
+        return redirect('gestion_modules', projet_id=projet.id)
+    
+    # Récupérer les tâches du module
+    taches = module.taches.all().select_related('responsable').order_by('-date_creation')
+    
+    # Récupérer l'équipe du module pour les assignations
+    equipe_module = []
+    for affectation in module.affectations.filter(date_fin_affectation__isnull=True).select_related('utilisateur'):
+        equipe_module.append({
+            'utilisateur': affectation.utilisateur,
+            'role': affectation.get_role_module_display(),
+            'peut_creer_taches': affectation.peut_creer_taches,
+            'peut_voir_toutes_taches': affectation.peut_voir_toutes_taches
+        })
+    
+    # Statistiques des tâches
+    stats = {
+        'total_taches': taches.count(),
+        'taches_en_attente': taches.filter(statut='EN_ATTENTE').count(),
+        'taches_en_cours': taches.filter(statut='EN_COURS').count(),
+        'taches_terminees': taches.filter(statut='TERMINEE').count(),
+        'taches_bloquees': taches.filter(statut='BLOQUEE').count(),
+    }
+    
+    # Calculer la progression
+    if stats['total_taches'] > 0:
+        stats['progression'] = round((stats['taches_terminees'] / stats['total_taches']) * 100, 1)
+    else:
+        stats['progression'] = 0
+    
+    context = {
+        'projet': projet,
+        'module': module,
+        'taches': taches,
+        'equipe_module': equipe_module,
+        'peut_gerer_taches': peut_gerer_taches,
+        'stats': stats,
+        'user': user,
+    }
+    
+    return render(request, 'core/gestion_taches_module.html', context)
+
+@login_required
+@require_http_methods(["POST"])
+def creer_tache_module_nouvelle_view(request, projet_id, module_id):
+    """Créer une nouvelle tâche dans un module avec permissions"""
+    user = request.user
+    projet = get_object_or_404(Projet, id=projet_id)
+    module = get_object_or_404(ModuleProjet, id=module_id, projet=projet)
+    
+    # Vérifier les permissions
+    peut_creer_taches = False
+    
+    # Super admin peut tout faire
+    if user.est_super_admin():
+        peut_creer_taches = True
+    # Créateur du projet peut tout faire
+    elif projet.createur == user:
+        peut_creer_taches = True
+    # Responsable principal du projet peut tout faire
+    else:
+        affectation_projet = projet.affectations.filter(
+            utilisateur=user, 
+            est_responsable_principal=True,
+            date_fin__isnull=True
+        ).first()
+        if affectation_projet:
+            peut_creer_taches = True
+        else:
+            # Responsable du module peut créer des tâches
+            affectation_module = module.affectations.filter(
+                utilisateur=user,
+                role_module='RESPONSABLE',
+                date_fin_affectation__isnull=True
+            ).first()
+            if affectation_module and affectation_module.peut_creer_taches:
+                peut_creer_taches = True
+    
+    if not peut_creer_taches:
+        return JsonResponse({
+            'success': False,
+            'error': 'Vous n\'avez pas les permissions pour créer des tâches dans ce module.'
+        })
+    
+    try:
+        # Récupérer les données du formulaire
+        nom = request.POST.get('nom', '').strip()
+        description = request.POST.get('description', '').strip()
+        priorite = request.POST.get('priorite', 'MOYENNE')
+        responsable_id = request.POST.get('responsable_id')
+        
+        # Validation
+        if not nom:
+            return JsonResponse({
+                'success': False,
+                'error': 'Le nom de la tâche est obligatoire.'
+            })
+        
+        # Vérifier que le responsable fait partie de l'équipe du module (si spécifié)
+        responsable = None
+        if responsable_id:
+            try:
+                responsable = Utilisateur.objects.get(id=responsable_id)
+                # Vérifier que le responsable fait partie de l'équipe du module
+                if not module.affectations.filter(
+                    utilisateur=responsable,
+                    date_fin_affectation__isnull=True
+                ).exists():
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'Le responsable sélectionné ne fait pas partie de l\'équipe du module.'
+                    })
+            except Utilisateur.DoesNotExist:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Responsable invalide.'
+                })
+        
+        # Créer la tâche
+        tache = TacheModule.objects.create(
+            module=module,
+            nom=nom,
+            description=description,
+            priorite=priorite,
+            responsable=responsable,
+            createur=user,
+            statut='EN_ATTENTE'
+        )
+        
+        # Audit
+        enregistrer_audit(
+            utilisateur=user,
+            type_action='CREATION_TACHE_MODULE',
+            description=f'Création de la tâche "{nom}" dans le module "{module.nom}"',
+            projet=projet,
+            request=request,
+            donnees_apres={
+                'tache_id': str(tache.id),
+                'tache_nom': nom,
+                'module_id': module.id,
+                'module_nom': module.nom,
+                'priorite': priorite,
+                'responsable': responsable.get_full_name() if responsable else None
+            }
+        )
+        
+        # Créer une notification si un responsable est assigné
+        if responsable and responsable != user:
+            try:
+                from .models import NotificationModule
+                NotificationModule.objects.create(
+                    utilisateur=responsable,
+                    type_notification='TACHE_ASSIGNEE',
+                    titre=f'Nouvelle tâche assignée',
+                    message=f'La tâche "{nom}" vous a été assignée dans le module "{module.nom}"',
+                    module=module,
+                    tache_module=tache,
+                    createur=user
+                )
+            except Exception as e:
+                # Les notifications ne doivent pas faire échouer la création
+                pass
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Tâche "{nom}" créée avec succès !',
+            'data': {
+                'tache_id': str(tache.id),
+                'tache_nom': nom,
+                'responsable': responsable.get_full_name() if responsable else None
+            }
+        })
+        
+    except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
+        
+        return JsonResponse({
+            'success': False,
+            'error': f'Erreur lors de la création de la tâche : {str(e)}',
+            'debug': error_trace if user.est_super_admin() else None
+        })
+
+@login_required
+def creer_profil_membre_admin_view(request):
+    """Permet à un administrateur de créer son propre profil membre"""
+    user = request.user
+    
+    # Vérifier que l'utilisateur est admin et n'a pas déjà un profil membre
+    if not user.is_superuser:
+        messages.error(request, 'Seuls les administrateurs peuvent accéder à cette page.')
+        return redirect('dashboard')
+    
+    if hasattr(user, 'membre') and user.membre:
+        messages.info(request, 'Vous avez déjà un profil membre.')
+        return redirect('profil')
+    
+    if request.method == 'POST':
+        try:
+            # Récupérer les données du formulaire
+            nom = request.POST.get('nom', '').strip()
+            prenom = request.POST.get('prenom', '').strip()
+            email_personnel = request.POST.get('email_personnel', '').strip()
+            telephone = request.POST.get('telephone', '').strip()
+            telephone_urgence = request.POST.get('telephone_urgence', '').strip()
+            adresse = request.POST.get('adresse', '').strip()
+            poste = request.POST.get('poste', '').strip()
+            departement = request.POST.get('departement', '').strip()
+            niveau_experience = request.POST.get('niveau_experience', '')
+            competences_techniques = request.POST.get('competences_techniques', '').strip()
+            specialites = request.POST.get('specialites', '').strip()
+            
+            # Validation
+            if not nom or not prenom:
+                messages.error(request, 'Le nom et le prénom sont obligatoires.')
+                return render(request, 'core/creer_profil_membre_admin.html', {
+                    'user': user,
+                    'niveaux_experience': Membre.NIVEAU_EXPERIENCE_CHOICES,
+                })
+            
+            if not email_personnel:
+                messages.error(request, 'L\'email personnel est obligatoire.')
+                return render(request, 'core/creer_profil_membre_admin.html', {
+                    'user': user,
+                    'niveaux_experience': Membre.NIVEAU_EXPERIENCE_CHOICES,
+                })
+            
+            if not adresse:
+                messages.error(request, 'L\'adresse est obligatoire.')
+                return render(request, 'core/creer_profil_membre_admin.html', {
+                    'user': user,
+                    'niveaux_experience': Membre.NIVEAU_EXPERIENCE_CHOICES,
+                })
+            
+            # Vérifier que l'email personnel n'existe pas déjà
+            if Membre.objects.filter(email_personnel=email_personnel).exists():
+                messages.error(request, 'Cet email personnel est déjà utilisé par un autre membre.')
+                return render(request, 'core/creer_profil_membre_admin.html', {
+                    'user': user,
+                    'niveaux_experience': Membre.NIVEAU_EXPERIENCE_CHOICES,
+                })
+            
+            # Créer le profil membre
+            membre = Membre.objects.create(
+                nom=nom,
+                prenom=prenom,
+                email_personnel=email_personnel,
+                telephone=telephone,
+                telephone_urgence=telephone_urgence,
+                adresse=adresse,
+                poste=poste,
+                departement=departement,
+                niveau_experience=niveau_experience,
+                competences_techniques=competences_techniques,
+                specialites=specialites,
+                statut='ACTIF',
+                createur=user
+            )
+            
+            # Lier le profil membre au compte utilisateur
+            user.membre = membre
+            user.save()
+            
+            # Mettre à jour les informations du compte utilisateur si nécessaire
+            if not user.first_name:
+                user.first_name = prenom
+            if not user.last_name:
+                user.last_name = nom
+            user.save()
+            
+            # Audit
+            enregistrer_audit(
+                utilisateur=user,
+                type_action='CREATION_PROFIL_MEMBRE_ADMIN',
+                description=f'Création du profil membre pour l\'administrateur {user.get_full_name()}',
+                request=request,
+                donnees_apres={
+                    'membre_id': str(membre.id),
+                    'nom_complet': f'{prenom} {nom}',
+                    'email_personnel': email_personnel,
+                    'poste': poste,
+                    'departement': departement
+                }
+            )
+            
+            messages.success(request, 'Votre profil membre a été créé avec succès !')
+            return redirect('profil')
+            
+        except Exception as e:
+            messages.error(request, f'Erreur lors de la création du profil : {str(e)}')
+    
+    context = {
+        'user': user,
+        'niveaux_experience': Membre.NIVEAU_EXPERIENCE_CHOICES,
+    }
+    
+    return render(request, 'core/creer_profil_membre_admin.html', context)
+
+@login_required
+def creer_profil_membre_admin_view(request):
+    """Permet à un administrateur de créer son propre profil membre"""
+    user = request.user
+    
+    # Vérifier que l'utilisateur est admin et n'a pas déjà un profil membre
+    if not user.is_superuser:
+        messages.error(request, 'Seuls les administrateurs peuvent accéder à cette page.')
+        return redirect('dashboard')
+    
+    if hasattr(user, 'membre') and user.membre:
+        messages.info(request, 'Vous avez déjà un profil membre.')
+        return redirect('profil')
+    
+    if request.method == 'POST':
+        try:
+            # Récupérer les données du formulaire
+            nom = request.POST.get('nom', '').strip()
+            prenom = request.POST.get('prenom', '').strip()
+            email_personnel = request.POST.get('email_personnel', '').strip()
+            telephone = request.POST.get('telephone', '').strip()
+            telephone_urgence = request.POST.get('telephone_urgence', '').strip()
+            adresse = request.POST.get('adresse', '').strip()
+            poste = request.POST.get('poste', '').strip()
+            departement = request.POST.get('departement', '').strip()
+            niveau_experience = request.POST.get('niveau_experience', '')
+            competences_techniques = request.POST.get('competences_techniques', '').strip()
+            specialites = request.POST.get('specialites', '').strip()
+            
+            # Validation
+            if not nom or not prenom:
+                messages.error(request, 'Le nom et le prénom sont obligatoires.')
+                return render(request, 'core/creer_profil_membre_admin.html', {
+                    'user': user,
+                    'niveaux_experience': Membre.NIVEAU_EXPERIENCE_CHOICES,
+                })
+            
+            if not email_personnel:
+                messages.error(request, 'L\'email personnel est obligatoire.')
+                return render(request, 'core/creer_profil_membre_admin.html', {
+                    'user': user,
+                    'niveaux_experience': Membre.NIVEAU_EXPERIENCE_CHOICES,
+                })
+            
+            if not adresse:
+                messages.error(request, 'L\'adresse est obligatoire.')
+                return render(request, 'core/creer_profil_membre_admin.html', {
+                    'user': user,
+                    'niveaux_experience': Membre.NIVEAU_EXPERIENCE_CHOICES,
+                })
+            
+            # Vérifier que l'email personnel n'existe pas déjà
+            if Membre.objects.filter(email_personnel=email_personnel).exists():
+                messages.error(request, 'Cet email personnel est déjà utilisé par un autre membre.')
+                return render(request, 'core/creer_profil_membre_admin.html', {
+                    'user': user,
+                    'niveaux_experience': Membre.NIVEAU_EXPERIENCE_CHOICES,
+                })
+            
+            # Créer le profil membre
+            membre = Membre.objects.create(
+                nom=nom,
+                prenom=prenom,
+                email_personnel=email_personnel,
+                telephone=telephone,
+                telephone_urgence=telephone_urgence,
+                adresse=adresse,
+                poste=poste,
+                departement=departement,
+                niveau_experience=niveau_experience,
+                competences_techniques=competences_techniques,
+                specialites=specialites,
+                statut='ACTIF',
+                createur=user
+            )
+            
+            # Lier le profil membre au compte utilisateur
+            user.membre = membre
+            user.save()
+            
+            # Mettre à jour les informations du compte utilisateur si nécessaire
+            if not user.first_name:
+                user.first_name = prenom
+            if not user.last_name:
+                user.last_name = nom
+            user.save()
+            
+            # Audit
+            enregistrer_audit(
+                utilisateur=user,
+                type_action='CREATION_PROFIL_MEMBRE_ADMIN',
+                description=f'Création du profil membre pour l\'administrateur {user.get_full_name()}',
+                request=request,
+                donnees_apres={
+                    'membre_id': str(membre.id),
+                    'nom_complet': f'{prenom} {nom}',
+                    'email_personnel': email_personnel,
+                    'poste': poste,
+                    'departement': departement
+                }
+            )
+            
+            messages.success(request, 'Votre profil membre a été créé avec succès !')
+            return redirect('profil')
+            
+        except Exception as e:
+            messages.error(request, f'Erreur lors de la création du profil : {str(e)}')
+    
+    context = {
+        'user': user,
+        'niveaux_experience': Membre.NIVEAU_EXPERIENCE_CHOICES,
+    }
+    
+    return render(request, 'core/creer_profil_membre_admin.html', context)
+
+# ============================================================================
+# IMPORT DES VUES DU SYSTÈME DE TESTS V1
+# ============================================================================
+
+from .views_tests import (
+    gestion_tests_view,
+    creer_test_view,
+    executer_test_view,
+    modifier_test_view,
+    gestion_bugs_view,
+    creer_bug_view,
+    assigner_bug_view,
+    resoudre_bug_view,
+    fermer_bug_view,
+    validation_test_view,
+    valider_etape_test_view,
+)
+
 # ============================================================================
 # SYSTÈME DE TESTS V1 - VUES SIMPLIFIÉES
 # ============================================================================
@@ -4365,7 +5771,6 @@ def gestion_tests_view(request, projet_id, etape_id):
 @login_required
 def creer_test_view(request, projet_id, etape_id):
     """Vue de création d'un test"""
-    from .models import TacheTest  # Import local pour éviter les problèmes
     user = request.user
     projet = get_object_or_404(Projet, id=projet_id)
     etape = get_object_or_404(EtapeProjet, id=etape_id, projet=projet)
@@ -4408,8 +5813,8 @@ def creer_test_view(request, projet_id, etape_id):
     context = {
         'projet': projet,
         'etape': etape,
-        'TYPE_TEST_CHOICES': getattr(TacheTest, 'TYPE_TEST_CHOICES', []),
-        'PRIORITE_CHOICES': getattr(TacheTest, 'PRIORITE_CHOICES', []),
+        'TYPE_TEST_CHOICES': TacheTest.TYPE_TEST_CHOICES,
+        'PRIORITE_CHOICES': TacheTest.PRIORITE_CHOICES,
     }
     
     return render(request, 'core/creer_test_simple.html', context)
@@ -4493,6 +5898,421 @@ def fermer_bug_view(request, projet_id, bug_id):
 def modifier_test_view(request, projet_id, etape_id, test_id):
     messages.info(request, 'Modification de tests disponible en V1.1')
     return redirect('gestion_tests', projet_id=projet_id, etape_id=etape_id)
+
+# ============================================================================
+# SYSTÈME DE TESTS V1 - VUES SIMPLIFIÉES
+# ============================================================================
+
+@login_required
+def gestion_tests_view(request, projet_id, etape_id):
+    """Vue principale de gestion des tests pour une étape"""
+    user = request.user
+    projet = get_object_or_404(Projet, id=projet_id)
+    etape = get_object_or_404(EtapeProjet, id=etape_id, projet=projet)
+    
+    # Vérifier les permissions
+    if not user.est_super_admin():
+        if not user.a_acces_projet(projet) and projet.createur != user:
+            messages.error(request, 'Vous n\'avez pas accès à ce projet.')
+            return redirect('projets_list')
+    
+    # Vérifier que c'est bien une étape de tests
+    if etape.type_etape.nom != 'TESTS':
+        messages.error(request, 'Cette étape n\'est pas une étape de tests.')
+        return redirect('detail_etape', projet_id=projet.id, etape_id=etape.id)
+    
+    # Récupérer les tests de cette étape
+    tests = etape.taches_test.all().order_by('-date_creation')
+    
+    # Statistiques simples
+    stats = {
+        'total': tests.count(),
+        'passes': tests.filter(statut='PASSE').count(),
+        'echecs': tests.filter(statut='ECHEC').count(),
+        'en_attente': tests.filter(statut='EN_ATTENTE').count(),
+    }
+    
+    # Permissions utilisateur
+    peut_creer_tests = user.est_super_admin() or user.role_systeme.nom in ['QA', 'CHEF_PROJET'] or projet.createur == user
+    peut_executer_tests = user.est_super_admin() or user.role_systeme.nom == 'QA' or projet.createur == user
+    
+    context = {
+        'projet': projet,
+        'etape': etape,
+        'tests': tests,
+        'stats': stats,
+        'peut_creer_tests': peut_creer_tests,
+        'peut_executer_tests': peut_executer_tests,
+    }
+    
+    return render(request, 'core/gestion_tests_simple.html', context)
+
+
+@login_required
+def creer_test_view(request, projet_id, etape_id):
+    """Vue de création d'un test"""
+    user = request.user
+    projet = get_object_or_404(Projet, id=projet_id)
+    etape = get_object_or_404(EtapeProjet, id=etape_id, projet=projet)
+    
+    # Vérifier les permissions
+    peut_creer = user.est_super_admin() or user.role_systeme.nom in ['QA', 'CHEF_PROJET'] or projet.createur == user
+    if not peut_creer:
+        messages.error(request, 'Vous n\'avez pas les permissions pour créer des tests.')
+        return redirect('gestion_tests', projet_id=projet.id, etape_id=etape.id)
+    
+    if request.method == 'POST':
+        try:
+            # Récupérer les données du formulaire
+            nom = request.POST.get('nom')
+            description = request.POST.get('description')
+            type_test = request.POST.get('type_test', 'FONCTIONNEL')
+            priorite = request.POST.get('priorite', 'MOYENNE')
+            scenario_test = request.POST.get('scenario_test', '')
+            resultats_attendus = request.POST.get('resultats_attendus', '')
+            
+            # Créer le test
+            test = TacheTest.objects.create(
+                etape=etape,
+                createur=user,
+                nom=nom,
+                description=description,
+                type_test=type_test,
+                priorite=priorite,
+                scenario_test=scenario_test,
+                resultats_attendus=resultats_attendus,
+                assignee_qa=user if user.role_systeme.nom == 'QA' else None
+            )
+            
+            messages.success(request, f'Test "{test.nom}" créé avec succès.')
+            return redirect('gestion_tests', projet_id=projet.id, etape_id=etape.id)
+            
+        except Exception as e:
+            messages.error(request, f'Erreur lors de la création : {str(e)}')
+    
+    context = {
+        'projet': projet,
+        'etape': etape,
+        'TYPE_TEST_CHOICES': TacheTest.TYPE_TEST_CHOICES,
+        'PRIORITE_CHOICES': TacheTest.PRIORITE_CHOICES,
+    }
+    
+    return render(request, 'core/creer_test_simple.html', context)
+
+
+@login_required
+@require_http_methods(["POST"])
+def executer_test_view(request, projet_id, etape_id, test_id):
+    """Vue d'exécution d'un test (AJAX)"""
+    user = request.user
+    projet = get_object_or_404(Projet, id=projet_id)
+    etape = get_object_or_404(EtapeProjet, id=etape_id, projet=projet)
+    test = get_object_or_404(TacheTest, id=test_id, etape=etape)
+    
+    try:
+        # Vérifier les permissions
+        peut_executer = user.est_super_admin() or user.role_systeme.nom == 'QA' or projet.createur == user
+        if not peut_executer:
+            return JsonResponse({'success': False, 'error': 'Permissions insuffisantes'})
+        
+        # Récupérer les données
+        statut_resultat = request.POST.get('statut_resultat')  # 'PASSE' ou 'ECHEC'
+        resultats_obtenus = request.POST.get('resultats_obtenus', '')
+        
+        # Mettre à jour le test
+        test.statut = statut_resultat
+        test.executeur = user
+        test.date_execution = timezone.now()
+        test.resultats_obtenus = resultats_obtenus
+        test.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Test {test.numero_test} exécuté avec succès',
+            'nouveau_statut': test.statut,
+            'date_execution': test.date_execution.strftime('%d/%m/%Y %H:%M')
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'Erreur : {str(e)}'})
+
+
+# Placeholders pour les autres vues
+@login_required
+def gestion_bugs_view(request, projet_id, etape_id):
+    messages.info(request, 'Interface de gestion des bugs disponible en V1.1')
+    return redirect('gestion_tests', projet_id=projet_id, etape_id=etape_id)
+
+@login_required
+def creer_bug_view(request, projet_id, etape_id):
+    messages.info(request, 'Création de bugs disponible en V1.1')
+    return redirect('gestion_tests', projet_id=projet_id, etape_id=etape_id)
+
+@login_required
+def validation_test_view(request, projet_id, etape_id):
+    messages.info(request, 'Interface de validation disponible en V1.1')
+    return redirect('gestion_tests', projet_id=projet_id, etape_id=etape_id)
+
+@login_required
+@require_http_methods(["POST"])
+def valider_etape_test_view(request, projet_id, etape_id):
+    messages.info(request, 'Validation d\'étape disponible en V1.1')
+    return redirect('gestion_tests', projet_id=projet_id, etape_id=etape_id)
+
+@login_required
+@require_http_methods(["POST"])
+def assigner_bug_view(request, projet_id, bug_id):
+    return JsonResponse({'success': False, 'error': 'Fonctionnalité disponible en V1.1'})
+
+@login_required
+@require_http_methods(["POST"])
+def resoudre_bug_view(request, projet_id, bug_id):
+    return JsonResponse({'success': False, 'error': 'Fonctionnalité disponible en V1.1'})
+
+@login_required
+@require_http_methods(["POST"])
+def fermer_bug_view(request, projet_id, bug_id):
+    return JsonResponse({'success': False, 'error': 'Fonctionnalité disponible en V1.1'})
+
+@login_required
+def modifier_test_view(request, projet_id, etape_id, test_id):
+    messages.info(request, 'Modification de tests disponible en V1.1')
+    return redirect('gestion_tests', projet_id=projet_id, etape_id=etape_id)
+
+
+@login_required
+def mes_modules_view(request, projet_id):
+    """Interface pour voir les modules affectés à l'utilisateur connecté"""
+    user = request.user
+    projet = get_object_or_404(Projet, id=projet_id)
+    
+    # Vérifier que l'utilisateur a accès au projet
+    if not user.est_super_admin():
+        if not user.a_acces_projet(projet) and projet.createur != user:
+            messages.error(request, 'Vous n\'avez pas accès à ce projet.')
+            return redirect('projets_list')
+    
+    # Récupérer les modules où l'utilisateur est affecté
+    try:
+        from .models import AffectationModule
+        affectations = AffectationModule.objects.filter(
+            utilisateur=user,
+            module__projet=projet,
+            date_fin__isnull=True
+        ).select_related('module')
+        
+        modules_affecter = [aff.module for aff in affectations]
+    except:
+        modules_affecter = []
+    
+    context = {
+        'projet': projet,
+        'modules_affecter': modules_affecter,
+        'user': user,
+    }
+    
+    return render(request, 'core/mes_modules.html', context)
+
+
+# ============================================================================
+# IMPORTS DES VUES HIÉRARCHIQUES CASTEST
+# ============================================================================
+
+from .views_tests import creer_cas_test_view, executer_cas_test_view, details_cas_test_view
+
+
+# ============================================================================
+# API ENDPOINTS POUR INTEGRATION CASTEST
+# ============================================================================
+
+@login_required
+def api_tache_etape_to_tache_test(request, tache_etape_id):
+    """API pour trouver la TacheTest correspondante à une TacheEtape"""
+    try:
+        from .models import TacheEtape, TacheTest
+        tache_etape = get_object_or_404(TacheEtape, id=tache_etape_id)
+        
+        # Vérifier les permissions
+        if not request.user.a_acces_projet(tache_etape.etape.projet):
+            return JsonResponse({'success': False, 'error': 'Permissions insuffisantes'})
+        
+        # Chercher une TacheTest avec le même nom dans la même étape
+        tache_test = TacheTest.objects.filter(
+            etape=tache_etape.etape,
+            nom=tache_etape.nom
+        ).first()
+        
+        if tache_test:
+            return JsonResponse({
+                'success': True,
+                'tache_test_id': str(tache_test.id)
+            })
+        else:
+            # Créer une TacheTest automatiquement
+            tache_test = TacheTest.objects.create(
+                etape=tache_etape.etape,
+                nom=tache_etape.nom,
+                description=tache_etape.description or f"Tests pour: {tache_etape.nom}",
+                type_test='FONCTIONNEL',
+                priorite=tache_etape.priorite,
+                createur=request.user,
+                assignee_qa=tache_etape.responsable
+            )
+            
+            return JsonResponse({
+                'success': True,
+                'tache_test_id': str(tache_test.id),
+                'created': True
+            })
+            
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+@login_required
+def api_tache_test_cas_tests(request, tache_test_id):
+    """API pour récupérer les cas de test d'une TacheTest"""
+    try:
+        from .models import TacheTest
+        tache_test = get_object_or_404(TacheTest, id=tache_test_id)
+        
+        # Vérifier les permissions
+        if not request.user.a_acces_projet(tache_test.etape.projet):
+            return JsonResponse({'success': False, 'error': 'Permissions insuffisantes'})
+        
+        cas_tests = tache_test.cas_tests.all().order_by('ordre', 'date_creation')
+        
+        cas_tests_data = []
+        for cas in cas_tests:
+            cas_tests_data.append({
+                'id': str(cas.id),
+                'numero_cas': cas.numero_cas,
+                'nom': cas.nom,
+                'description': cas.description,
+                'priorite': cas.priorite,
+                'priorite_display': cas.get_priorite_display(),
+                'statut': cas.statut,
+                'statut_display': cas.get_statut_display(),
+                'date_creation': cas.date_creation.strftime('%d/%m/%Y'),
+                'executeur': cas.executeur.get_full_name() if cas.executeur else None,
+                'date_execution': cas.date_execution.strftime('%d/%m/%Y à %H:%M') if cas.date_execution else None,
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'cas_tests': cas_tests_data
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+# ============================================================================
+
+@login_required
+def api_tache_etape_to_tache_test(request, tache_etape_id):
+    """API pour trouver la TacheTest correspondante à une TacheEtape"""
+    try:
+        from .models import TacheEtape, TacheTest
+        tache_etape = get_object_or_404(TacheEtape, id=tache_etape_id)
+        
+        # Vérifier les permissions
+        if not request.user.a_acces_projet(tache_etape.etape.projet):
+            return JsonResponse({'success': False, 'error': 'Permissions insuffisantes'})
+        
+        # Chercher une TacheTest avec le même nom dans la même étape
+        tache_test = TacheTest.objects.filter(
+            etape=tache_etape.etape,
+            nom=tache_etape.nom
+        ).first()
+        
+        if tache_test:
+            return JsonResponse({
+                'success': True,
+                'tache_test_id': str(tache_test.id)
+            })
+        else:
+            # Créer une TacheTest automatiquement
+            tache_test = TacheTest.objects.create(
+                etape=tache_etape.etape,
+                nom=tache_etape.nom,
+                description=tache_etape.description or f"Tests pour: {tache_etape.nom}",
+                type_test='FONCTIONNEL',
+                priorite=tache_etape.priorite,
+                createur=request.user,
+                assignee_qa=tache_etape.responsable
+            )
+            
+            return JsonResponse({
+                'success': True,
+                'tache_test_id': str(tache_test.id),
+                'created': True
+            })
+            
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+@login_required
+def api_tache_test_cas_tests(request, tache_test_id):
+    """API pour récupérer les cas de test d'une TacheTest"""
+    try:
+        from .models import TacheTest
+        tache_test = get_object_or_404(TacheTest, id=tache_test_id)
+        
+        # Vérifier les permissions
+        if not request.user.a_acces_projet(tache_test.etape.projet):
+            return JsonResponse({'success': False, 'error': 'Permissions insuffisantes'})
+        
+        cas_tests = tache_test.cas_tests.all().order_by('ordre', 'date_creation')
+        
+        cas_tests_data = []
+        for cas in cas_tests:
+            cas_tests_data.append({
+                'id': str(cas.id),
+                'numero_cas': cas.numero_cas,
+                'nom': cas.nom,
+                'description': cas.description,
+                'priorite': cas.priorite,
+                'priorite_display': cas.get_priorite_display(),
+                'statut': cas.statut,
+                'statut_display': cas.get_statut_display(),
+                'date_creation': cas.date_creation.strftime('%d/%m/%Y'),
+                'executeur': cas.executeur.get_full_name() if cas.executeur else None,
+                'date_execution': cas.date_execution.strftime('%d/%m/%Y à %H:%M') if cas.date_execution else None,
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'cas_tests': cas_tests_data
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+    # Vérifier que l'utilisateur a accès au projet
+    if not user.est_super_admin():
+        if not user.a_acces_projet(projet) and projet.createur != user:
+            messages.error(request, 'Vous n\'avez pas accès à ce projet.')
+            return redirect('projets_list')
+    
+    # Récupérer les modules où l'utilisateur est affecté
+    try:
+        from .models import AffectationModule
+        affectations = AffectationModule.objects.filter(
+            utilisateur=user,
+            module__projet=projet,
+            date_fin__isnull=True
+        ).select_related('module')
+        
+        modules_affecter = [aff.module for aff in affectations]
+    except:
+        modules_affecter = []
+    
+    context = {
+        'projet': projet,
+        'modules_affecter': modules_affecter,
+        'user': user,
+    }
+    
+    return render(request, 'core/mes_modules.html', context)
 
 
 # ============================================================================

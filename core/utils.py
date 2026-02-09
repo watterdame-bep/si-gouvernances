@@ -664,42 +664,110 @@ def envoyer_notification_etape_terminee(etape, utilisateur_terminant, request=No
         dict: Résultat de l'envoi avec le nombre d'emails envoyés
     """
     try:
-        from .models import Utilisateur, RoleSysteme
+        from .models import Utilisateur, RoleSysteme, NotificationEtape
         
         # Récupérer les destinataires
         destinataires = []
         
-        # 1. Tous les super admins
-        super_admins = Utilisateur.objects.filter(
-            is_superuser=True,
-            statut_actif=True,
-            email__isnull=False
-        ).exclude(email='')
-        
-        for admin in super_admins:
+        # 1. TOUJOURS notifier le responsable principal du projet
+        responsable_projet = etape.projet.get_responsable_principal()
+        if responsable_projet and responsable_projet != utilisateur_terminant:
             destinataires.append({
-                'email': admin.email,
-                'nom': admin.get_full_name(),
-                'role': 'Administrateur'
+                'email': responsable_projet.email,
+                'nom': responsable_projet.get_full_name(),
+                'role': 'Responsable Projet',
+                'utilisateur': responsable_projet
             })
+            
+            # Créer notification dans l'app pour le responsable
+            NotificationEtape.objects.create(
+                destinataire=responsable_projet,
+                etape=etape,
+                type_notification='ETAPE_TERMINEE',
+                titre=f'Étape terminée: {etape.type_etape.get_nom_display()}',
+                message=f'L\'étape "{etape.type_etape.get_nom_display()}" du projet "{etape.projet.nom}" a été terminée par {utilisateur_terminant.get_full_name()}.',
+                emetteur=utilisateur_terminant,
+                donnees_contexte={
+                    'projet_id': str(etape.projet.id),
+                    'projet_nom': etape.projet.nom,
+                    'etape_id': str(etape.id),
+                    'etape_nom': etape.type_etape.get_nom_display(),
+                }
+            )
         
-        # 2. Tous les chefs de projet système
-        try:
-            role_chef_projet = RoleSysteme.objects.get(nom='CHEF_PROJET')
-            chefs_projet = Utilisateur.objects.filter(
-                role_systeme=role_chef_projet,
+        # 2. Notifier les admins SEULEMENT si activé dans les paramètres du projet
+        if etape.projet.notifications_admin_activees:
+            # Tous les super admins
+            super_admins = Utilisateur.objects.filter(
+                is_superuser=True,
                 statut_actif=True,
                 email__isnull=False
-            ).exclude(email='')
+            ).exclude(email='').exclude(id=utilisateur_terminant.id)
             
-            for chef in chefs_projet:
+            if responsable_projet:
+                super_admins = super_admins.exclude(id=responsable_projet.id)
+            
+            for admin in super_admins:
                 destinataires.append({
-                    'email': chef.email,
-                    'nom': chef.get_full_name(),
-                    'role': 'Chef de Projet'
+                    'email': admin.email,
+                    'nom': admin.get_full_name(),
+                    'role': 'Administrateur',
+                    'utilisateur': admin
                 })
-        except RoleSysteme.DoesNotExist:
-            pass
+                
+                # Créer notification dans l'app
+                NotificationEtape.objects.create(
+                    destinataire=admin,
+                    etape=etape,
+                    type_notification='ETAPE_TERMINEE',
+                    titre=f'Étape terminée: {etape.type_etape.get_nom_display()}',
+                    message=f'L\'étape "{etape.type_etape.get_nom_display()}" du projet "{etape.projet.nom}" a été terminée par {utilisateur_terminant.get_full_name()}.',
+                    emetteur=utilisateur_terminant,
+                    donnees_contexte={
+                        'projet_id': str(etape.projet.id),
+                        'projet_nom': etape.projet.nom,
+                        'etape_id': str(etape.id),
+                        'etape_nom': etape.type_etape.get_nom_display(),
+                    }
+                )
+            
+            # Tous les chefs de projet système
+            try:
+                role_chef_projet = RoleSysteme.objects.get(nom='CHEF_PROJET')
+                chefs_projet = Utilisateur.objects.filter(
+                    role_systeme=role_chef_projet,
+                    statut_actif=True,
+                    email__isnull=False
+                ).exclude(email='').exclude(id=utilisateur_terminant.id)
+                
+                if responsable_projet:
+                    chefs_projet = chefs_projet.exclude(id=responsable_projet.id)
+                
+                for chef in chefs_projet:
+                    destinataires.append({
+                        'email': chef.email,
+                        'nom': chef.get_full_name(),
+                        'role': 'Chef de Projet',
+                        'utilisateur': chef
+                    })
+                    
+                    # Créer notification dans l'app
+                    NotificationEtape.objects.create(
+                        destinataire=chef,
+                        etape=etape,
+                        type_notification='ETAPE_TERMINEE',
+                        titre=f'Étape terminée: {etape.type_etape.get_nom_display()}',
+                        message=f'L\'étape "{etape.type_etape.get_nom_display()}" du projet "{etape.projet.nom}" a été terminée par {utilisateur_terminant.get_full_name()}.',
+                        emetteur=utilisateur_terminant,
+                        donnees_contexte={
+                            'projet_id': str(etape.projet.id),
+                            'projet_nom': etape.projet.nom,
+                            'etape_id': str(etape.id),
+                            'etape_nom': etape.type_etape.get_nom_display(),
+                        }
+                    )
+            except RoleSysteme.DoesNotExist:
+                pass
         
         # 3. Le responsable principal du projet (s'il n'est pas déjà dans la liste)
         responsable = etape.projet.get_responsable_principal()
@@ -966,13 +1034,14 @@ def creer_notification_retrait_module(module, affectation, retire_par):
         
         # Créer la notification pour l'utilisateur retiré
         NotificationModule.objects.create(
-            utilisateur=affectation.utilisateur,
+            destinataire=affectation.utilisateur,
             module=module,
             type_notification='RETRAIT_MODULE',
             titre=f'Retrait du module {module.nom}',
             message=f'Vous avez été retiré du module "{module.nom}" par {retire_par.get_full_name()}.',
+            emetteur=retire_par,
             donnees_contexte={
-                'module_id': module.id,
+                'module_id': str(module.id),
                 'module_nom': module.nom,
                 'ancien_role': affectation.role_module,
                 'retire_par': retire_par.get_full_name(),

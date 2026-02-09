@@ -6,6 +6,7 @@ from . import views_admin_profile
 from . import views_tests
 from . import views_deploiement
 from . import views_maintenance
+from . import views_demarrage_projet
 
 urlpatterns = [
     path('', views.dashboard_view, name='dashboard'),
@@ -19,6 +20,7 @@ urlpatterns = [
     path('projets/<uuid:projet_id>/modifier-budget/', views.modifier_budget_projet, name='modifier_budget_projet'),
     path('projets/<uuid:projet_id>/modifier/', views.modifier_projet_view, name='modifier_projet'),
     path('projets/<uuid:projet_id>/parametres/', views.parametres_projet_view, name='parametres_projet'),
+    path('projets/<uuid:projet_id>/toggle-notifications-admin/', views.toggle_notifications_admin, name='toggle_notifications_admin'),
     path('projets/<uuid:projet_id>/ajouter-membre/', views.ajouter_membre_projet, name='ajouter_membre_projet'),
     path('projets/<uuid:projet_id>/retirer-membre/', views.retirer_membre_projet, name='retirer_membre_projet'),
     path('projets/<uuid:projet_id>/modifier-role/', views.modifier_role_membre, name='modifier_role_membre'),
@@ -121,6 +123,7 @@ urlpatterns = [
     path('notifications/taches/', views.notifications_taches_view, name='notifications_taches'),
     # path('notifications/utilisateur/', views.notifications_utilisateur_view, name='notifications_utilisateur'),
     path('notifications/<int:notification_id>/lue/', views.marquer_notification_lue, name='marquer_notification_lue'),
+    path('notifications/<int:notification_id>/redirect/', views.notification_redirect_view, name='notification_redirect'),
     
     # Gestion des modules
     path('projets/<uuid:projet_id>/modules/', views.gestion_modules_view, name='gestion_modules'),
@@ -188,4 +191,11 @@ urlpatterns = [
     # Gestion du statut technique
     path('projets/<uuid:projet_id>/tickets/<uuid:ticket_id>/interventions/<uuid:intervention_id>/statut/', views_maintenance.rediger_statut_technique_view, name='rediger_statut_technique'),
     path('projets/<uuid:projet_id>/tickets/<uuid:ticket_id>/statuts/<uuid:statut_id>/valider/', views_maintenance.valider_statut_technique_view, name='valider_statut_technique'),
+    
+    # ========================================================================
+    # DÉMARRAGE ET SUIVI TEMPOREL DES PROJETS
+    # ========================================================================
+    path('projets/<uuid:projet_id>/demarrer/', views_demarrage_projet.demarrer_projet_view, name='demarrer_projet'),
+    path('projets/<uuid:projet_id>/ajax/demarrer/', views_demarrage_projet.ajax_demarrer_projet, name='ajax_demarrer_projet'),
+    path('projets/<uuid:projet_id>/ajax/info-temporelle/', views_demarrage_projet.info_temporelle_projet, name='info_temporelle_projet'),
 ]

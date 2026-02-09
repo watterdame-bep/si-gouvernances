@@ -82,39 +82,38 @@
                     </div>
                 </div>
             </div>
-            
             {% if taches %}
             <div class="p-6">
                 <!-- Vue en tableau -->
                 <div class="overflow-x-auto">
                     <table class="w-full">
-                        <thead>
+                        <thead class="bg-gray-50">
                             <tr class="border-b border-gray-200">
-                                <th class="text-left py-3 px-4 font-medium text-gray-700">Tâche</th>
-                                <th class="text-left py-3 px-4 font-medium text-gray-700">Statut</th>
-                                <th class="text-left py-3 px-4 font-medium text-gray-700">Priorité</th>
-                                <th class="text-left py-3 px-4 font-medium text-gray-700">Responsable</th>
-                                <th class="text-left py-3 px-4 font-medium text-gray-700">Étape</th>
-                                <th class="text-left py-3 px-4 font-medium text-gray-700">Dates</th>
+                                <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 uppercase">Tâche</th>
+                                <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 uppercase">Statut</th>
+                                <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 uppercase">Priorité</th>
+                                <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 uppercase">Responsable</th>
+                                <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 uppercase">Étape</th>
+                                <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 uppercase">Dates</th>
                                 {% if can_manage %}
-                                <th class="text-left py-3 px-4 font-medium text-gray-700">Actions</th>
+                                <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 uppercase">Actions</th>
                                 {% endif %}
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-200">
+                        <tbody class="divide-y divide-gray-100">
                             {% for tache in taches %}
-                            <tr class="hover:bg-gray-50 transition-colors duration-200" data-statut="{{ tache.statut }}" data-priorite="{{ tache.priorite }}">
+                            <tr class="hover:bg-blue-50 transition-colors" data-statut="{{ tache.statut }}" data-priorite="{{ tache.priorite }}">
                                 <!-- Nom et description -->
-                                <td class="py-4 px-4">
+                                <td class="px-3 py-2">
                                     <div class="flex-1 min-w-0">
-                                        <h4 class="font-medium text-gray-900 truncate">{{ tache.nom }}</h4>
-                                        <p class="text-sm text-gray-600 line-clamp-2">{{ tache.description }}</p>
+                                        <h4 class="font-medium text-sm text-gray-900">{{ tache.nom|truncatewords:6 }}</h4>
+                                        <p class="text-xs text-gray-600">{{ tache.description|truncatewords:8 }}</p>
                                     </div>
                                 </td>
                                 
                                 <!-- Statut -->
-                                <td class="py-4 px-4">
-                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+                                <td class="px-3 py-2">
+                                    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium
                                         {% if tache.statut == 'TERMINEE' %}bg-green-100 text-green-800
                                         {% elif tache.statut == 'EN_COURS' %}bg-blue-100 text-blue-800
                                         {% elif tache.statut == 'BLOQUEE' %}bg-red-100 text-red-800
@@ -127,8 +126,8 @@
                                 </td>
                                 
                                 <!-- Priorité -->
-                                <td class="py-4 px-4">
-                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+                                <td class="px-3 py-2">
+                                    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium
                                         {% if tache.priorite == 'CRITIQUE' %}bg-red-100 text-red-800
                                         {% elif tache.priorite == 'HAUTE' %}bg-orange-100 text-orange-800
                                         {% elif tache.priorite == 'MOYENNE' %}bg-blue-100 text-blue-800
@@ -141,13 +140,13 @@
                                 </td>
                                 
                                 <!-- Responsable -->
-                                <td class="py-4 px-4">
+                                <td class="px-3 py-2">
                                     {% if tache.responsable %}
                                         <div class="flex items-center space-x-2">
                                             <div class="w-6 h-6 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
                                                 <span class="text-xs font-bold text-white">{{ tache.responsable.first_name.0 }}</span>
                                             </div>
-                                            <span class="text-sm text-gray-900 truncate">{{ tache.responsable.get_full_name }}</span>
+                                            <span class="text-sm text-gray-900">{{ tache.responsable.get_full_name|truncatewords:2 }}</span>
                                         </div>
                                     {% else %}
                                         <span class="text-sm text-gray-500 italic">Non assignée</span>
@@ -155,17 +154,17 @@
                                 </td>
                                 
                                 <!-- Étape d'exécution -->
-                                <td class="py-4 px-4">
+                                <td class="px-3 py-2">
                                     {% if tache.etape_execution %}
-                                        <span class="text-sm text-gray-900">{{ tache.etape_execution.type_etape.get_nom_display }}</span>
+                                        <span class="text-sm text-gray-900">{{ tache.etape_execution.type_etape.get_nom_display|truncatewords:2 }}</span>
                                     {% else %}
                                         <span class="text-sm text-gray-500 italic">Toutes</span>
                                     {% endif %}
                                 </td>
                                 
                                 <!-- Dates -->
-                                <td class="py-4 px-4">
-                                    <div class="text-sm text-gray-900">
+                                <td class="px-3 py-2">
+                                    <div class="text-xs text-gray-900">
                                         {% if tache.date_debut and tache.date_fin %}
                                             {{ tache.date_debut|date:"d/m" }} - {{ tache.date_fin|date:"d/m/Y" }}
                                         {% elif tache.date_debut %}
@@ -180,7 +179,7 @@
                                 
                                 <!-- Actions -->
                                 {% if can_manage %}
-                                <td class="py-4 px-4">
+                                <td class="px-3 py-2">
                                     <div class="flex items-center space-x-2">
                                         {% if not tache.responsable %}
                                         <button onclick="assignerTache('{{ tache.id }}')" class="text-xs text-blue-600 hover:text-blue-700 font-medium px-2 py-1 bg-blue-50 hover:bg-blue-100 rounded">

@@ -360,7 +360,175 @@
         </div>
         
         {% else %}
-        <!-- Tâches de l'Étape - Professional Design (pour les autres étapes) -->
+        
+        <!-- Pour l'étape DEVELOPPEMENT : Tâches et Modules côte à côte -->
+        {% if etape.type_etape.nom == 'DEVELOPPEMENT' %}
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <!-- Tâches de l'Étape - Liste Compacte -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+                <div class="p-4 border-b border-gray-200">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                            <i class="fas fa-clipboard-list text-purple-600 mr-2"></i>
+                            Tâches
+                            <span class="ml-2 bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-xs font-medium">
+                                {{ stats.total_taches }}
+                            </span>
+                        </h3>
+                        {% if can_manage %}
+                        <div class="flex space-x-2">
+                            <a href="{% url 'creer_tache_etape' projet.id etape.id %}" class="inline-flex items-center px-2 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-xs font-medium transition-colors">
+                                <i class="fas fa-plus mr-1"></i>Nouvelle
+                            </a>
+                            <a href="{% url 'gestion_taches_etape' projet.id etape.id %}" class="inline-flex items-center px-2 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-xs font-medium transition-colors">
+                                <i class="fas fa-cog mr-1"></i>Gérer
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    {% if taches_etape %}
+                    <table class="w-full">
+                        <thead class="bg-gray-50 border-b border-gray-200">
+                            <tr>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tâche</th>
+                                <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Statut</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            {% for tache in taches_etape|slice:":4" %}
+                            <tr class="hover:bg-gray-50 transition-colors">
+                                <td class="px-3 py-2">
+                                    <div class="flex items-center">
+                                        <span class="text-sm text-gray-900">{{ tache.nom|truncatewords:6 }}</span>
+                                        {% if tache.ajoutee_apres_cloture %}
+                                        <span class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                                            <i class="fas fa-star"></i>
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td class="px-3 py-2 text-center">
+                                    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium
+                                        {% if tache.statut == 'TERMINEE' %}bg-green-100 text-green-700
+                                        {% elif tache.statut == 'EN_COURS' %}bg-orange-100 text-orange-700
+                                        {% elif tache.statut == 'BLOQUEE' %}bg-red-100 text-red-700
+                                        {% else %}bg-gray-100 text-gray-600{% endif %}">
+                                        {% if tache.statut == 'TERMINEE' %}<i class="fas fa-check"></i>
+                                        {% elif tache.statut == 'EN_COURS' %}<i class="fas fa-clock"></i>
+                                        {% elif tache.statut == 'BLOQUEE' %}<i class="fas fa-ban"></i>
+                                        {% else %}<i class="fas fa-pause"></i>{% endif %}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    
+                    {% if taches_etape|length > 4 %}
+                    <div class="text-center py-2 border-t border-gray-200">
+                        <a href="{% url 'gestion_taches_etape' projet.id etape.id %}" class="text-xs text-purple-600 hover:text-purple-700 font-medium inline-flex items-center">
+                            <i class="fas fa-eye mr-1"></i>
+                            Voir toutes ({{ stats.total_taches }})
+                        </a>
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <div class="text-center py-6">
+                        <p class="text-sm text-gray-500 mb-2">Aucune tâche</p>
+                        {% if can_manage %}
+                        <a href="{% url 'creer_tache_etape' projet.id etape.id %}" class="inline-flex items-center text-xs text-purple-600 hover:text-purple-700 font-medium">
+                            <i class="fas fa-plus mr-1"></i>Créer
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Modules - Liste Compacte -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+                <div class="p-4 border-b border-gray-200 bg-gradient-to-r from-emerald-50 to-teal-50">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                            <i class="fas fa-cubes text-emerald-600 mr-2"></i>
+                            Modules
+                            <span class="ml-2 bg-emerald-100 text-emerald-800 px-2 py-1 rounded-full text-xs font-medium">
+                                {{ stats.modules_crees }}
+                            </span>
+                        </h3>
+                        {% if can_manage %}
+                        <div class="flex space-x-2">
+                            {% if etape.statut == 'EN_COURS' %}
+                            <a href="{% url 'creer_module' projet.id %}" class="inline-flex items-center px-2 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-xs font-medium transition-colors">
+                                <i class="fas fa-plus mr-1"></i>Nouveau
+                            </a>
+                            {% endif %}
+                            <a href="{% url 'gestion_modules' projet.id %}" class="inline-flex items-center px-2 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-md text-xs font-medium transition-colors">
+                                <i class="fas fa-cog mr-1"></i>Gérer
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    {% if modules_crees %}
+                    <table class="w-full">
+                        <thead class="bg-gray-50 border-b border-gray-200">
+                            <tr>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Module</th>
+                                <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Tâches</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            {% for module in modules_crees|slice:":4" %}
+                            <tr class="hover:bg-gray-50 transition-colors">
+                                <td class="px-3 py-2">
+                                    <div class="flex items-center">
+                                        <div class="w-6 h-6 bg-emerald-600 rounded flex items-center justify-center mr-2">
+                                            <i class="fas fa-cube text-white text-xs"></i>
+                                        </div>
+                                        <div>
+                                            <div class="text-sm font-medium text-gray-900">{{ module.nom|truncatewords:4 }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-3 py-2 text-center">
+                                    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-700">
+                                        {{ module.taches.count }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    
+                    {% if modules_crees|length > 4 %}
+                    <div class="text-center py-2 border-t border-gray-200">
+                        <a href="{% url 'gestion_modules' projet.id %}" class="text-xs text-emerald-600 hover:text-emerald-700 font-medium inline-flex items-center">
+                            <i class="fas fa-eye mr-1"></i>
+                            Voir tous ({{ stats.modules_crees }})
+                        </a>
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <div class="text-center py-6">
+                        <p class="text-sm text-gray-500 mb-2">Aucun module</p>
+                        {% if can_manage and etape.statut == 'EN_COURS' %}
+                        <a href="{% url 'creer_module' projet.id %}" class="inline-flex items-center text-xs text-emerald-600 hover:text-emerald-700 font-medium">
+                            <i class="fas fa-plus mr-1"></i>Créer
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <!-- Pour les autres étapes : Tâches uniquement en pleine largeur -->
         <div class="bg-white rounded-lg shadow-sm border border-gray-200">
             <div class="p-4 border-b border-gray-200">
                 <div class="flex items-center justify-between">
@@ -384,24 +552,56 @@
                 </div>
             </div>
             
-            <div class="p-4">
+            <div class="overflow-x-auto">
                 {% if taches_etape %}
-                <div class="space-y-3">
-                    {% for tache in taches_etape|slice:":5" %}
-                    <div class="p-4 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors">
-                        <div class="flex items-center justify-between mb-3">
-                            <h4 class="text-sm font-medium text-gray-900 truncate flex items-center">
-                                <i class="fas fa-task mr-2 text-gray-600"></i>
-                                {{ tache.nom }}
-                            </h4>
-                            <div class="flex space-x-2">
-                                <!-- Indicateur tâche spéciale -->
-                                {% if tache.ajoutee_apres_cloture %}
-                                <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-200">
-                                    <i class="fas fa-star mr-1"></i>Spéciale
-                                </span>
+                <table class="w-full">
+                    <thead class="bg-gray-50 border-b border-gray-200">
+                        <tr>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tâche</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Responsable</th>
+                            <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Statut</th>
+                            <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Priorité</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        {% for tache in taches_etape|slice:":10" %}
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-4 py-3">
+                                <div class="flex items-center">
+                                    <span class="text-sm text-gray-900">{{ tache.nom|truncatewords:10 }}</span>
+                                    {% if tache.ajoutee_apres_cloture %}
+                                    <span class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                                        <i class="fas fa-star"></i>
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="px-4 py-3">
+                                {% if tache.responsable %}
+                                <div class="flex items-center text-sm text-gray-700">
+                                    <div class="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center mr-2">
+                                        <span class="text-white text-xs font-bold">{{ tache.responsable.first_name.0 }}</span>
+                                    </div>
+                                    {{ tache.responsable.get_full_name|truncatewords:2 }}
+                                </div>
+                                {% else %}
+                                <span class="text-xs text-gray-400">Non assignée</span>
                                 {% endif %}
-                                
+                            </td>
+                            <td class="px-4 py-3 text-center">
+                                <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium
+                                    {% if tache.statut == 'TERMINEE' %}bg-green-100 text-green-700
+                                    {% elif tache.statut == 'EN_COURS' %}bg-orange-100 text-orange-700
+                                    {% elif tache.statut == 'BLOQUEE' %}bg-red-100 text-red-700
+                                    {% else %}bg-gray-100 text-gray-600{% endif %}">
+                                    {% if tache.statut == 'TERMINEE' %}<i class="fas fa-check mr-1"></i>
+                                    {% elif tache.statut == 'EN_COURS' %}<i class="fas fa-clock mr-1"></i>
+                                    {% elif tache.statut == 'BLOQUEE' %}<i class="fas fa-ban mr-1"></i>
+                                    {% else %}<i class="fas fa-pause mr-1"></i>{% endif %}
+                                    {{ tache.get_statut_display }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-center">
                                 <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium
                                     {% if tache.priorite == 'CRITIQUE' %}bg-red-100 text-red-700
                                     {% elif tache.priorite == 'HAUTE' %}bg-orange-100 text-orange-700
@@ -413,66 +613,27 @@
                                     {% else %}<i class="fas fa-arrow-down mr-1"></i>{% endif %}
                                     {{ tache.get_priorite_display }}
                                 </span>
-                                <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium
-                                    {% if tache.statut == 'TERMINEE' %}bg-green-100 text-green-700
-                                    {% elif tache.statut == 'EN_COURS' %}bg-orange-100 text-orange-700
-                                    {% elif tache.statut == 'BLOQUEE' %}bg-red-100 text-red-700
-                                    {% else %}bg-gray-100 text-gray-600{% endif %}">
-                                    {% if tache.statut == 'TERMINEE' %}<i class="fas fa-check-circle mr-1"></i>
-                                    {% elif tache.statut == 'EN_COURS' %}<i class="fas fa-clock mr-1"></i>
-                                    {% elif tache.statut == 'BLOQUEE' %}<i class="fas fa-ban mr-1"></i>
-                                    {% else %}<i class="fas fa-pause mr-1"></i>{% endif %}
-                                    {{ tache.get_statut_display }}
-                                </span>
-                            </div>
-                        </div>
-                        
-                        <div class="flex items-center justify-between text-xs text-gray-600">
-                            <div class="flex items-center">
-                                {% if tache.responsable %}
-                                <div class="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center mr-2">
-                                    <span class="text-white text-xs font-bold">{{ tache.responsable.first_name.0 }}</span>
-                                </div>
-                                <span class="flex items-center">
-                                    <i class="fas fa-user mr-1 text-gray-400"></i>
-                                    {{ tache.responsable.get_full_name }}
-                                </span>
-                                {% else %}
-                                <span class="text-gray-400 flex items-center">
-                                    <i class="fas fa-user-slash mr-2"></i>
-                                    Non assignée
-                                </span>
-                                {% endif %}
-                            </div>
-                            {% if tache.date_debut %}
-                            <span class="flex items-center">
-                                <i class="fas fa-calendar-alt mr-1 text-gray-400"></i>
-                                {{ tache.date_debut|date:"d/m/Y" }}
-                            </span>
-                            {% endif %}
-                        </div>
-                    </div>
-                    {% endfor %}
-                    
-                    {% if taches_etape|length > 5 %}
-                    <div class="text-center pt-3">
-                        <a href="{% url 'gestion_taches_etape' projet.id etape.id %}" class="text-sm text-purple-600 hover:text-purple-700 font-medium flex items-center justify-center">
-                            <i class="fas fa-eye mr-2"></i>
-                            Voir toutes les {{ stats.total_taches }} tâches
-                            <i class="fas fa-arrow-right ml-2"></i>
-                        </a>
-                    </div>
-                    {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                
+                {% if taches_etape|length > 10 %}
+                <div class="text-center py-3 border-t border-gray-200">
+                    <a href="{% url 'gestion_taches_etape' projet.id etape.id %}" class="text-sm text-purple-600 hover:text-purple-700 font-medium inline-flex items-center">
+                        <i class="fas fa-eye mr-2"></i>
+                        Voir toutes les {{ stats.total_taches }} tâches
+                        <i class="fas fa-arrow-right ml-2"></i>
+                    </a>
                 </div>
+                {% endif %}
                 {% else %}
                 <div class="text-center py-8">
                     <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                         <i class="fas fa-clipboard-list text-gray-400 text-2xl"></i>
                     </div>
-                    <p class="text-sm text-gray-500 mb-3 flex items-center justify-center">
-                        <i class="fas fa-info-circle mr-2"></i>
-                        Aucune tâche dans cette étape
-                    </p>
+                    <p class="text-sm text-gray-500 mb-3">Aucune tâche dans cette étape</p>
                     {% if can_manage %}
                     <a href="{% url 'creer_tache_etape' projet.id etape.id %}" class="inline-flex items-center text-sm text-purple-600 hover:text-purple-700 font-medium">
                         <i class="fas fa-plus mr-2"></i>Créer la première tâche
@@ -483,48 +644,6 @@
             </div>
         </div>
         {% endif %}
-
-        <!-- Modules (si applicable) - Professional Design -->
-        {% if modules_crees and etape.type_etape.nom == 'DEVELOPPEMENT' %}
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200">
-            <div class="p-4 border-b border-gray-200">
-                <h3 class="text-lg font-semibold text-gray-900 flex items-center">
-                    <i class="fas fa-puzzle-piece text-emerald-600 mr-2"></i>
-                    Modules créés
-                    <span class="ml-2 bg-emerald-100 text-emerald-800 px-2 py-1 rounded-full text-xs font-medium">
-                        {{ stats.modules_crees }}
-                    </span>
-                </h3>
-            </div>
-            
-            <div class="p-4">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {% for module in modules_crees %}
-                    <div class="p-4 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors">
-                        <div class="flex items-center space-x-3 mb-3">
-                            <div class="w-8 h-8 rounded-lg flex items-center justify-center bg-emerald-100 border border-emerald-200">
-                                <i class="fas fa-cube text-sm text-emerald-600"></i>
-                            </div>
-                            <h4 class="text-sm font-medium text-gray-900 truncate flex items-center">
-                                <i class="fas fa-tag mr-2 text-gray-600"></i>
-                                {{ module.nom }}
-                            </h4>
-                        </div>
-                        <div class="flex items-center justify-between text-xs text-gray-600">
-                            <span class="flex items-center">
-                                <i class="fas fa-tasks mr-1 text-gray-400"></i>
-                                {{ module.taches.count }} tâche{{ module.taches.count|pluralize }}
-                            </span>
-                            <span class="flex items-center">
-                                <i class="fas fa-calendar-alt mr-1 text-gray-400"></i>
-                                {{ module.date_creation|date:"d/m/Y" }}
-                            </span>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
         {% endif %}
 
         <!-- Modal Historique - Professional Design -->

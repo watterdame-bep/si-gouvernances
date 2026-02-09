@@ -148,53 +148,53 @@
         </div>
         
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
+            <table class="min-w-full divide-y divide-gray-100">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                             Date & Heure
                         </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                             Utilisateur
                         </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                             Action
                         </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                             Objet
                         </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                             IP
                         </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                             Statut
                         </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                             Détails
                         </th>
                     </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
+                <tbody class="bg-white divide-y divide-gray-100">
                     {% for log in page_obj %}
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <tr class="hover:bg-blue-50 transition-colors">
+                        <td class="px-3 py-2 text-sm text-gray-900">
                             <div class="flex flex-col">
                                 <span class="font-medium">{{ log.timestamp|date:"d/m/Y" }}</span>
-                                <span class="text-gray-500">{{ log.timestamp|time:"H:i:s" }}</span>
+                                <span class="text-gray-500 text-xs">{{ log.timestamp|time:"H:i:s" }}</span>
                             </div>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td class="px-3 py-2">
                             <div class="flex items-center">
-                                <div class="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
+                                <div class="w-7 h-7 bg-primary-100 rounded-full flex items-center justify-center">
                                     <span class="text-xs font-semibold text-primary-700">
                                         {{ log.user.first_name.0 }}{{ log.user.last_name.0 }}
                                     </span>
                                 </div>
-                                <div class="ml-3">
-                                    <div class="text-sm font-medium text-gray-900">{{ log.user.get_full_name }}</div>
-                                    <div class="text-sm text-gray-500">
+                                <div class="ml-2">
+                                    <div class="text-sm font-medium text-gray-900">{{ log.user.get_full_name|truncatewords:2 }}</div>
+                                    <div class="text-xs text-gray-500">
                                         {% if log.user.est_super_admin %}
-                                            Super Administrateur
+                                            Super Admin
                                         {% else %}
                                             Utilisateur
                                         {% endif %}
@@ -202,8 +202,8 @@
                                 </div>
                             </div>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                        <td class="px-3 py-2">
+                            <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium
                                 {% if log.type_action == 'CONNEXION' %}bg-success-100 text-success-800
                                 {% elif log.type_action == 'DECONNEXION' %}bg-gray-100 text-gray-800
                                 {% elif log.type_action == 'CREATION_PROJET' or log.type_action == 'CREATION_UTILISATEUR' %}bg-primary-100 text-primary-800
@@ -221,29 +221,29 @@
                                         {% elif log.type_action == 'REACTIVATION_UTILISATEUR' %}fas fa-user-check
                                         {% elif log.type_action == 'REINITIALISATION_MOT_PASSE' %}fas fa-key
                                         {% else %}fas fa-eye{% endif %} mr-1"></i>
-                                {{ log.get_type_action_display }}
+                                {{ log.get_type_action_display|truncatewords:3 }}
                             </span>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td class="px-3 py-2 text-sm text-gray-900">
                             {% if log.projet %}
                                 <div class="flex flex-col">
-                                    <span class="font-medium">Projet</span>
-                                    <span class="text-gray-500 truncate max-w-xs">{{ log.projet.nom }}</span>
+                                    <span class="font-medium text-xs">Projet</span>
+                                    <span class="text-gray-500 text-xs">{{ log.projet.nom|truncatewords:4 }}</span>
                                 </div>
                             {% else %}
                                 <span class="text-gray-400">-</span>
                             {% endif %}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <td class="px-3 py-2 text-sm text-gray-500">
                             {{ log.adresse_ip|default:"-" }}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td class="px-3 py-2">
                             {% if log.type_action == 'TENTATIVE_CONNEXION_ECHOUEE' or log.type_action == 'ACCES_REFUSE' %}
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-danger-100 text-danger-800">
+                                <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-danger-100 text-danger-800">
                                     <i class="fas fa-times mr-1"></i>Échec
                                 </span>
                             {% else %}
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-100 text-success-800">
+                                <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-success-100 text-success-800">
                                     <i class="fas fa-check mr-1"></i>Succès
                                 </span>
                             {% endif %}

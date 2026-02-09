@@ -115,83 +115,83 @@
 
         {% if deploiements %}
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
+            <table class="min-w-full divide-y divide-gray-100">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">#</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Version</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Environnement</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Statut</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Priorité</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Responsable</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">#</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Version</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Environnement</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Statut</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Priorité</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Responsable</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                     </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
+                <tbody class="bg-white divide-y divide-gray-100">
                     {% for deploiement in deploiements %}
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ forloop.counter }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                    <tr class="hover:bg-blue-50 transition-colors">
+                        <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-500">{{ forloop.counter }}</td>
+                        <td class="px-3 py-2">
                             <div class="text-sm font-medium text-gray-900">{{ deploiement.version }}</div>
                             <div class="text-xs text-gray-500">{{ deploiement.description|truncatewords:10 }}</div>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td class="px-3 py-2 whitespace-nowrap">
                             {% if deploiement.environnement == 'PROD' %}
-                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-red-50 text-red-700">
+                            <span class="px-2 py-1 text-xs font-semibold rounded bg-red-50 text-red-700">
                                 <i class="fas fa-server mr-1"></i>Production
                             </span>
                             {% elif deploiement.environnement == 'PREPROD' %}
-                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-orange-50 text-orange-700">
+                            <span class="px-2 py-1 text-xs font-semibold rounded bg-orange-50 text-orange-700">
                                 <i class="fas fa-server mr-1"></i>Pré-prod
                             </span>
                             {% elif deploiement.environnement == 'TEST' %}
-                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-50 text-yellow-700">
+                            <span class="px-2 py-1 text-xs font-semibold rounded bg-yellow-50 text-yellow-700">
                                 <i class="fas fa-server mr-1"></i>Test
                             </span>
                             {% else %}
-                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-50 text-blue-700">
+                            <span class="px-2 py-1 text-xs font-semibold rounded bg-blue-50 text-blue-700">
                                 <i class="fas fa-server mr-1"></i>Dev
                             </span>
                             {% endif %}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td class="px-3 py-2 whitespace-nowrap">
                             {% if deploiement.statut == 'REUSSI' %}
-                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                            <span class="px-2 py-1 text-xs font-semibold rounded bg-green-100 text-green-800">
                                 <i class="fas fa-check-circle mr-1"></i>Réussi
                             </span>
                             {% elif deploiement.statut == 'ECHEC' %}
-                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
+                            <span class="px-2 py-1 text-xs font-semibold rounded bg-red-100 text-red-800">
                                 <i class="fas fa-times-circle mr-1"></i>Échec
                             </span>
                             {% elif deploiement.statut == 'EN_COURS' %}
-                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                            <span class="px-2 py-1 text-xs font-semibold rounded bg-blue-100 text-blue-800">
                                 <i class="fas fa-spinner fa-spin mr-1"></i>En cours
                             </span>
                             {% elif deploiement.statut == 'ANNULE' %}
-                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+                            <span class="px-2 py-1 text-xs font-semibold rounded bg-gray-100 text-gray-800">
                                 <i class="fas fa-ban mr-1"></i>Annulé
                             </span>
                             {% else %}
-                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+                            <span class="px-2 py-1 text-xs font-semibold rounded bg-gray-100 text-gray-800">
                                 <i class="fas fa-clock mr-1"></i>Prévu
                             </span>
                             {% endif %}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td class="px-3 py-2 whitespace-nowrap">
                             {% if deploiement.priorite == 'CRITIQUE' %}
-                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">Critique</span>
+                            <span class="px-2 py-1 text-xs font-semibold rounded bg-red-100 text-red-800">Critique</span>
                             {% elif deploiement.priorite == 'HAUTE' %}
-                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800">Haute</span>
+                            <span class="px-2 py-1 text-xs font-semibold rounded bg-orange-100 text-orange-800">Haute</span>
                             {% elif deploiement.priorite == 'NORMALE' %}
-                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">Normale</span>
+                            <span class="px-2 py-1 text-xs font-semibold rounded bg-blue-100 text-blue-800">Normale</span>
                             {% else %}
-                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">Basse</span>
+                            <span class="px-2 py-1 text-xs font-semibold rounded bg-gray-100 text-gray-800">Basse</span>
                             {% endif %}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {{ deploiement.responsable.get_full_name }}
+                        <td class="px-3 py-2 text-sm text-gray-900">
+                            {{ deploiement.responsable.get_full_name|truncatewords:2 }}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                        <td class="px-3 py-2 text-sm">
                             <div class="flex items-center space-x-2">
                                 {% if peut_autoriser and deploiement.peut_etre_autorise %}
                                 <button onclick="autoriserDeploiement('{{ deploiement.id }}', '{{ deploiement.version }}', '{{ deploiement.get_environnement_display }}', '{{ deploiement.responsable.get_full_name }}')" 

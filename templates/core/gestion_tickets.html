@@ -24,39 +24,61 @@
         </div>
     </div>
 
-    <!-- Statistiques -->
-    <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4 mb-6">
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-            <p class="text-xs text-gray-600 mb-1">Total</p>
-            <p class="text-2xl font-bold text-gray-900">{{ stats.total }}</p>
+    <!-- Statistiques Simplifiées -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+        <!-- Total -->
+        <div class="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow">
+            <div class="flex items-center justify-between mb-2">
+                <div class="w-10 h-10 bg-gray-600 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-ticket-alt text-white"></i>
+                </div>
+                <span class="text-3xl font-bold text-gray-900">{{ stats.total }}</span>
+            </div>
+            <p class="text-sm font-medium text-gray-600">Total Tickets</p>
         </div>
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-            <p class="text-xs text-gray-600 mb-1">Ouverts</p>
-            <p class="text-2xl font-bold text-blue-600">{{ stats.ouverts }}</p>
+
+        <!-- Ouverts -->
+        <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow-sm border border-blue-200 p-5 hover:shadow-md transition-shadow">
+            <div class="flex items-center justify-between mb-2">
+                <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-folder-open text-white"></i>
+                </div>
+                <span class="text-3xl font-bold text-blue-700">{{ stats.ouverts }}</span>
+            </div>
+            <p class="text-sm font-medium text-blue-700">Ouverts</p>
         </div>
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-            <p class="text-xs text-gray-600 mb-1">En cours</p>
-            <p class="text-2xl font-bold text-orange-600">{{ stats.en_cours }}</p>
+
+        <!-- En cours -->
+        <div class="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg shadow-sm border border-orange-200 p-5 hover:shadow-md transition-shadow">
+            <div class="flex items-center justify-between mb-2">
+                <div class="w-10 h-10 bg-orange-600 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-cog fa-spin text-white"></i>
+                </div>
+                <span class="text-3xl font-bold text-orange-700">{{ stats.en_cours }}</span>
+            </div>
+            <p class="text-sm font-medium text-orange-700">En Cours</p>
         </div>
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-            <p class="text-xs text-gray-600 mb-1">Résolus</p>
-            <p class="text-2xl font-bold text-green-600">{{ stats.resolus }}</p>
+
+        <!-- Critiques -->
+        <div class="bg-gradient-to-br from-red-50 to-red-100 rounded-lg shadow-sm border border-red-200 p-5 hover:shadow-md transition-shadow">
+            <div class="flex items-center justify-between mb-2">
+                <div class="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-fire text-white"></i>
+                </div>
+                <span class="text-3xl font-bold text-red-700">{{ stats.critiques }}</span>
+            </div>
+            <p class="text-sm font-medium text-red-700">Critiques</p>
         </div>
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-            <p class="text-xs text-gray-600 mb-1">Fermés</p>
-            <p class="text-2xl font-bold text-gray-600">{{ stats.fermes }}</p>
-        </div>
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-            <p class="text-xs text-gray-600 mb-1">Rejetés</p>
-            <p class="text-2xl font-bold text-red-600">{{ stats.rejetes }}</p>
-        </div>
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-            <p class="text-xs text-gray-600 mb-1">Critiques</p>
-            <p class="text-2xl font-bold text-red-600">{{ stats.critiques }}</p>
-        </div>
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-            <p class="text-xs text-gray-600 mb-1">SLA dépassé</p>
-            <p class="text-2xl font-bold text-red-600">{{ stats.sla_depasses }}</p>
+
+        <!-- SLA dépassé -->
+        <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg shadow-sm border border-purple-200 p-5 hover:shadow-md transition-shadow">
+            <div class="flex items-center justify-between mb-2">
+                <div class="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-clock text-white"></i>
+                </div>
+                <span class="text-3xl font-bold text-purple-700">{{ stats.sla_depasses }}</span>
+            </div>
+            <p class="text-sm font-medium text-purple-700">SLA Dépassé</p>
         </div>
     </div>
 
@@ -78,109 +100,154 @@
     {% endif %}
 
     <!-- Liste des tickets -->
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-            <h2 class="text-lg font-semibold text-gray-900">
-                <i class="fas fa-list mr-2 text-gray-600"></i>Liste des Tickets
-            </h2>
-            <!-- Filtres -->
-            <div class="flex items-center space-x-2">
-                <select onchange="window.location.href='?statut='+this.value" class="px-3 py-1 border border-gray-300 rounded text-sm">
-                    <option value="">Tous les statuts</option>
-                    <option value="OUVERT">Ouverts</option>
-                    <option value="EN_COURS">En cours</option>
-                    <option value="RESOLU">Résolus</option>
-                    <option value="FERME">Fermés</option>
-                    <option value="REJETE">Rejetés</option>
-                </select>
-                <select onchange="window.location.href='?gravite='+this.value" class="px-3 py-1 border border-gray-300 rounded text-sm">
-                    <option value="">Toutes les gravités</option>
-                    <option value="CRITIQUE">Critiques</option>
-                    <option value="MAJEUR">Majeurs</option>
-                    <option value="MINEUR">Mineurs</option>
-                </select>
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <!-- Header avec filtres -->
+        <div class="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
+                        <i class="fas fa-list text-white text-sm"></i>
+                    </div>
+                    Liste des Tickets
+                </h2>
+                <!-- Filtres -->
+                <div class="flex items-center gap-3">
+                    <select onchange="window.location.href='?statut='+this.value" 
+                            class="px-4 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Tous les statuts</option>
+                        <option value="OUVERT">Ouverts</option>
+                        <option value="EN_COURS">En cours</option>
+                        <option value="RESOLU">Résolus</option>
+                        <option value="FERME">Fermés</option>
+                        <option value="REJETE">Rejetés</option>
+                    </select>
+                    <select onchange="window.location.href='?gravite='+this.value" 
+                            class="px-4 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Toutes les gravités</option>
+                        <option value="CRITIQUE">Critiques</option>
+                        <option value="MAJEUR">Majeurs</option>
+                        <option value="MINEUR">Mineurs</option>
+                    </select>
+                </div>
             </div>
         </div>
 
         {% if tickets %}
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Numéro</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Titre</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Gravité</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Statut</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Origine</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Assigné à</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+            <table class="min-w-full">
+                <thead>
+                    <tr class="bg-gray-50 border-b border-gray-200">
+                        <th class="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase">
+                            Numéro
+                        </th>
+                        <th class="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase">
+                            Titre
+                        </th>
+                        <th class="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase">
+                            Gravité
+                        </th>
+                        <th class="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase">
+                            Statut
+                        </th>
+                        <th class="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase">
+                            Assigné
+                        </th>
+                        <th class="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase">
+                            Date
+                        </th>
+                        <th class="px-3 py-2 text-center text-xs font-semibold text-gray-700 uppercase">
+                            Actions
+                        </th>
                     </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
+                <tbody class="bg-white divide-y divide-gray-100">
                     {% for ticket in tickets %}
-                    <tr class="hover:bg-gray-50 {% if ticket.sla_depasse %}bg-red-50{% endif %}">
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="flex items-center">
-                                <span class="text-sm font-medium text-gray-900">{{ ticket.numero_ticket }}</span>
+                    <tr class="hover:bg-blue-50 transition-colors {% if ticket.sla_depasse %}bg-red-50 hover:bg-red-100{% endif %}">
+                        <!-- Numéro -->
+                        <td class="px-3 py-2 whitespace-nowrap">
+                            <div class="flex items-center gap-1">
+                                <span class="text-sm font-bold text-gray-900">{{ ticket.numero_ticket }}</span>
                                 {% if ticket.est_payant %}
-                                <i class="fas fa-dollar-sign text-orange-500 ml-2" title="Intervention payante"></i>
+                                <i class="fas fa-dollar-sign text-orange-500 text-xs" title="Payant"></i>
                                 {% endif %}
                                 {% if ticket.sla_depasse %}
-                                <i class="fas fa-exclamation-triangle text-red-500 ml-2" title="SLA dépassé"></i>
+                                <i class="fas fa-clock text-red-500 text-xs" title="SLA dépassé"></i>
                                 {% endif %}
                             </div>
                         </td>
-                        <td class="px-6 py-4">
-                            <div class="text-sm font-medium text-gray-900">{{ ticket.titre }}</div>
-                            <div class="text-xs text-gray-500">{{ ticket.description_probleme|truncatewords:10 }}</div>
+
+                        <!-- Titre -->
+                        <td class="px-3 py-2">
+                            <div class="text-sm font-medium text-gray-900">{{ ticket.titre|truncatewords:8 }}</div>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+
+                        <!-- Gravité -->
+                        <td class="px-3 py-2 whitespace-nowrap">
                             {% if ticket.gravite == 'CRITIQUE' %}
-                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
+                            <span class="inline-flex items-center px-2 py-1 text-xs font-semibold rounded bg-red-100 text-red-800">
                                 <i class="fas fa-fire mr-1"></i>Critique
                             </span>
                             {% elif ticket.gravite == 'MAJEUR' %}
-                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800">
-                                <i class="fas fa-exclamation-circle mr-1"></i>Majeur
+                            <span class="inline-flex items-center px-2 py-1 text-xs font-semibold rounded bg-orange-100 text-orange-800">
+                                Majeur
                             </span>
                             {% else %}
-                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                                <i class="fas fa-info-circle mr-1"></i>Mineur
+                            <span class="inline-flex items-center px-2 py-1 text-xs font-semibold rounded bg-blue-100 text-blue-800">
+                                Mineur
                             </span>
                             {% endif %}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+
+                        <!-- Statut -->
+                        <td class="px-3 py-2 whitespace-nowrap">
                             {% if ticket.statut == 'OUVERT' %}
-                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">Ouvert</span>
+                            <span class="inline-flex items-center px-2 py-1 text-xs font-semibold rounded bg-blue-100 text-blue-800">
+                                Ouvert
+                            </span>
                             {% elif ticket.statut == 'EN_COURS' %}
-                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800">En cours</span>
+                            <span class="inline-flex items-center px-2 py-1 text-xs font-semibold rounded bg-orange-100 text-orange-800">
+                                En cours
+                            </span>
                             {% elif ticket.statut == 'RESOLU' %}
-                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Résolu</span>
+                            <span class="inline-flex items-center px-2 py-1 text-xs font-semibold rounded bg-green-100 text-green-800">
+                                Résolu
+                            </span>
                             {% elif ticket.statut == 'FERME' %}
-                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">Fermé</span>
+                            <span class="inline-flex items-center px-2 py-1 text-xs font-semibold rounded bg-gray-100 text-gray-800">
+                                Fermé
+                            </span>
                             {% else %}
-                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">Rejeté</span>
+                            <span class="inline-flex items-center px-2 py-1 text-xs font-semibold rounded bg-red-100 text-red-800">
+                                Rejeté
+                            </span>
                             {% endif %}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {{ ticket.get_origine_display }}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+
+                        <!-- Assigné à -->
+                        <td class="px-3 py-2 whitespace-nowrap">
                             {% if ticket.assigne_a %}
-                            {{ ticket.assigne_a.get_full_name }}
+                            <div class="flex items-center gap-2">
+                                <div class="w-6 h-6 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <span class="text-white text-xs font-bold">{{ ticket.assigne_a.prenom.0 }}{{ ticket.assigne_a.nom.0 }}</span>
+                                </div>
+                                <span class="text-sm text-gray-900">{{ ticket.assigne_a.get_full_name|truncatewords:2 }}</span>
+                            </div>
                             {% else %}
-                            <span class="text-gray-400">Non assigné</span>
+                            <span class="text-sm text-gray-400">-</span>
                             {% endif %}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {{ ticket.date_creation|date:"d/m/Y H:i" }}
+
+                        <!-- Date -->
+                        <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+                            {{ ticket.date_creation|date:"d/m/Y" }}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+
+                        <!-- Actions -->
+                        <td class="px-3 py-2 whitespace-nowrap text-center">
                             <a href="{% url 'detail_ticket' projet.id ticket.id %}" 
-                               class="text-blue-600 hover:text-blue-800"
-                               title="Voir les détails">
-                                <i class="fas fa-eye"></i>
+                               class="inline-flex items-center justify-center w-8 h-8 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded transition-colors"
+                               title="Voir">
+                                <i class="fas fa-eye text-sm"></i>
                             </a>
                         </td>
                     </tr>
@@ -189,12 +256,16 @@
             </table>
         </div>
         {% else %}
-        <div class="px-6 py-12 text-center">
-            <i class="fas fa-ticket-alt text-gray-300 text-5xl mb-4"></i>
-            <p class="text-gray-500">Aucun ticket de maintenance pour ce projet</p>
+        <div class="px-6 py-16 text-center">
+            <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-ticket-alt text-gray-400 text-3xl"></i>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">Aucun ticket de maintenance</h3>
+            <p class="text-gray-500 mb-4">Commencez par créer votre premier ticket</p>
             {% if peut_creer %}
-            <a href="{% url 'creer_ticket' projet.id %}" class="mt-4 text-blue-600 hover:text-blue-800 inline-block">
-                Créer le premier ticket
+            <a href="{% url 'creer_ticket' projet.id %}" 
+               class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
+                <i class="fas fa-plus mr-2"></i>Créer un ticket
             </a>
             {% endif %}
         </div>

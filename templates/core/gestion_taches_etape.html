@@ -3,36 +3,6 @@
 {% block title %}Tâches - {{ etape.type_etape.get_nom_display }} - {{ projet.nom }} - SI-Gouvernance JCM{% endblock %}
 {% block page_title %}Gestion des Tâches - {{ etape.type_etape.get_nom_display }}{% endblock %}
 
-{% block extra_css %}
-<style>
-.line-clamp-2 {
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
-.status-badge {
-    @apply inline-flex items-center px-2 py-1 rounded-full text-xs font-medium;
-}
-
-.status-a-faire { @apply bg-gray-100 text-gray-800; }
-.status-en-cours { @apply bg-blue-100 text-blue-800; }
-.status-terminee { @apply bg-green-100 text-green-800; }
-.status-bloquee { @apply bg-red-100 text-red-800; }
-
-.priority-badge {
-    @apply inline-flex items-center px-2 py-1 rounded-full text-xs font-medium;
-}
-
-.priority-basse { @apply bg-gray-100 text-gray-600; }
-.priority-moyenne { @apply bg-blue-100 text-blue-700; }
-.priority-haute { @apply bg-orange-100 text-orange-700; }
-.priority-critique { @apply bg-red-100 text-red-700; }
-</style>
-{% endblock %}
-
 {% block content %}
 <div class="bg-gray-50 min-h-screen p-4">
     <div class="max-w-7xl mx-auto space-y-4">
@@ -180,38 +150,35 @@
                 <table class="w-full">
                     <thead class="bg-gray-50 border-b border-gray-200">
                         <tr>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                                 <i class="fas fa-tasks mr-1"></i>Tâche
                             </th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                                 <i class="fas fa-info-circle mr-1"></i>Statut
                             </th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                <i class="fas fa-exclamation-circle mr-1"></i>Priorité
-                            </th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                                 <i class="fas fa-user mr-1"></i>Responsable
                             </th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                                 <i class="fas fa-chart-line mr-1"></i>Progression
                             </th>
-                            <th class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                            <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">
                                 <i class="fas fa-cog mr-1"></i>Actions
                             </th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-200" data-tache-id="{{ tache.id }}" data-responsable-id="{% if tache.responsable %}{{ tache.responsable.id }}{% endif %}">
+                    <tbody class="divide-y divide-gray-100" data-tache-id="{{ tache.id }}" data-responsable-id="{% if tache.responsable %}{{ tache.responsable.id }}{% endif %}">
                         {% for tache in taches %}
-                        <tr class="hover:bg-gray-50 transition-colors">
+                        <tr class="hover:bg-blue-50 transition-colors">
                             <!-- Nom de la tâche -->
-                            <td class="px-4 py-4">
+                            <td class="px-3 py-2">
                                 <div class="flex items-start">
                                     <div class="flex-1">
                                         <div class="text-sm font-medium text-gray-900 mb-1">
-                                            {{ tache.nom }}
+                                            {{ tache.nom|truncatewords:8 }}
                                         </div>
                                         {% if tache.ajoutee_apres_cloture %}
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
                                             <i class="fas fa-star mr-1"></i>Spéciale
                                         </span>
                                         {% endif %}
@@ -220,43 +187,34 @@
                             </td>
                             
                             <!-- Statut -->
-                            <td class="px-4 py-4">
-                                <span class="status-badge status-{{ tache.statut|lower }}">
-                                    {% if tache.statut == 'A_FAIRE' %}
-                                        <i class="fas fa-clock mr-1"></i>À Faire
-                                    {% elif tache.statut == 'EN_COURS' %}
-                                        <i class="fas fa-play mr-1"></i>En Cours
-                                    {% elif tache.statut == 'TERMINEE' %}
-                                        <i class="fas fa-check mr-1"></i>Terminée
-                                    {% elif tache.statut == 'BLOQUEE' %}
-                                        <i class="fas fa-exclamation-triangle mr-1"></i>Bloquée
-                                    {% endif %}
+                            <td class="px-3 py-2 text-center">
+                                {% if tache.statut == 'A_FAIRE' %}
+                                <span class="inline-flex items-center justify-center w-8 h-8 rounded bg-gray-100 text-gray-800" title="À Faire">
+                                    <i class="fas fa-clock"></i>
                                 </span>
-                            </td>
-                            
-                            <!-- Priorité -->
-                            <td class="px-4 py-4">
-                                <span class="priority-badge priority-{{ tache.priorite|lower }}">
-                                    {% if tache.priorite == 'CRITIQUE' %}
-                                        <i class="fas fa-exclamation-circle mr-1"></i>Critique
-                                    {% elif tache.priorite == 'HAUTE' %}
-                                        <i class="fas fa-arrow-up mr-1"></i>Haute
-                                    {% elif tache.priorite == 'MOYENNE' %}
-                                        <i class="fas fa-minus mr-1"></i>Moyenne
-                                    {% else %}
-                                        <i class="fas fa-arrow-down mr-1"></i>Basse
-                                    {% endif %}
+                                {% elif tache.statut == 'EN_COURS' %}
+                                <span class="inline-flex items-center justify-center w-8 h-8 rounded bg-blue-100 text-blue-800" title="En Cours">
+                                    <i class="fas fa-play"></i>
                                 </span>
+                                {% elif tache.statut == 'TERMINEE' %}
+                                <span class="inline-flex items-center justify-center w-8 h-8 rounded bg-green-100 text-green-800" title="Terminée">
+                                    <i class="fas fa-check"></i>
+                                </span>
+                                {% elif tache.statut == 'BLOQUEE' %}
+                                <span class="inline-flex items-center justify-center w-8 h-8 rounded bg-red-100 text-red-800" title="Bloquée">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </span>
+                                {% endif %}
                             </td>
                             
                             <!-- Responsable -->
-                            <td class="px-4 py-4">
+                            <td class="px-3 py-2">
                                 <div class="flex items-center text-sm">
                                     {% if tache.responsable %}
-                                    <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center mr-2">
+                                    <div class="w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center mr-2">
                                         <span class="text-white text-xs font-bold">{{ tache.responsable.first_name.0 }}</span>
                                     </div>
-                                    <span class="text-gray-700">{{ tache.responsable.get_full_name }}</span>
+                                    <span class="text-gray-700">{{ tache.responsable.get_full_name|truncatewords:2 }}</span>
                                     {% else %}
                                     <i class="fas fa-user-slash text-orange-400 mr-2"></i>
                                     <span class="text-orange-600 text-sm">Non assignée</span>
@@ -265,9 +223,9 @@
                             </td>
                             
                             <!-- Progression -->
-                            <td class="px-4 py-4">
+                            <td class="px-3 py-2">
                                 <div class="flex items-center">
-                                    <div class="w-full bg-gray-200 rounded-full h-2 mr-2" style="max-width: 100px;">
+                                    <div class="w-full bg-gray-200 rounded-full h-2 mr-2" style="max-width: 80px;">
                                         <div class="bg-blue-600 h-2 rounded-full transition-all duration-300" 
                                              style="width: {{ tache.pourcentage_completion }}%"></div>
                                     </div>
@@ -276,11 +234,11 @@
                             </td>
                             
                             <!-- Actions -->
-                            <td class="px-4 py-4">
+                            <td class="px-3 py-2">
                                 {% if can_create %}
                                 <div class="flex items-center justify-center space-x-2">
                                     <!-- Bouton Voir -->
-                                    <button onclick="voirDetailsTache('{{ tache.id }}', '{{ tache.nom|escapejs }}', '{{ tache.description|escapejs }}', '{{ tache.responsable.get_full_name|default:"Non assignée"|escapejs }}', '{{ tache.date_creation|date:"d/m/Y" }}', '{{ tache.pourcentage_completion }}')"
+                                    <button onclick="voirDetailsTache('{{ tache.id }}', '{{ tache.nom|escapejs }}', '{{ tache.description|escapejs }}', '{{ tache.responsable.get_full_name|default:"Non assignée"|escapejs }}', '{{ tache.date_creation|date:"d/m/Y" }}', '{{ tache.pourcentage_completion }}', '{{ etape.statut }}')"
                                             class="text-blue-600 hover:text-blue-800 p-1.5 rounded transition-colors"
                                             title="Voir détails">
                                         <i class="fas fa-eye text-sm"></i>
@@ -1259,7 +1217,20 @@ function voirDetailsCasTest(casTestId) {
 }
 
 // Fonction pour voir les détails de la tâche
-function voirDetailsTache(tacheId, nom, description, responsable, dateCreation, progression) {
+function voirDetailsTache(tacheId, nom, description, responsable, dateCreation, progression, etapeStatut) {
+    // Debug: afficher le statut reçu
+    console.log('=== DEBUG MODAL DÉTAILS ===');
+    console.log('Statut de l\'étape reçu:', etapeStatut);
+    console.log('Type:', typeof etapeStatut);
+    console.log('Longueur:', etapeStatut.length);
+    console.log('Comparaison stricte avec TERMINEE:', etapeStatut === 'TERMINEE');
+    console.log('Comparaison avec trim:', etapeStatut.trim() === 'TERMINEE');
+    
+    // Vérifier si l'étape est terminée (avec trim pour éviter les espaces)
+    const etapeTerminee = (etapeStatut.trim() === 'TERMINEE');
+    console.log('Résultat final etapeTerminee:', etapeTerminee);
+    console.log('Boutons d\'action seront affichés:', !etapeTerminee);
+    
     // Remplir le contenu du modal
     document.getElementById('detailsContent').innerHTML = `
         <div class="space-y-6">
@@ -1270,6 +1241,11 @@ function voirDetailsTache(tacheId, nom, description, responsable, dateCreation, 
                     <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                         <i class="fas fa-info-circle mr-1"></i>Tâche d'étape
                     </span>
+                    ${etapeTerminee ? `
+                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                        <i class="fas fa-lock mr-1"></i>Étape terminée
+                    </span>
+                    ` : ''}
                 </div>
             </div>
             
@@ -1336,7 +1312,8 @@ function voirDetailsTache(tacheId, nom, description, responsable, dateCreation, 
             </div>
             ` : ''}
             
-            <!-- Actions disponibles -->
+            <!-- Actions disponibles (seulement si l'étape n'est pas terminée) -->
+            ${!etapeTerminee ? `
             <div>
                 <h5 class="text-sm font-semibold text-gray-700 mb-3 flex items-center">
                     <i class="fas fa-cogs mr-2 text-gray-500"></i>Actions disponibles
@@ -1363,6 +1340,7 @@ function voirDetailsTache(tacheId, nom, description, responsable, dateCreation, 
                     </button>
                 </div>
             </div>
+            ` : ''}
         </div>
     `;
     

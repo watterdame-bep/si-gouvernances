@@ -61,14 +61,17 @@
                                     <i class="fas fa-calendar-check mr-1"></i>Terminée le {{ etape.date_fin_reelle|date:"d/m/Y" }}
                                 {% endif %}
                             </div>
-                            <div class="flex items-center space-x-3">
-                                <a href="{% url 'detail_etape' projet.id etape.id %}" class="inline-flex items-center text-sm text-green-700 hover:text-green-800 font-medium">
-                                    Consulter <i class="fas fa-arrow-right ml-1"></i>
+                            <div class="flex items-center space-x-2">
+                                <a href="{% url 'detail_etape' projet.id etape.id %}" 
+                                   class="inline-flex items-center justify-center w-8 h-8 bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors"
+                                   title="Consulter">
+                                    <i class="fas fa-eye"></i>
                                 </a>
                                 {% if etape.a_taches_speciales %}
-                                    <span class="text-gray-300">|</span>
-                                    <a href="{% url 'gestion_taches_etape' projet.id etape.id %}" class="inline-flex items-center text-sm text-yellow-700 hover:text-yellow-800 font-medium">
-                                        <i class="fas fa-star mr-1"></i>Tâches spéciales
+                                    <a href="{% url 'gestion_taches_etape' projet.id etape.id %}" 
+                                       class="inline-flex items-center justify-center w-8 h-8 bg-yellow-500 hover:bg-yellow-600 text-white rounded-md transition-colors"
+                                       title="Tâches spéciales">
+                                        <i class="fas fa-star"></i>
                                     </a>
                                 {% endif %}
                             </div>
@@ -104,20 +107,24 @@
                                     <i class="fas fa-calendar-alt mr-1"></i>Débutée le {{ timeline.courante.date_debut_reelle|date:"d/m/Y" }}
                                 {% endif %}
                             </div>
-                            <div class="flex items-center space-x-3">
-                                <a href="{% url 'detail_etape' projet.id timeline.courante.id %}" class="inline-flex items-center text-sm text-orange-700 hover:text-orange-800 font-medium">
-                                    Consulter <i class="fas fa-arrow-right ml-1"></i>
+                            <div class="flex items-center space-x-2">
+                                <a href="{% url 'detail_etape' projet.id timeline.courante.id %}" 
+                                   class="inline-flex items-center justify-center w-8 h-8 bg-orange-600 hover:bg-orange-700 text-white rounded-md transition-colors"
+                                   title="Consulter">
+                                    <i class="fas fa-eye"></i>
                                 </a>
                                 {% if timeline.courante.a_taches_speciales %}
-                                    <span class="text-gray-300">|</span>
-                                    <a href="{% url 'gestion_taches_etape' projet.id timeline.courante.id %}" class="inline-flex items-center text-sm text-yellow-700 hover:text-yellow-800 font-medium">
-                                        <i class="fas fa-star mr-1"></i>Tâches spéciales
+                                    <a href="{% url 'gestion_taches_etape' projet.id timeline.courante.id %}" 
+                                       class="inline-flex items-center justify-center w-8 h-8 bg-yellow-500 hover:bg-yellow-600 text-white rounded-md transition-colors"
+                                       title="Tâches spéciales">
+                                        <i class="fas fa-star"></i>
                                     </a>
                                 {% endif %}
                                 {% if can_manage %}
-                                <span class="text-gray-300">|</span>
-                                <button onclick="ouvrirModalTerminerEtape('{{ timeline.courante.id }}', '{{ timeline.courante.type_etape.get_nom_display }}')" class="inline-flex items-center text-sm text-green-600 hover:text-green-700 font-medium">
-                                    <i class="fas fa-check mr-1"></i>Terminer
+                                <button onclick="ouvrirModalTerminerEtape('{{ timeline.courante.id }}', '{{ timeline.courante.type_etape.get_nom_display }}')" 
+                                        class="inline-flex items-center justify-center w-8 h-8 bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors"
+                                        title="Terminer">
+                                    <i class="fas fa-check"></i>
                                 </button>
                                 {% endif %}
                             </div>
@@ -155,20 +162,24 @@
                                     <i class="fas fa-question-circle mr-1"></i>Date à définir
                                 {% endif %}
                             </div>
-                            <div class="flex items-center space-x-3">
-                                <a href="{% url 'detail_etape' projet.id etape.id %}" class="inline-flex items-center text-sm text-gray-600 hover:text-gray-700 font-medium">
-                                    Consulter <i class="fas fa-arrow-right ml-1"></i>
+                            <div class="flex items-center space-x-2">
+                                <a href="{% url 'detail_etape' projet.id etape.id %}" 
+                                   class="inline-flex items-center justify-center w-8 h-8 bg-gray-600 hover:bg-gray-700 text-white rounded-md transition-colors"
+                                   title="Consulter">
+                                    <i class="fas fa-eye"></i>
                                 </a>
                                 {% if etape.a_taches_speciales %}
-                                    <span class="text-gray-300">|</span>
-                                    <a href="{% url 'gestion_taches_etape' projet.id etape.id %}" class="inline-flex items-center text-sm text-yellow-700 hover:text-yellow-800 font-medium">
-                                        <i class="fas fa-star mr-1"></i>Tâches spéciales
+                                    <a href="{% url 'gestion_taches_etape' projet.id etape.id %}" 
+                                       class="inline-flex items-center justify-center w-8 h-8 bg-yellow-500 hover:bg-yellow-600 text-white rounded-md transition-colors"
+                                       title="Tâches spéciales">
+                                        <i class="fas fa-star"></i>
                                     </a>
                                 {% endif %}
                                 {% if can_manage and not timeline.courante and etape.ordre == 1 %}
-                                <span class="text-gray-300">|</span>
-                                <button onclick="activerEtape('{{ etape.id }}')" class="inline-flex items-center text-sm text-blue-600 hover:text-blue-700 font-medium">
-                                    <i class="fas fa-play mr-1"></i>Démarrer
+                                <button onclick="activerEtape('{{ etape.id }}')" 
+                                        class="inline-flex items-center justify-center w-8 h-8 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors"
+                                        title="Démarrer">
+                                    <i class="fas fa-play"></i>
                                 </button>
                                 {% endif %}
                             </div>
