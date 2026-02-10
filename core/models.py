@@ -1012,8 +1012,29 @@ class EtapeProjet(models.Model):
         self.date_fin_reelle = timezone.now()
         self.save()
         
+        # Créer une notification pour l'administrateur
+        from .models import NotificationEtape
+        admins = Utilisateur.objects.filter(is_superuser=True, statut_actif=True)
+        for admin in admins:
+            # Ne pas notifier si l'admin est celui qui termine l'étape
+            if admin != utilisateur:
+                NotificationEtape.objects.create(
+                    destinataire=admin,
+                    etape=self,
+                    type_notification='ETAPE_TERMINEE',
+                    titre=f"✅ Étape terminée: {self.type_etape.get_nom_display()}",
+                    message=f"{utilisateur.get_full_name()} a terminé l'étape '{self.type_etape.get_nom_display()}' du projet '{self.projet.nom}'",
+                    emetteur=utilisateur,
+                    donnees_contexte={
+                        'etape_id': str(self.id),
+                        'projet_id': str(self.projet.id),
+                        'type_etape': self.type_etape.nom,
+                        'date_cloture': self.date_fin_reelle.isoformat()
+                    }
+                )
+        
         # Audit de clôture
-        from .utils import enregistrer_audit, envoyer_notification_etape_terminee
+        from .utils import enregistrer_audit
         enregistrer_audit(
             utilisateur=utilisateur,
             type_action='CLOTURE_ETAPE',
@@ -1026,14 +1047,6 @@ class EtapeProjet(models.Model):
                 'etape_suivante': etape_suivante.type_etape.nom if etape_suivante else None
             }
         )
-        
-        # Envoyer les notifications par email aux administrateurs et chefs de projet
-        try:
-            resultat_notification = envoyer_notification_etape_terminee(self, utilisateur)
-            if resultat_notification.get('success'):
-                print(f"Notifications envoyées : {resultat_notification.get('emails_envoyes')}/{resultat_notification.get('total_destinataires')}")
-        except Exception as e:
-            print(f"Erreur lors de l'envoi des notifications : {e}")
         
         # Activer automatiquement l'étape suivante si elle existe
         if etape_suivante and etape_suivante.statut == 'A_VENIR':
@@ -1230,8 +1243,8 @@ class TacheModule(models.Model):
     STATUT_CHOICES = [
         ('A_FAIRE', 'À faire'),
         ('EN_COURS', 'En cours'),
+        ('EN_PAUSE', 'En pause'),
         ('TERMINEE', 'Terminée'),
-        ('BLOQUEE', 'Bloquée'),
     ]
     
     module = models.ForeignKey(ModuleProjet, on_delete=models.CASCADE, related_name='taches')
@@ -1266,6 +1279,13 @@ class TacheModule(models.Model):
     
     # Statut
     statut = models.CharField(max_length=20, choices=STATUT_CHOICES, default='A_FAIRE')
+    
+    # Progression
+    pourcentage_completion = models.PositiveIntegerField(
+        default=0,
+        validators=[MaxValueValidator(100)],
+        help_text="Pourcentage de completion de la tâche (0-100)"
+    )
     
     # Étape d'exécution
     etape_execution = models.ForeignKey(
@@ -1363,10 +1383,20 @@ class TacheModule(models.Model):
         ).exists()
     
     def assigner_responsable(self, responsable, utilisateur_assigneur):
-        """Assigne un responsable à la tâche avec audit"""
+        """Assigne un responsable à la tâche avec audit et notification"""
         ancien_responsable = self.responsable
         self.responsable = responsable
         self.save()
+        
+        # Créer une notification pour le nouveau responsable
+        if responsable and responsable != utilisateur_assigneur:
+            from .models import NotificationTache
+            NotificationTache.objects.create(
+                destinataire=responsable,
+                tache=self,
+                type_notification='ASSIGNATION',
+                message=f'La tâche "{self.nom}" du module "{self.module.nom}" vous a été assignée par {utilisateur_assigneur.get_full_name()}.'
+            )
         
         # Audit
         from .utils import enregistrer_audit
@@ -1534,10 +1564,20 @@ class TacheEtape(models.Model):
         return self.etape.statut in ['EN_COURS', 'TERMINEE']
     
     def assigner_responsable(self, responsable, utilisateur_assigneur):
-        """Assigne un responsable à la tâche avec audit"""
+        """Assigne un responsable à la tâche avec audit et notification"""
         ancien_responsable = self.responsable
         self.responsable = responsable
         self.save()
+        
+        # Créer une notification pour le nouveau responsable
+        if responsable and responsable != utilisateur_assigneur:
+            from .models import NotificationTache
+            NotificationTache.objects.create(
+                destinataire=responsable,
+                tache=self,
+                type_notification='ASSIGNATION',
+                message=f'La tâche "{self.nom}" de l\'étape "{self.etape.type_etape.get_nom_display()}" vous a été assignée par {utilisateur_assigneur.get_full_name()}.'
+            )
         
         # Audit
         from .utils import enregistrer_audit
@@ -2163,6 +2203,7 @@ class NotificationProjet(models.Model):
     
     TYPE_NOTIFICATION_CHOICES = [
         ('AFFECTATION_RESPONSABLE', 'Affectation comme responsable'),
+        ('AJOUT_EQUIPE', 'Ajout à l\'équipe du projet'),
         ('PROJET_DEMARRE', 'Projet démarré'),
         ('ALERTE_FIN_PROJET', 'Alerte fin de projet (J-7)'),
         ('PROJET_TERMINE', 'Projet terminé'),
@@ -2454,7 +2495,7 @@ class CasTest(models.Model):
     numero_cas = models.CharField(max_length=30, help_text="Auto-généré: AUTH-001, AUTH-002, etc.")
     
     # Relations - Utilise TacheEtape directement (correspond à la base de données)
-    tache_etape = models.ForeignKey('TacheEtape', on_delete=models.CASCADE, related_name='cas_tests')
+    tache_etape = models.ForeignKey('TacheEtape', on_delete=models.CASCADE, related_name='cas_tests', null=True, blank=True)
     
     # Informations du cas
     nom = models.CharField(max_length=200, help_text="Ex: Connexion avec email valide")

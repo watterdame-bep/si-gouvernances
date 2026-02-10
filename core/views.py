@@ -10,7 +10,7 @@ from django.db import models
 from django.utils import timezone
 from django.core.exceptions import ValidationError, PermissionDenied
 from django.db import transaction
-from .models import Utilisateur, Projet, Affectation, ActionAudit, RoleSysteme, RoleProjet, StatutProjet, Membre, TypeEtape, EtapeProjet, ModuleProjet, TacheModule, TacheEtape, NotificationModule, TacheTest, BugTest, ValidationTest
+from .models import Utilisateur, Projet, Affectation, ActionAudit, RoleSysteme, RoleProjet, StatutProjet, Membre, TypeEtape, EtapeProjet, ModuleProjet, TacheModule, TacheEtape, NotificationModule, NotificationTache, NotificationEtape, TacheTest, BugTest, ValidationTest
 from .utils import enregistrer_audit, envoyer_notification_changement_mot_de_passe
 import json
 
@@ -1168,6 +1168,19 @@ def ajouter_membre_projet(request, projet_id):
         
         # Sauvegarder
         affectation.save()
+        
+        # Créer une notification pour le membre ajouté (sauf si c'est un responsable, car il a déjà sa notification)
+        if not est_responsable:
+            from .models import NotificationProjet
+            
+            NotificationProjet.objects.create(
+                destinataire=utilisateur,
+                projet=projet,
+                type_notification='AJOUT_EQUIPE',
+                titre=f'🎉 Vous avez été ajouté au projet {projet.nom}',
+                message=f'Vous avez été ajouté à l\'équipe du projet "{projet.nom}" en tant que membre. Vous pouvez maintenant consulter les détails du projet et participer aux tâches qui vous seront assignées.',
+                emetteur=user
+            )
         
         # Audit
         enregistrer_audit(
@@ -2341,6 +2354,15 @@ def terminer_etape(request, projet_id, etape_id):
     projet = get_object_or_404(Projet, id=projet_id)
     etape = get_object_or_404(EtapeProjet, id=etape_id, projet=projet)
     
+    # Vérifier si le projet a commencé
+    if projet.statut.nom != 'EN_COURS':
+        return JsonResponse({
+            'success': False, 
+            'error': 'Le projet n\'a pas encore commencé',
+            'message': 'Vous ne pouvez pas terminer une étape pour un projet qui n\'a pas encore démarré. Veuillez d\'abord démarrer le projet.',
+            'show_modal': True
+        })
+    
     # Vérifier les permissions
     can_manage = user.est_super_admin() or projet.createur == user
     if not can_manage:
@@ -3073,6 +3095,23 @@ def creer_tache_etape_view(request, projet_id, etape_id):
                     justification_ajout_tardif=justification_etape_terminee if etape_terminee else ''
                 )
                 
+                # Créer une notification pour le responsable assigné
+                if responsable and responsable != user:
+                    NotificationTache.objects.create(
+                        destinataire=responsable,
+                        tache=tache,
+                        type_notification='ASSIGNATION',
+                        titre=f"📋 Nouvelle tâche assignée: {nom}",
+                        message=f'{user.get_full_name()} vous a assigné la tâche "{nom}" de l\'étape "{etape.type_etape.get_nom_display()}"',
+                        emetteur=user,
+                        donnees_contexte={
+                            'tache_id': str(tache.id),
+                            'etape_id': str(etape.id),
+                            'projet_id': str(projet.id),
+                            'priorite': priorite
+                        }
+                    )
+                
                 # Audit avec justification si étape terminée
                 audit_description = f'Création de la tâche d\'étape "{nom}" dans l\'étape {etape.type_etape.get_nom_display()}'
                 if etape_terminee:
@@ -3711,9 +3750,41 @@ def notification_redirect_view(request, notification_id):
                 notif.date_lecture = timezone.now()
                 notif.save()
             
-            # Construire l'URL de redirection
-            if notif.tache and notif.tache.etape:
-                redirect_url = f'/projets/{notif.tache.etape.projet.id}/etapes/{notif.tache.etape.id}/taches/'
+            # Vérifier si c'est une notification de changement de statut (tâche terminée)
+            # et si l'utilisateur est le responsable du projet
+            if notif.type_notification == 'CHANGEMENT_STATUT' and notif.donnees_contexte:
+                type_tache = notif.donnees_contexte.get('type_tache')
+                projet_id = notif.donnees_contexte.get('projet_id')
+                
+                if type_tache == 'etape' and notif.tache:
+                    # Rediriger vers la page de gestion des tâches de l'étape
+                    etape_id = notif.tache.etape.id
+                    redirect_url = f'/projets/{projet_id}/etapes/{etape_id}/taches/'
+                elif type_tache == 'module' and notif.donnees_contexte.get('tache_id'):
+                    # Pour les tâches de module, on doit récupérer le module_id
+                    # depuis la tâche via donnees_contexte
+                    try:
+                        tache_module = TacheModule.objects.get(id=notif.donnees_contexte.get('tache_id'))
+                        module_id = tache_module.module.id
+                        redirect_url = f'/projets/{projet_id}/modules/{module_id}/taches/'
+                    except:
+                        redirect_url = f'/projets/{projet_id}/'
+                else:
+                    redirect_url = f'/projets/{projet_id}/'
+            else:
+                # Pour les autres types de notifications (assignation, etc.)
+                # Rediriger vers "Mes tâches" du projet
+                if notif.tache:
+                    # Déterminer le projet selon le type de tâche
+                    if hasattr(notif.tache, 'etape'):  # TacheEtape
+                        projet_id = notif.tache.etape.projet.id
+                    elif hasattr(notif.tache, 'module'):  # TacheModule
+                        projet_id = notif.tache.module.projet.id
+                    else:
+                        projet_id = None
+                    
+                    if projet_id:
+                        redirect_url = f'/projets/{projet_id}/mes-taches/'
             
             return redirect(redirect_url)
         except NotificationTache.DoesNotExist:
@@ -3727,9 +3798,20 @@ def notification_redirect_view(request, notification_id):
                 notif.date_lecture = timezone.now()
                 notif.save()
             
-            # Construire l'URL de redirection
-            if notif.etape:
-                redirect_url = f'/projets/{notif.etape.projet.id}/etapes/{notif.etape.id}/'
+            # Vérifier si c'est une notification d'étape terminée
+            if notif.type_notification == 'ETAPE_TERMINEE' and notif.donnees_contexte:
+                projet_id = notif.donnees_contexte.get('projet_id')
+                
+                if projet_id:
+                    # Rediriger vers la page de gestion des étapes du projet
+                    redirect_url = f'/projets/{projet_id}/etapes/'
+                else:
+                    redirect_url = f'/projets/{notif.etape.projet.id}/etapes/'
+            else:
+                # Pour les autres types de notifications d'étape
+                # Construire l'URL de redirection vers le détail de l'étape
+                if notif.etape:
+                    redirect_url = f'/projets/{notif.etape.projet.id}/etapes/{notif.etape.id}/'
             
             return redirect(redirect_url)
         except NotificationEtape.DoesNotExist:
@@ -3743,9 +3825,21 @@ def notification_redirect_view(request, notification_id):
                 notif.date_lecture = timezone.now()
                 notif.save()
             
-            # Construire l'URL de redirection
-            if notif.module:
-                redirect_url = f'/projets/{notif.module.projet.id}/modules/{notif.module.id}/taches/'
+            # Vérifier si c'est une notification de tâche terminée
+            if notif.type_notification == 'TACHE_TERMINEE' and notif.donnees_contexte:
+                projet_id = notif.donnees_contexte.get('projet_id')
+                module_id = notif.donnees_contexte.get('module_id')
+                
+                if projet_id and module_id:
+                    # Rediriger vers la page de gestion des tâches du module
+                    redirect_url = f'/projets/{projet_id}/modules/{module_id}/taches/'
+                else:
+                    redirect_url = f'/projets/{notif.module.projet.id}/modules/{notif.module.id}/taches/'
+            else:
+                # Pour les autres types de notifications
+                # Construire l'URL de redirection
+                if notif.module:
+                    redirect_url = f'/projets/{notif.module.projet.id}/modules/{notif.module.id}/taches/'
             
             return redirect(redirect_url)
         except NotificationModule.DoesNotExist:
@@ -4121,6 +4215,106 @@ def api_notifications_detailed(request):
         })
 
 @login_required
+def mes_taches_globales_view(request):
+    """Vue globale pour voir toutes les tâches assignées à l'utilisateur (tous projets)"""
+    user = request.user
+    
+    # Filtres
+    statut_filter = request.GET.get('statut', '')
+    priorite_filter = request.GET.get('priorite', '')
+    projet_filter = request.GET.get('projet', '')
+    
+    # Récupérer toutes les tâches d'étape dont l'utilisateur est responsable
+    mes_taches_etape = TacheEtape.objects.filter(
+        responsable=user
+    ).select_related('etape', 'etape__type_etape', 'etape__projet').order_by('-date_creation')
+    
+    # Récupérer toutes les tâches de modules
+    mes_taches_module = TacheModule.objects.filter(
+        responsable=user
+    ).select_related('module', 'module__projet').order_by('-date_creation')
+    
+    # Appliquer les filtres
+    if statut_filter:
+        mes_taches_etape = mes_taches_etape.filter(statut=statut_filter)
+        mes_taches_module = mes_taches_module.filter(statut=statut_filter)
+    
+    if priorite_filter:
+        mes_taches_etape = mes_taches_etape.filter(priorite=priorite_filter)
+        mes_taches_module = mes_taches_module.filter(priorite=priorite_filter)
+    
+    if projet_filter:
+        mes_taches_etape = mes_taches_etape.filter(etape__projet__id=projet_filter)
+        mes_taches_module = mes_taches_module.filter(module__projet__id=projet_filter)
+    
+    # Combiner les tâches
+    taches_combinees = []
+    
+    for tache in mes_taches_etape:
+        taches_combinees.append({
+            'id': tache.id,
+            'nom': tache.nom,
+            'description': tache.description,
+            'statut': tache.statut,
+            'priorite': tache.priorite,
+            'date_echeance': tache.date_fin,  # TacheEtape utilise date_fin
+            'pourcentage_completion': tache.pourcentage_completion,
+            'projet': tache.etape.projet,
+            'contexte': f"Étape: {tache.etape.type_etape.get_nom_display()}",
+            'type': 'etape',
+            'tache_obj': tache
+        })
+    
+    for tache in mes_taches_module:
+        taches_combinees.append({
+            'id': tache.id,
+            'nom': tache.nom,
+            'description': tache.description,
+            'statut': tache.statut,
+            'priorite': tache.priorite,
+            'date_echeance': getattr(tache, 'date_echeance', tache.date_fin) if hasattr(tache, 'date_fin') else None,  # TacheModule peut avoir date_echeance ou date_fin
+            'pourcentage_completion': tache.pourcentage_completion,
+            'projet': tache.module.projet,
+            'contexte': f"Module: {tache.module.nom}",
+            'type': 'module',
+            'tache_obj': tache
+        })
+    
+    # Trier par date de création (plus récentes en premier)
+    taches_combinees.sort(key=lambda x: x['tache_obj'].date_creation, reverse=True)
+    
+    # Statistiques
+    all_taches_etape = TacheEtape.objects.filter(responsable=user)
+    all_taches_module = TacheModule.objects.filter(responsable=user)
+    
+    stats = {
+        'total': all_taches_etape.count() + all_taches_module.count(),
+        'a_faire': all_taches_etape.filter(statut='A_FAIRE').count() + all_taches_module.filter(statut='A_FAIRE').count(),
+        'en_cours': all_taches_etape.filter(statut='EN_COURS').count() + all_taches_module.filter(statut='EN_COURS').count(),
+        'terminees': all_taches_etape.filter(statut='TERMINEE').count() + all_taches_module.filter(statut='TERMINEE').count(),
+    }
+    
+    # Liste des projets pour le filtre
+    projets_ids = set()
+    for tache in all_taches_etape:
+        projets_ids.add(tache.etape.projet.id)
+    for tache in all_taches_module:
+        projets_ids.add(tache.module.projet.id)
+    
+    projets_list = Projet.objects.filter(id__in=projets_ids).order_by('nom')
+    
+    context = {
+        'taches': taches_combinees,
+        'stats': stats,
+        'projets_list': projets_list,
+        'statut_filter': statut_filter,
+        'priorite_filter': priorite_filter,
+        'projet_filter': projet_filter,
+    }
+    
+    return render(request, 'core/mes_taches_globales.html', context)
+
+@login_required
 def mes_taches_view(request, projet_id):
     """Vue pour qu'un membre voie ses tâches dans un projet"""
     user = request.user
@@ -4212,7 +4406,293 @@ def mes_taches_view(request, projet_id):
         'priorites_disponibles': TacheEtape.PRIORITE_CHOICES,
     }
     
-    return render(request, 'core/mes_taches_optimisee.html', context)
+    return render(request, 'core/mes_taches_simple_tableau.html', context)
+
+@login_required
+@require_http_methods(["POST"])
+def mettre_a_jour_progression_tache(request, projet_id, tache_id, type_tache):
+    """Mettre à jour la progression d'une tâche"""
+    user = request.user
+    projet = get_object_or_404(Projet, id=projet_id)
+    
+    # Vérifier l'accès au projet
+    if not user.est_super_admin():
+        if not user.a_acces_projet(projet) and projet.createur != user:
+            return JsonResponse({'success': False, 'error': 'Accès refusé au projet'})
+    
+    try:
+        # Récupérer le pourcentage depuis la requête
+        data = json.loads(request.body)
+        pourcentage = int(data.get('pourcentage', 0))
+        
+        # Valider le pourcentage
+        if pourcentage < 0 or pourcentage > 100:
+            return JsonResponse({'success': False, 'error': 'Le pourcentage doit être entre 0 et 100'})
+        
+        # Récupérer la tâche
+        if type_tache == 'etape':
+            tache = get_object_or_404(TacheEtape, id=tache_id, etape__projet=projet)
+        elif type_tache == 'module':
+            tache = get_object_or_404(TacheModule, id=tache_id, module__projet=projet)
+        else:
+            return JsonResponse({'success': False, 'error': 'Type de tâche invalide'})
+        
+        # Vérifier que l'utilisateur est le responsable de la tâche
+        if tache.responsable != user:
+            return JsonResponse({'success': False, 'error': 'Vous n\'êtes pas responsable de cette tâche'})
+        
+        # CONTRAINTE: La tâche doit être EN_COURS pour mettre à jour la progression
+        if tache.statut != 'EN_COURS':
+            return JsonResponse({'success': False, 'error': 'Vous devez d\'abord démarrer la tâche pour mettre à jour la progression'})
+        
+        # Vérifier que la tâche n'est pas déjà terminée
+        if tache.statut == 'TERMINEE':
+            return JsonResponse({'success': False, 'error': 'Cette tâche est déjà terminée'})
+        
+        # Sauvegarder l'ancien pourcentage
+        ancien_pourcentage = tache.pourcentage_completion
+        
+        # Mettre à jour la progression
+        tache.pourcentage_completion = pourcentage
+        
+        # Si la progression passe à 100%, marquer comme terminée
+        if pourcentage == 100:
+            tache.statut = 'TERMINEE'
+            tache.date_fin_reelle = timezone.now()
+            if not tache.date_debut_reelle:
+                tache.date_debut_reelle = tache.date_fin_reelle
+        
+        tache.save()
+        
+        # Notifier le responsable du projet si changement significatif (tous les 25%)
+        responsable_projet = projet.get_responsable_principal()
+        if responsable_projet and responsable_projet != user:
+            # Notifier seulement aux paliers de 25%, 50%, 75%, 100%
+            if pourcentage % 25 == 0 and ancien_pourcentage != pourcentage:
+                if type_tache == 'etape':
+                    contexte = f"étape '{tache.etape.type_etape.get_nom_display()}'"
+                    
+                    # Si 100%, utiliser le message de tâche terminée
+                    if pourcentage == 100:
+                        NotificationTache.objects.create(
+                            destinataire=responsable_projet,
+                            tache=tache,
+                            type_notification='CHANGEMENT_STATUT',
+                            titre=f"✅ Tâche terminée: {tache.nom}",
+                            message=f"{user.get_full_name()} a terminé la tâche '{tache.nom}' de l'{contexte}",
+                            emetteur=user,
+                            donnees_contexte={
+                                'tache_id': str(tache.id),
+                                'type_tache': type_tache,
+                                'projet_id': str(projet.id),
+                                'etape_id': str(tache.etape.id),
+                                'ancien_pourcentage': ancien_pourcentage,
+                                'nouveau_pourcentage': pourcentage
+                            }
+                        )
+                    else:
+                        NotificationTache.objects.create(
+                            destinataire=responsable_projet,
+                            tache=tache,
+                            type_notification='CHANGEMENT_STATUT',
+                            titre=f"📊 Progression: {tache.nom} ({pourcentage}%)",
+                            message=f"{user.get_full_name()} a mis à jour la progression de '{tache.nom}' de l'{contexte} à {pourcentage}%",
+                            emetteur=user,
+                            donnees_contexte={
+                                'tache_id': str(tache.id),
+                                'type_tache': type_tache,
+                                'projet_id': str(projet.id),
+                                'etape_id': str(tache.etape.id),
+                                'ancien_pourcentage': ancien_pourcentage,
+                                'nouveau_pourcentage': pourcentage
+                            }
+                        )
+                else:  # type_tache == 'module'
+                    contexte = f"module '{tache.module.nom}'"
+                    
+                    # Si 100%, utiliser le message de tâche terminée
+                    if pourcentage == 100:
+                        NotificationModule.objects.create(
+                            destinataire=responsable_projet,
+                            module=tache.module,
+                            type_notification='TACHE_TERMINEE',
+                            titre=f"✅ Tâche terminée: {tache.nom}",
+                            message=f"{user.get_full_name()} a terminé la tâche '{tache.nom}' du {contexte}",
+                            emetteur=user,
+                            donnees_contexte={
+                                'tache_id': str(tache.id),
+                                'type_tache': type_tache,
+                                'projet_id': str(projet.id),
+                                'module_id': tache.module.id,
+                                'ancien_pourcentage': ancien_pourcentage,
+                                'nouveau_pourcentage': pourcentage
+                            }
+                        )
+                    else:
+                        NotificationModule.objects.create(
+                            destinataire=responsable_projet,
+                            module=tache.module,
+                            type_notification='TACHE_TERMINEE',
+                            titre=f"📊 Progression: {tache.nom} ({pourcentage}%)",
+                            message=f"{user.get_full_name()} a mis à jour la progression de '{tache.nom}' du {contexte} à {pourcentage}%",
+                            emetteur=user,
+                            donnees_contexte={
+                                'tache_id': str(tache.id),
+                                'type_tache': type_tache,
+                                'projet_id': str(projet.id),
+                                'module_id': tache.module.id,
+                                'ancien_pourcentage': ancien_pourcentage,
+                                'nouveau_pourcentage': pourcentage
+                            }
+                        )
+        
+        # Audit
+        enregistrer_audit(
+            utilisateur=user,
+            type_action='MODIFICATION_TACHE',
+            description=f'Progression mise à jour: {tache.nom} ({ancien_pourcentage}% → {pourcentage}%)',
+            projet=projet,
+            donnees_avant={'pourcentage_completion': ancien_pourcentage},
+            donnees_apres={'pourcentage_completion': pourcentage}
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Progression mise à jour à {pourcentage}%',
+            'pourcentage': pourcentage,
+            'statut': tache.statut
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Données JSON invalides'})
+    except ValueError:
+        return JsonResponse({'success': False, 'error': 'Pourcentage invalide'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@login_required
+@require_http_methods(["POST"])
+def demarrer_tache_view(request, projet_id, tache_id, type_tache):
+    """Démarrer une tâche (A_FAIRE → EN_COURS)"""
+    user = request.user
+    projet = get_object_or_404(Projet, id=projet_id)
+    
+    if not user.est_super_admin():
+        if not user.a_acces_projet(projet) and projet.createur != user:
+            return JsonResponse({'success': False, 'error': 'Accès refusé'})
+    
+    try:
+        if type_tache == 'etape':
+            tache = get_object_or_404(TacheEtape, id=tache_id, etape__projet=projet)
+        elif type_tache == 'module':
+            tache = get_object_or_404(TacheModule, id=tache_id, module__projet=projet)
+        else:
+            return JsonResponse({'success': False, 'error': 'Type invalide'})
+        
+        if tache.responsable != user:
+            return JsonResponse({'success': False, 'error': 'Vous n\'êtes pas responsable de cette tâche'})
+        
+        if tache.statut != 'A_FAIRE':
+            return JsonResponse({'success': False, 'error': 'Cette tâche n\'est pas à faire'})
+        
+        tache.statut = 'EN_COURS'
+        tache.date_debut_reelle = timezone.now()
+        tache.save()
+        
+        enregistrer_audit(
+            utilisateur=user,
+            type_action='MODIFICATION_TACHE',
+            description=f'Tâche démarrée: {tache.nom}',
+            projet=projet,
+            donnees_avant={'statut': 'A_FAIRE'},
+            donnees_apres={'statut': 'EN_COURS'}
+        )
+        
+        return JsonResponse({'success': True, 'message': 'Tâche démarrée'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@login_required
+@require_http_methods(["POST"])
+def mettre_en_pause_tache_view(request, projet_id, tache_id, type_tache):
+    """Mettre une tâche en pause (EN_COURS → EN_PAUSE)"""
+    user = request.user
+    projet = get_object_or_404(Projet, id=projet_id)
+    
+    if not user.est_super_admin():
+        if not user.a_acces_projet(projet) and projet.createur != user:
+            return JsonResponse({'success': False, 'error': 'Accès refusé'})
+    
+    try:
+        if type_tache == 'etape':
+            tache = get_object_or_404(TacheEtape, id=tache_id, etape__projet=projet)
+        elif type_tache == 'module':
+            tache = get_object_or_404(TacheModule, id=tache_id, module__projet=projet)
+        else:
+            return JsonResponse({'success': False, 'error': 'Type invalide'})
+        
+        if tache.responsable != user:
+            return JsonResponse({'success': False, 'error': 'Vous n\'êtes pas responsable de cette tâche'})
+        
+        if tache.statut != 'EN_COURS':
+            return JsonResponse({'success': False, 'error': 'Cette tâche n\'est pas en cours'})
+        
+        tache.statut = 'EN_PAUSE'
+        tache.save()
+        
+        enregistrer_audit(
+            utilisateur=user,
+            type_action='MODIFICATION_TACHE',
+            description=f'Tâche mise en pause: {tache.nom}',
+            projet=projet,
+            donnees_avant={'statut': 'EN_COURS'},
+            donnees_apres={'statut': 'EN_PAUSE'}
+        )
+        
+        return JsonResponse({'success': True, 'message': 'Tâche mise en pause'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@login_required
+@require_http_methods(["POST"])
+def reprendre_tache_view(request, projet_id, tache_id, type_tache):
+    """Reprendre une tâche en pause (EN_PAUSE → EN_COURS)"""
+    user = request.user
+    projet = get_object_or_404(Projet, id=projet_id)
+    
+    if not user.est_super_admin():
+        if not user.a_acces_projet(projet) and projet.createur != user:
+            return JsonResponse({'success': False, 'error': 'Accès refusé'})
+    
+    try:
+        if type_tache == 'etape':
+            tache = get_object_or_404(TacheEtape, id=tache_id, etape__projet=projet)
+        elif type_tache == 'module':
+            tache = get_object_or_404(TacheModule, id=tache_id, module__projet=projet)
+        else:
+            return JsonResponse({'success': False, 'error': 'Type invalide'})
+        
+        if tache.responsable != user:
+            return JsonResponse({'success': False, 'error': 'Vous n\'êtes pas responsable de cette tâche'})
+        
+        if tache.statut != 'EN_PAUSE':
+            return JsonResponse({'success': False, 'error': 'Cette tâche n\'est pas en pause'})
+        
+        tache.statut = 'EN_COURS'
+        tache.save()
+        
+        enregistrer_audit(
+            utilisateur=user,
+            type_action='MODIFICATION_TACHE',
+            description=f'Tâche reprise: {tache.nom}',
+            projet=projet,
+            donnees_avant={'statut': 'EN_PAUSE'},
+            donnees_apres={'statut': 'EN_COURS'}
+        )
+        
+        return JsonResponse({'success': True, 'message': 'Tâche reprise'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
 
 @login_required
 @require_http_methods(["POST"])
@@ -4262,6 +4742,51 @@ def terminer_tache_view(request, projet_id, tache_id, type_tache):
             tache.date_debut_reelle = tache.date_fin_reelle
         
         tache.save()
+        
+        # Notifier le responsable du projet
+        responsable_projet = projet.get_responsable_principal()
+        if responsable_projet and responsable_projet != user:
+            # Créer la notification pour le responsable
+            if type_tache == 'etape':
+                contexte = f"étape '{tache.etape.type_etape.get_nom_display()}'"
+                
+                NotificationTache.objects.create(
+                    destinataire=responsable_projet,
+                    tache=tache,
+                    type_notification='CHANGEMENT_STATUT',
+                    titre=f"✅ Tâche terminée: {tache.nom}",
+                    message=f"{user.get_full_name()} a terminé la tâche '{tache.nom}' de l'{contexte}",
+                    emetteur=user,
+                    donnees_contexte={
+                        'tache_id': str(tache.id),
+                        'type_tache': type_tache,
+                        'projet_id': str(projet.id),
+                        'etape_id': str(tache.etape.id),
+                        'ancien_statut': donnees_avant['statut'],
+                        'nouveau_statut': 'TERMINEE',
+                        'date_completion': tache.date_fin_reelle.isoformat()
+                    }
+                )
+            else:  # type_tache == 'module'
+                contexte = f"module '{tache.module.nom}'"
+                
+                NotificationModule.objects.create(
+                    destinataire=responsable_projet,
+                    module=tache.module,
+                    type_notification='TACHE_TERMINEE',
+                    titre=f"✅ Tâche terminée: {tache.nom}",
+                    message=f"{user.get_full_name()} a terminé la tâche '{tache.nom}' du {contexte}",
+                    emetteur=user,
+                    donnees_contexte={
+                        'tache_id': str(tache.id),
+                        'type_tache': type_tache,
+                        'projet_id': str(projet.id),
+                        'module_id': tache.module.id,
+                        'ancien_statut': donnees_avant['statut'],
+                        'nouveau_statut': 'TERMINEE',
+                        'date_completion': tache.date_fin_reelle.isoformat()
+                    }
+                )
         
         # Données après modification pour l'audit
         donnees_apres = {
@@ -6078,40 +6603,6 @@ def fermer_bug_view(request, projet_id, bug_id):
 def modifier_test_view(request, projet_id, etape_id, test_id):
     messages.info(request, 'Modification de tests disponible en V1.1')
     return redirect('gestion_tests', projet_id=projet_id, etape_id=etape_id)
-
-
-@login_required
-def mes_modules_view(request, projet_id):
-    """Interface pour voir les modules affectés à l'utilisateur connecté"""
-    user = request.user
-    projet = get_object_or_404(Projet, id=projet_id)
-    
-    # Vérifier que l'utilisateur a accès au projet
-    if not user.est_super_admin():
-        if not user.a_acces_projet(projet) and projet.createur != user:
-            messages.error(request, 'Vous n\'avez pas accès à ce projet.')
-            return redirect('projets_list')
-    
-    # Récupérer les modules où l'utilisateur est affecté
-    try:
-        from .models import AffectationModule
-        affectations = AffectationModule.objects.filter(
-            utilisateur=user,
-            module__projet=projet,
-            date_fin__isnull=True
-        ).select_related('module')
-        
-        modules_affecter = [aff.module for aff in affectations]
-    except:
-        modules_affecter = []
-    
-    context = {
-        'projet': projet,
-        'modules_affecter': modules_affecter,
-        'user': user,
-    }
-    
-    return render(request, 'core/mes_modules.html', context)
 
 
 # ============================================================================

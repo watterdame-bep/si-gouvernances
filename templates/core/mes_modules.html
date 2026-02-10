@@ -70,101 +70,70 @@
 
         <!-- Mes modules affectés -->
         {% if mes_affectations %}
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             <div class="p-4 border-b border-gray-200">
                 <h2 class="text-lg font-semibold text-gray-900">Modules Affectés</h2>
                 <p class="text-sm text-gray-600">Modules sur lesquels vous travaillez</p>
             </div>
             
-            <div class="divide-y divide-gray-200">
-                {% for affectation in mes_affectations %}
-                <div class="p-4">
-                    <div class="flex items-start justify-between mb-3">
-                        <div class="flex items-start space-x-3">
-                            <div class="w-10 h-10 rounded-lg flex items-center justify-center shadow-sm" 
-                                 style="background-color: {{ affectation.module.couleur }}20; border: 1px solid {{ affectation.module.couleur }}40;">
-                                <i class="fas fa-cube text-lg" style="color: {{ affectation.module.couleur }};"></i>
-                            </div>
-                            <div class="flex-1">
-                                <div class="flex items-center space-x-2 mb-1">
-                                    <h3 class="text-lg font-semibold text-gray-900">{{ affectation.module.nom }}</h3>
-                                    <span class="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-medium">
-                                        {{ affectation.get_role_module_display }}
-                                    </span>
+            <!-- Tableau des modules -->
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Module
+                            </th>
+                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Description
+                            </th>
+                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Rôle
+                            </th>
+                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Date Affectation
+                            </th>
+                            <th scope="col" class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Actions
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for affectation in mes_affectations %}
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-8 h-8 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0" 
+                                         style="background-color: {{ affectation.module.couleur }}20; border: 1px solid {{ affectation.module.couleur }}40;">
+                                        <i class="fas fa-cube text-sm" style="color: {{ affectation.module.couleur }};"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-900">{{ affectation.module.nom }}</p>
+                                    </div>
                                 </div>
-                                <p class="text-sm text-gray-600 mb-2">{{ affectation.module.description }}</p>
-                                <div class="flex items-center space-x-4 text-xs text-gray-500">
-                                    <span><i class="fas fa-calendar-alt mr-1"></i>Affecté le {{ affectation.date_affectation|date:"d/m/Y" }}</span>
-                                    {% if affectation.peut_creer_taches %}
-                                    <span class="text-green-600"><i class="fas fa-edit mr-1"></i>Peut créer des tâches</span>
-                                    {% endif %}
-                                    {% if affectation.peut_voir_toutes_taches %}
-                                    <span class="text-blue-600"><i class="fas fa-eye mr-1"></i>Voit toutes les tâches</span>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-                        {% if affectation.peut_creer_taches %}
-                        <button onclick="ouvrirModalCreerTache('{{ affectation.module.id }}', '{{ affectation.module.nom }}')"
-                                class="inline-flex items-center px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-md text-sm font-medium transition-colors">
-                            <i class="fas fa-plus mr-1"></i>Nouvelle Tâche
-                        </button>
-                        {% endif %}
-                    </div>
-                    
-                    <!-- Mes tâches dans ce module -->
-                    {% with module_taches=mes_taches|dictsort:"module.id" %}
-                    {% for tache in module_taches %}
-                    {% if tache.module.id == affectation.module.id %}
-                    <div class="bg-gray-50 rounded-lg p-3 mb-2">
-                        <div class="flex items-center justify-between">
-                            <div class="flex-1">
-                                <div class="flex items-center space-x-2 mb-1">
-                                    <h4 class="font-medium text-gray-900">{{ tache.nom }}</h4>
-                                    <span class="px-2 py-0.5 rounded text-xs font-medium
-                                        {% if tache.statut == 'TERMINEE' %}bg-green-100 text-green-800
-                                        {% elif tache.statut == 'EN_COURS' %}bg-orange-100 text-orange-800
-                                        {% elif tache.statut == 'BLOQUEE' %}bg-red-100 text-red-800
-                                        {% else %}bg-gray-100 text-gray-800{% endif %}">
-                                        {{ tache.get_statut_display }}
-                                    </span>
-                                    <span class="px-2 py-0.5 bg-purple-100 text-purple-800 rounded text-xs font-medium">
-                                        {{ tache.get_priorite_display }}
-                                    </span>
-                                    {% if tache.est_privee %}
-                                    <span class="text-gray-500 text-xs" title="Tâche privée"><i class="fas fa-lock"></i></span>
-                                    {% endif %}
-                                </div>
-                                <p class="text-sm text-gray-600 mb-1">{{ tache.description|truncatechars:100 }}</p>
-                                <div class="flex items-center space-x-3 text-xs text-gray-500">
-                                    <span><i class="fas fa-calendar-alt mr-1"></i>{{ tache.date_creation|date:"d/m/Y" }}</span>
-                                    {% if tache.duree_estimee %}
-                                    <span><i class="fas fa-clock mr-1"></i>{{ tache.duree_estimee }}</span>
-                                    {% endif %}
-                                </div>
-                            </div>
-                            <div class="flex items-center space-x-2">
-                                {% if tache.statut != 'TERMINEE' %}
-                                <select onchange="changerStatutTache('{{ tache.id }}', this.value)" 
-                                        class="text-xs border border-gray-300 rounded px-2 py-1">
-                                    <option value="A_FAIRE" {% if tache.statut == 'A_FAIRE' %}selected{% endif %}>À faire</option>
-                                    <option value="EN_COURS" {% if tache.statut == 'EN_COURS' %}selected{% endif %}>En cours</option>
-                                    <option value="TERMINEE" {% if tache.statut == 'TERMINEE' %}selected{% endif %}>Terminée</option>
-                                    <option value="BLOQUEE" {% if tache.statut == 'BLOQUEE' %}selected{% endif %}>Bloquée</option>
-                                </select>
-                                {% endif %}
-                                <button onclick="voirDetailsTache('{{ tache.id }}')"
-                                        class="text-xs text-gray-600 hover:text-gray-800">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    {% endif %}
-                    {% endfor %}
-                    {% endwith %}
-                </div>
-                {% endfor %}
+                            </td>
+                            <td class="px-4 py-3">
+                                <p class="text-sm text-gray-600 max-w-xs truncate">{{ affectation.module.description }}</p>
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+                                    {{ affectation.get_role_module_display }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                <span class="text-sm text-gray-600">{{ affectation.date_affectation|date:"d/m/Y" }}</span>
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap text-center">
+                                <a href="{% url 'gestion_taches_module' projet.id affectation.module.id %}?from=mes_modules"
+                                   class="inline-flex items-center justify-center w-8 h-8 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+                                   title="{% if affectation.peut_creer_taches %}Gérer mes tâches{% else %}Voir mes tâches{% endif %}">
+                                    <i class="fas fa-tasks text-sm"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
         {% else %}
@@ -179,193 +148,4 @@
     </div>
 </div>
 
-<!-- Modal Créer Tâche -->
-<div id="modalCreerTache" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
-        <div class="p-6">
-            <div class="flex items-center mb-4">
-                <div class="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center mr-3">
-                    <i class="fas fa-tasks text-white text-lg"></i>
-                </div>
-                <div>
-                    <h3 class="text-lg font-semibold text-gray-900">Nouvelle Tâche</h3>
-                    <p class="text-sm text-gray-600" id="nomModuleTache"></p>
-                </div>
-            </div>
-            
-            <form id="formCreerTache" class="space-y-4">
-                {% csrf_token %}
-                <input type="hidden" name="module_id" id="moduleIdTache">
-                
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Nom de la tâche *</label>
-                    <input type="text" name="nom" required 
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                           placeholder="Ex: Créer la page de connexion">
-                </div>
-                
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Description *</label>
-                    <textarea name="description" required rows="3"
-                              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                              placeholder="Décrivez ce qui doit être fait..."></textarea>
-                </div>
-                
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Priorité</label>
-                        <select name="priorite" 
-                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            <option value="BASSE">Basse</option>
-                            <option value="MOYENNE" selected>Moyenne</option>
-                            <option value="HAUTE">Haute</option>
-                            <option value="CRITIQUE">Critique</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Durée (heures)</label>
-                        <input type="number" name="duree_estimee_heures" step="0.5" min="0"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                               placeholder="Ex: 2.5">
-                    </div>
-                </div>
-                
-                <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                    <div class="flex items-start">
-                        <i class="fas fa-info-circle text-blue-500 mr-2 mt-0.5"></i>
-                        <div class="text-sm text-blue-800">
-                            <p class="font-medium mb-1">Tâche privée</p>
-                            <p class="text-xs">Cette tâche ne sera visible que par vous. Vous pourrez la partager plus tard si nécessaire.</p>
-                        </div>
-                    </div>
-                </div>
-            </form>
-            
-            <div class="flex items-center justify-end space-x-3 mt-6">
-                <button onclick="fermerModalCreerTache()" 
-                        class="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium transition-colors">
-                    Annuler
-                </button>
-                <button onclick="confirmerCreerTache()" 
-                        class="px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-md transition-colors">
-                    Créer
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-// Variables globales
-let moduleIdEnCours = null;
-
-// Fonctions pour le modal de création de tâche
-function ouvrirModalCreerTache(moduleId, nomModule) {
-    moduleIdEnCours = moduleId;
-    document.getElementById('moduleIdTache').value = moduleId;
-    document.getElementById('nomModuleTache').textContent = nomModule;
-    document.getElementById('modalCreerTache').classList.remove('hidden');
-    document.body.style.overflow = 'hidden';
-}
-
-function fermerModalCreerTache() {
-    document.getElementById('modalCreerTache').classList.add('hidden');
-    document.body.style.overflow = 'auto';
-    document.getElementById('formCreerTache').reset();
-    moduleIdEnCours = null;
-}
-
-function confirmerCreerTache() {
-    if (!moduleIdEnCours) return;
-    
-    const form = document.getElementById('formCreerTache');
-    const formData = new FormData(form);
-    
-    const btnConfirmer = event.target;
-    btnConfirmer.disabled = true;
-    btnConfirmer.textContent = 'Création...';
-    
-    fetch(`{% url 'creer_tache_module' projet.id '00000000-0000-0000-0000-000000000000' %}`.replace('00000000-0000-0000-0000-000000000000', moduleIdEnCours), {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-CSRFToken': '{{ csrf_token }}'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            fermerModalCreerTache();
-            location.reload();
-        } else {
-            alert('Erreur: ' + data.error);
-        }
-    })
-    .catch(error => {
-        console.error('Erreur:', error);
-        alert('Une erreur est survenue');
-    })
-    .finally(() => {
-        btnConfirmer.disabled = false;
-        btnConfirmer.textContent = 'Créer';
-    });
-}
-
-function changerStatutTache(tacheId, nouveauStatut) {
-    const formData = new FormData();
-    formData.append('statut', nouveauStatut);
-    
-    fetch(`{% url 'modifier_statut_tache_module' projet.id '00000000-0000-0000-0000-000000000000' %}`.replace('00000000-0000-0000-0000-000000000000', tacheId), {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-CSRFToken': '{{ csrf_token }}'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Afficher un message de succès temporaire
-            const successDiv = document.createElement('div');
-            successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
-            successDiv.textContent = data.message;
-            document.body.appendChild(successDiv);
-            
-            setTimeout(() => {
-                successDiv.remove();
-            }, 3000);
-            
-            // Recharger la page après un court délai
-            setTimeout(() => {
-                location.reload();
-            }, 1000);
-        } else {
-            alert('Erreur: ' + data.error);
-            location.reload(); // Recharger pour remettre l'ancien statut
-        }
-    })
-    .catch(error => {
-        console.error('Erreur:', error);
-        alert('Une erreur est survenue');
-        location.reload();
-    });
-}
-
-function voirDetailsTache(tacheId) {
-    // TODO: Implémenter la vue détaillée de la tâche
-    alert('Fonctionnalité à venir : Vue détaillée de la tâche');
-}
-
-// Fermer le modal en cliquant à l'extérieur
-document.getElementById('modalCreerTache').addEventListener('click', function(e) {
-    if (e.target === this) fermerModalCreerTache();
-});
-
-// Fermer le modal avec la touche Échap
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && !document.getElementById('modalCreerTache').classList.contains('hidden')) {
-        fermerModalCreerTache();
-    }
-});
-</script>
 {% endblock %}

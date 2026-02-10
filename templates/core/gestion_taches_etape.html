@@ -189,21 +189,13 @@
                             <!-- Statut -->
                             <td class="px-3 py-2 text-center">
                                 {% if tache.statut == 'A_FAIRE' %}
-                                <span class="inline-flex items-center justify-center w-8 h-8 rounded bg-gray-100 text-gray-800" title="À Faire">
-                                    <i class="fas fa-clock"></i>
-                                </span>
+                                    <span class="text-gray-500" title="À faire"><i class="fas fa-play-circle text-lg"></i></span>
                                 {% elif tache.statut == 'EN_COURS' %}
-                                <span class="inline-flex items-center justify-center w-8 h-8 rounded bg-blue-100 text-blue-800" title="En Cours">
-                                    <i class="fas fa-play"></i>
-                                </span>
+                                    <span class="text-orange-500" title="En cours"><i class="fas fa-play-circle text-lg"></i></span>
+                                {% elif tache.statut == 'EN_PAUSE' %}
+                                    <span class="text-yellow-500" title="En pause"><i class="fas fa-pause-circle text-lg"></i></span>
                                 {% elif tache.statut == 'TERMINEE' %}
-                                <span class="inline-flex items-center justify-center w-8 h-8 rounded bg-green-100 text-green-800" title="Terminée">
-                                    <i class="fas fa-check"></i>
-                                </span>
-                                {% elif tache.statut == 'BLOQUEE' %}
-                                <span class="inline-flex items-center justify-center w-8 h-8 rounded bg-red-100 text-red-800" title="Bloquée">
-                                    <i class="fas fa-exclamation-triangle"></i>
-                                </span>
+                                    <span class="text-green-500" title="Terminée"><i class="fas fa-check-circle text-lg"></i></span>
                                 {% endif %}
                             </td>
                             

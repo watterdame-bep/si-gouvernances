@@ -363,7 +363,7 @@ document.getElementById('assignForm').addEventListener('submit', function(e) {
         return;
     }
     
-    fetch(`{% url 'assigner_tache' module.id '00000000-0000-0000-0000-000000000000' %}`.replace('00000000-0000-0000-0000-000000000000', tacheId), {
+    fetch(`{% url 'assigner_tache_module' projet.id module.id 0 %}`.replace('/0/', `/${tacheId}/`), {
         method: 'POST',
         headers: {
             'X-CSRFToken': '{{ csrf_token }}',

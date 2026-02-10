@@ -45,8 +45,12 @@
                     <div class="flex gap-2">
                         {% if user_affectation and not can_edit %}
                         <!-- Bouton Mes Tâches pour les membres du projet -->
-                        <a href="{% url 'mes_taches' projet.id %}" class="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-lg font-medium shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300 text-xs">
-                            <i class="fas fa-tasks mr-1"></i>Mes Tâches
+                        <a href="{% url 'mes_taches' projet.id %}" class="inline-flex items-center justify-center w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-lg shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300" title="Mes Tâches">
+                            <i class="fas fa-tasks text-sm"></i>
+                        </a>
+                        <!-- Bouton Mes Modules pour les membres du projet -->
+                        <a href="{% url 'mes_modules' projet.id %}" class="inline-flex items-center justify-center w-8 h-8 bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white rounded-lg shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300" title="Mes Modules">
+                            <i class="fas fa-cube text-sm"></i>
                         </a>
                         {% endif %}
                         {% if can_manage %}
@@ -304,38 +308,6 @@
                 {% endwith %}
                 {% endif %}
                 
-                <!-- Section Mes Modules pour les membres affectés -->
-                {% if user_affectation and not can_manage %}
-                {% with mes_modules=user.modules_affectes.filter|first %}
-                {% if mes_modules %}
-                <div class="bg-white rounded-lg shadow-md border border-white/20 overflow-hidden">
-                    <div class="px-3 md:px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center space-x-3">
-                                <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-md">
-                                    <i class="fas fa-user text-white text-sm"></i>
-                                </div>
-                                <div>
-                                    <h3 class="text-sm md:text-lg font-bold text-gray-900">Mes Modules</h3>
-                                    <p class="text-xs md:text-sm text-gray-600">Modules qui me sont affectés</p>
-                                </div>
-                            </div>
-                            <a href="{% url 'mes_modules' projet.id %}" class="text-xs text-blue-600 hover:text-blue-700 font-medium">
-                                Voir →
-                            </a>
-                        </div>
-                    </div>
-                    
-                    <div class="p-3 md:p-4 text-center">
-                        <a href="{% url 'mes_modules' projet.id %}" 
-                           class="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-lg font-medium text-xs transition-all transform hover:scale-105 shadow-md">
-                            <i class="fas fa-puzzle-piece mr-1"></i>Accéder à Mes Modules
-                        </a>
-                    </div>
-                </div>
-                {% endif %}
-                {% endwith %}
-                {% endif %}
             </div>
 
             <!-- Sidebar -->
@@ -450,15 +422,12 @@
                         
                         <!-- Bouton Commencer le projet (visible uniquement pour le responsable) -->
                         {% if responsable and responsable.id == user.id and projet.peut_etre_demarre %}
-                        <form method="post" action="{% url 'demarrer_projet' projet.id %}" id="form-demarrer-projet">
-                            {% csrf_token %}
-                            <button type="submit" 
-                                    class="w-full inline-flex items-center justify-center px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-lg font-bold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 text-sm"
-                                    onclick="return confirm('Êtes-vous sûr de vouloir démarrer ce projet ? Les dates de début et de fin seront calculées automatiquement.');">
-                                <i class="fas fa-play-circle mr-2"></i>
-                                Commencer le projet
-                            </button>
-                        </form>
+                        <button type="button" 
+                                class="w-full inline-flex items-center justify-center px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-lg font-bold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 text-sm"
+                                onclick="showDemarrerProjetModal()">
+                            <i class="fas fa-play-circle mr-2"></i>
+                            Commencer le projet
+                        </button>
                         <p class="text-xs text-gray-500 text-center">
                             <i class="fas fa-info-circle mr-1"></i>
                             En cliquant, le projet démarrera aujourd'hui
@@ -531,4 +500,76 @@
         </div>
     </div>
 </div>
+
+<!-- Modal de confirmation pour démarrer le projet (Tailwind CSS) -->
+<div id="demarrerProjetModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-lg bg-white">
+        <!-- Header -->
+        <div class="flex items-center justify-between p-4 bg-green-500 text-white rounded-t-lg">
+            <h3 class="text-lg font-bold">
+                <i class="fas fa-play-circle mr-2"></i>Démarrer le projet
+            </h3>
+            <button onclick="hideDemarrerProjetModal()" class="text-white hover:text-gray-200">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        
+        <!-- Body -->
+        <div class="p-6">
+            <div class="text-center mb-4">
+                <i class="fas fa-calendar-check text-green-500 text-5xl"></i>
+            </div>
+            
+            <p class="text-center text-base mb-4">
+                Voulez-vous démarrer ce projet maintenant ?
+            </p>
+            
+            <p class="text-sm text-gray-600 text-center mb-4">
+                Les dates seront calculées automatiquement
+            </p>
+        </div>
+        
+        <!-- Footer -->
+        <div class="flex items-center justify-end p-4 border-t border-gray-200 space-x-3">
+            <button onclick="hideDemarrerProjetModal()" 
+                    class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors text-sm">
+                <i class="fas fa-times mr-1"></i>Annuler
+            </button>
+            <form method="post" action="{% url 'demarrer_projet' projet.id %}" style="display: inline;">
+                {% csrf_token %}
+                <button type="submit" 
+                        class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors text-sm">
+                    <i class="fas fa-check mr-1"></i>Confirmer
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function showDemarrerProjetModal() {
+    document.getElementById('demarrerProjetModal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden'; // Empêcher le scroll
+}
+
+function hideDemarrerProjetModal() {
+    document.getElementById('demarrerProjetModal').classList.add('hidden');
+    document.body.style.overflow = 'auto'; // Réactiver le scroll
+}
+
+// Fermer le modal en cliquant en dehors
+document.getElementById('demarrerProjetModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        hideDemarrerProjetModal();
+    }
+});
+
+// Fermer le modal avec la touche Échap
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        hideDemarrerProjetModal();
+    }
+});
+</script>
+
 {% endblock %}

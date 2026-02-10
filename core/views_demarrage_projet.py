@@ -28,12 +28,12 @@ def demarrer_projet_view(request, projet_id):
     responsable = projet.get_responsable_principal()
     if not responsable or responsable.id != request.user.id:
         messages.error(request, "Seul le responsable du projet peut le démarrer.")
-        return redirect('detail_projet', projet_id=projet.id)
+        return redirect('projet_detail', projet_id=projet.id)
     
     # Vérifier que le projet peut être démarré
     if not projet.peut_etre_demarre():
         messages.error(request, "Ce projet ne peut pas être démarré (déjà démarré ou durée non définie).")
-        return redirect('detail_projet', projet_id=projet.id)
+        return redirect('projet_detail', projet_id=projet.id)
     
     # Démarrer le projet
     resultat = projet.demarrer_projet(request.user)
@@ -43,7 +43,7 @@ def demarrer_projet_view(request, projet_id):
     else:
         messages.error(request, resultat['message'])
     
-    return redirect('detail_projet', projet_id=projet.id)
+    return redirect('projet_detail', projet_id=projet.id)
 
 
 @login_required

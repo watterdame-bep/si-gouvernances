@@ -1,0 +1,231 @@
+{% extends 'base.html' %}
+
+{% block title %}Mes Tâches - SI-Gouvernance JCM{% endblock %}
+{% block page_title %}Mes Tâches{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    
+    <!-- Statistiques -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-blue-500">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-600">Total</p>
+                    <p class="text-3xl font-bold text-gray-900">{{ stats.total }}</p>
+                </div>
+                <div class="p-3 bg-blue-100 rounded-lg">
+                    <i class="fas fa-tasks text-2xl text-blue-600"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-yellow-500">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-600">À faire</p>
+                    <p class="text-3xl font-bold text-gray-900">{{ stats.a_faire }}</p>
+                </div>
+                <div class="p-3 bg-yellow-100 rounded-lg">
+                    <i class="fas fa-clock text-2xl text-yellow-600"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-orange-500">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-600">En cours</p>
+                    <p class="text-3xl font-bold text-gray-900">{{ stats.en_cours }}</p>
+                </div>
+                <div class="p-3 bg-orange-100 rounded-lg">
+                    <i class="fas fa-spinner text-2xl text-orange-600"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-green-500">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-600">Terminées</p>
+                    <p class="text-3xl font-bold text-gray-900">{{ stats.terminees }}</p>
+                </div>
+                <div class="p-3 bg-green-100 rounded-lg">
+                    <i class="fas fa-check-circle text-2xl text-green-600"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtres -->
+    <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
+        <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Projet</label>
+                <select name="projet" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <option value="">Tous les projets</option>
+                    {% for projet in projets_list %}
+                        <option value="{{ projet.id }}" {% if projet_filter == projet.id|stringformat:"s" %}selected{% endif %}>
+                            {{ projet.nom }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Statut</label>
+                <select name="statut" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <option value="">Tous les statuts</option>
+                    <option value="A_FAIRE" {% if statut_filter == "A_FAIRE" %}selected{% endif %}>À faire</option>
+                    <option value="EN_COURS" {% if statut_filter == "EN_COURS" %}selected{% endif %}>En cours</option>
+                    <option value="TERMINEE" {% if statut_filter == "TERMINEE" %}selected{% endif %}>Terminée</option>
+                    <option value="BLOQUEE" {% if statut_filter == "BLOQUEE" %}selected{% endif %}>Bloquée</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Priorité</label>
+                <select name="priorite" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <option value="">Toutes les priorités</option>
+                    <option value="CRITIQUE" {% if priorite_filter == "CRITIQUE" %}selected{% endif %}>Critique</option>
+                    <option value="HAUTE" {% if priorite_filter == "HAUTE" %}selected{% endif %}>Haute</option>
+                    <option value="MOYENNE" {% if priorite_filter == "MOYENNE" %}selected{% endif %}>Moyenne</option>
+                    <option value="BASSE" {% if priorite_filter == "BASSE" %}selected{% endif %}>Basse</option>
+                </select>
+            </div>
+
+            <div class="flex items-end">
+                <button type="submit" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    <i class="fas fa-filter mr-2"></i>Filtrer
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Liste des tâches -->
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+        {% if taches %}
+            <div class="divide-y divide-gray-200">
+                {% for tache in taches %}
+                    <div class="p-6 hover:bg-gray-50 transition-colors">
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1">
+                                <!-- En-tête de la tâche -->
+                                <div class="flex items-center gap-3 mb-2">
+                                    <h3 class="text-lg font-semibold text-gray-900">{{ tache.nom }}</h3>
+                                    
+                                    <!-- Badge statut -->
+                                    {% if tache.statut == 'A_FAIRE' %}
+                                        <span class="px-3 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
+                                            <i class="fas fa-clock mr-1"></i>À faire
+                                        </span>
+                                    {% elif tache.statut == 'EN_COURS' %}
+                                        <span class="px-3 py-1 text-xs font-medium bg-orange-100 text-orange-800 rounded-full">
+                                            <i class="fas fa-spinner mr-1"></i>En cours
+                                        </span>
+                                    {% elif tache.statut == 'TERMINEE' %}
+                                        <span class="px-3 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
+                                            <i class="fas fa-check-circle mr-1"></i>Terminée
+                                        </span>
+                                    {% elif tache.statut == 'BLOQUEE' %}
+                                        <span class="px-3 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">
+                                            <i class="fas fa-ban mr-1"></i>Bloquée
+                                        </span>
+                                    {% endif %}
+
+                                    <!-- Badge priorité -->
+                                    {% if tache.priorite == 'CRITIQUE' %}
+                                        <span class="px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded">
+                                            <i class="fas fa-exclamation-triangle mr-1"></i>Critique
+                                        </span>
+                                    {% elif tache.priorite == 'HAUTE' %}
+                                        <span class="px-2 py-1 text-xs font-medium bg-orange-100 text-orange-800 rounded">
+                                            <i class="fas fa-arrow-up mr-1"></i>Haute
+                                        </span>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Description -->
+                                <p class="text-gray-600 mb-3">{{ tache.description|truncatewords:20 }}</p>
+
+                                <!-- Informations -->
+                                <div class="flex flex-wrap items-center gap-4 text-sm text-gray-500">
+                                    <span>
+                                        <i class="fas fa-project-diagram mr-1"></i>
+                                        <strong>{{ tache.projet.nom }}</strong>
+                                    </span>
+                                    <span>
+                                        <i class="fas fa-layer-group mr-1"></i>
+                                        {{ tache.contexte }}
+                                    </span>
+                                    {% if tache.date_echeance %}
+                                        <span>
+                                            <i class="fas fa-calendar mr-1"></i>
+                                            {{ tache.date_echeance|date:"d/m/Y" }}
+                                        </span>
+                                    {% endif %}
+                                    {% if tache.pourcentage_completion > 0 %}
+                                        <span>
+                                            <i class="fas fa-chart-line mr-1"></i>
+                                            {{ tache.pourcentage_completion }}%
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Boutons d'action -->
+                            <div class="flex items-center gap-2 ml-4">
+                                {% if tache.statut != 'TERMINEE' %}
+                                    <button onclick="terminerTache('{{ tache.id }}', '{{ tache.type }}', '{{ tache.projet.id }}')" 
+                                            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                                        <i class="fas fa-check mr-2"></i>Terminer
+                                    </button>
+                                {% endif %}
+                                
+                                <a href="{% if tache.type == 'etape' %}{% url 'gestion_taches_etape' tache.projet.id tache.tache_obj.etape.id %}{% else %}{% url 'gestion_taches_module' tache.projet.id tache.tache_obj.module.id %}{% endif %}" 
+                                   class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                                    <i class="fas fa-eye mr-2"></i>Voir détails
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="p-12 text-center">
+                <div class="w-20 h-20 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+                    <i class="fas fa-tasks text-3xl text-gray-400"></i>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Aucune tâche</h3>
+                <p class="text-gray-500">Vous n'avez aucune tâche assignée pour le moment.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function terminerTache(tacheId, typeTache, projetId) {
+    if (confirm('Êtes-vous sûr de vouloir marquer cette tâche comme terminée ?')) {
+        fetch(`/projets/${projetId}/taches/${tacheId}/terminer/${typeTache}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/x-www-form-urlencoded',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Erreur: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            alert('Une erreur est survenue');
+        });
+    }
+}
+</script>
+{% endblock %}

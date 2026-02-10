@@ -382,7 +382,12 @@ function confirmerTerminerEtape() {
                 location.reload();
             }, 1500);
         } else {
-            alert('Erreur: ' + data.error);
+            // Vérifier si on doit afficher un modal d'erreur
+            if (data.show_modal) {
+                afficherModalErreur(data.message || data.error);
+            } else {
+                alert('Erreur: ' + data.error);
+            }
         }
     })
     .catch(error => {
@@ -422,6 +427,49 @@ function activerEtapeSuivante(etapeId) {
     }
 }
 
+// Fonction pour afficher le modal d'erreur
+function afficherModalErreur(message) {
+    // Créer le modal d'erreur s'il n'existe pas
+    let modalErreur = document.getElementById('modalErreurProjetNonDemarre');
+    
+    if (!modalErreur) {
+        modalErreur = document.createElement('div');
+        modalErreur.id = 'modalErreurProjetNonDemarre';
+        modalErreur.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden';
+        modalErreur.innerHTML = `
+            <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 transform transition-all">
+                <div class="p-6">
+                    <div class="flex items-center justify-center w-16 h-16 mx-auto bg-red-100 rounded-full mb-4">
+                        <i class="fas fa-exclamation-triangle text-3xl text-red-600"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 text-center mb-3">Projet non démarré</h3>
+                    <p id="messageErreurProjet" class="text-gray-600 text-center mb-6"></p>
+                    <div class="flex justify-center">
+                        <button onclick="fermerModalErreur()" class="px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium">
+                            <i class="fas fa-times mr-2"></i>Fermer
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modalErreur);
+    }
+    
+    // Mettre à jour le message et afficher le modal
+    document.getElementById('messageErreurProjet').textContent = message;
+    modalErreur.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+// Fonction pour fermer le modal d'erreur
+function fermerModalErreur() {
+    const modalErreur = document.getElementById('modalErreurProjetNonDemarre');
+    if (modalErreur) {
+        modalErreur.classList.add('hidden');
+        document.body.style.overflow = 'auto';
+    }
+}
+
 // Fermer le modal en cliquant à l'extérieur
 document.getElementById('modalTerminerEtape').addEventListener('click', function(e) {
     if (e.target === this) {
@@ -431,8 +479,14 @@ document.getElementById('modalTerminerEtape').addEventListener('click', function
 
 // Fermer le modal avec la touche Échap
 document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && !document.getElementById('modalTerminerEtape').classList.contains('hidden')) {
-        fermerModalTerminerEtape();
+    if (e.key === 'Escape') {
+        if (!document.getElementById('modalTerminerEtape').classList.contains('hidden')) {
+            fermerModalTerminerEtape();
+        }
+        const modalErreur = document.getElementById('modalErreurProjetNonDemarre');
+        if (modalErreur && !modalErreur.classList.contains('hidden')) {
+            fermerModalErreur();
+        }
     }
 });
 </script>

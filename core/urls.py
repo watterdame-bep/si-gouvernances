@@ -72,7 +72,8 @@ urlpatterns = [
     path('projets/<uuid:projet_id>/etapes/<uuid:etape_id>/taches/<uuid:tache_id>/terminer/', views.terminer_tache_etape, name='terminer_tache_etape'),
     path('projets/<uuid:projet_id>/etapes/<uuid:etape_id>/taches/<uuid:tache_id>/modifier/', views.modifier_tache_etape_view, name='modifier_tache_etape'),
     path('projets/<uuid:projet_id>/etapes/<uuid:etape_id>/taches/<uuid:tache_id>/changer-statut/', views.changer_statut_tache_etape, name='changer_statut_tache_etape'),
-    path('projets/<uuid:projet_id>/etapes/<uuid:etape_id>/taches/<uuid:tache_id>/progression/', views.mettre_a_jour_progression_tache, name='mettre_a_jour_progression_tache'),
+    path('projets/<uuid:projet_id>/etapes/<uuid:etape_id>/taches/<uuid:tache_id>/progression/', views.mettre_a_jour_progression_tache, {'type_tache': 'etape'}, name='mettre_a_jour_progression_tache_etape'),
+    path('projets/<uuid:projet_id>/modules/<int:module_id>/taches/<uuid:tache_id>/progression/', views.mettre_a_jour_progression_tache, {'type_tache': 'module'}, name='mettre_a_jour_progression_tache_module'),
     path('projets/<uuid:projet_id>/etapes/<uuid:etape_id>/taches/<uuid:tache_id>/commentaire/', views.ajouter_commentaire_tache, name='ajouter_commentaire_tache'),
     path('projets/<uuid:projet_id>/etapes/<uuid:etape_id>/taches/<uuid:tache_id>/historique/', views.historique_tache_view, name='historique_tache'),
     
@@ -115,9 +116,14 @@ urlpatterns = [
     path('projets/<uuid:projet_id>/etapes/<uuid:etape_id>/taches/<uuid:tache_id>/deploiements/<uuid:deploiement_id>/executer/', views_deploiement.executer_deploiement_view, name='executer_deploiement'),
     
     # Gestion des tâches pour les membres
+    path('mes-taches/', views.mes_taches_globales_view, name='mes_taches_globales'),  # Vue globale (tous projets)
     path('projets/<uuid:projet_id>/mes-taches/', views.mes_taches_view, name='mes_taches'),
+    path('projets/<uuid:projet_id>/taches/<uuid:tache_id>/demarrer/<str:type_tache>/', views.demarrer_tache_view, name='demarrer_tache'),
+    path('projets/<uuid:projet_id>/taches/<uuid:tache_id>/mettre-en-pause/<str:type_tache>/', views.mettre_en_pause_tache_view, name='mettre_en_pause_tache'),
+    path('projets/<uuid:projet_id>/taches/<uuid:tache_id>/reprendre/<str:type_tache>/', views.reprendre_tache_view, name='reprendre_tache'),
     path('projets/<uuid:projet_id>/taches/<uuid:tache_id>/terminer/<str:type_tache>/', views.terminer_tache_view, name='terminer_tache'),
     path('projets/<uuid:projet_id>/taches/<uuid:tache_id>/changer-statut/<str:type_tache>/', views.changer_statut_ma_tache_view, name='changer_statut_ma_tache'),
+    path('projets/<uuid:projet_id>/taches/<uuid:tache_id>/progression/<str:type_tache>/', views.mettre_a_jour_progression_tache, name='mettre_a_jour_progression_tache_simple'),
     
     # Notifications
     path('notifications/taches/', views.notifications_taches_view, name='notifications_taches'),
@@ -167,6 +173,9 @@ urlpatterns = [
     path('projets/<uuid:projet_id>/mes-modules/', views.mes_modules_view, name='mes_modules'),
     path('projets/<uuid:projet_id>/modules/<int:module_id>/taches/creer/', views.creer_tache_module_view, name='creer_tache_module'),
     path('projets/<uuid:projet_id>/taches-module/<int:tache_id>/statut/', views.modifier_statut_tache_module_view, name='modifier_statut_tache_module'),
+    path('projets/<uuid:projet_id>/taches-module/<int:tache_id>/progression/', views_taches_module.mettre_a_jour_progression_tache_module_view, name='mettre_a_jour_progression_tache_module'),
+    path('projets/<uuid:projet_id>/taches-module/<int:tache_id>/demarrer/', views_taches_module.demarrer_tache_module_view, name='demarrer_tache_module'),
+    path('projets/<uuid:projet_id>/taches-module/<int:tache_id>/terminer/', views_taches_module.terminer_tache_module_view, name='terminer_tache_module'),
     
     # ============================================================================
     # SYSTÈME DE MAINTENANCE

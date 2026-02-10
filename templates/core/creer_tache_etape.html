@@ -8,129 +8,155 @@
 <div class="bg-gray-50 min-h-screen p-2 md:p-4">
     <div class="max-w-6xl mx-auto space-y-3">
         
-        <!-- Header Compact -->
-        <div class="bg-white rounded-lg p-3 shadow-sm">
+        <!-- Header Simple -->
+        <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
             <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-3">
-                    <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background-color: {{ etape.type_etape.couleur }};">
-                        <span class="text-white text-sm">{{ etape.type_etape.icone_emoji }}</span>
+                <div class="flex items-center space-x-4">
+                    <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background-color: {{ etape.type_etape.couleur }};">
+                        <span class="text-white text-lg">{{ etape.type_etape.icone_emoji }}</span>
                     </div>
                     <div>
-                        <h1 class="text-lg font-bold text-gray-900">Nouvelle Tâche</h1>
-                        <p class="text-sm text-gray-600">{{ etape.type_etape.get_nom_display }}</p>
+                        <h1 class="text-lg font-bold text-gray-900">
+                            Nouvelle Tâche
+                        </h1>
+                        <p class="text-gray-600 text-sm">
+                            {{ etape.type_etape.get_nom_display }}
+                        </p>
                     </div>
                 </div>
-                <a href="{% url 'detail_etape' projet.id etape.id %}" class="px-3 py-1.5 bg-gray-500 hover:bg-gray-600 text-white rounded-lg text-sm">
-                    ← Retour
+                <a href="{% url 'detail_etape' projet.id etape.id %}" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-all">
+                    <i class="fas fa-arrow-left mr-2"></i>Retour
                 </a>
             </div>
         </div>
 
-        <!-- Formulaire Simplifié -->
-        <div class="bg-white rounded-lg p-4 shadow-sm">
-            <form method="post" class="space-y-4">
+        <!-- Formulaire Simple avec Icônes -->
+        <div class="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+            <form method="post" class="space-y-5">
                 {% csrf_token %}
                 
                 <!-- Nom -->
                 <div>
-                    <label for="nom" class="block text-sm font-medium text-gray-700 mb-1">
-                        Nom de la tâche *
+                    <label for="nom" class="block text-sm font-medium text-gray-700 mb-2">
+                        Nom de la tâche <span class="text-red-500">*</span>
                     </label>
-                    <input type="text" 
-                           id="nom" 
-                           name="nom" 
-                           required 
-                           maxlength="200"
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                           placeholder="Ex: Analyser les besoins"
-                           value="{{ request.POST.nom|default:'' }}">
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-file-alt text-gray-400"></i>
+                        </div>
+                        <input type="text" 
+                               id="nom" 
+                               name="nom" 
+                               required 
+                               maxlength="200"
+                               class="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="Ex: Analyser les besoins"
+                               value="{{ request.POST.nom|default:'' }}">
+                    </div>
                 </div>
                 
                 <!-- Description -->
                 <div>
-                    <label for="description" class="block text-sm font-medium text-gray-700 mb-1">
-                        Description *
+                    <label for="description" class="block text-sm font-medium text-gray-700 mb-2">
+                        Description <span class="text-red-500">*</span>
                     </label>
-                    <textarea id="description" 
-                              name="description" 
-                              required 
-                              rows="3"
-                              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                              placeholder="Décrivez ce qui doit être fait...">{{ request.POST.description|default:'' }}</textarea>
+                    <div class="relative">
+                        <div class="absolute top-3 left-3 pointer-events-none">
+                            <i class="fas fa-align-left text-gray-400"></i>
+                        </div>
+                        <textarea id="description" 
+                                  name="description" 
+                                  required 
+                                  rows="3"
+                                  class="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                  placeholder="Décrivez ce qui doit être fait...">{{ request.POST.description|default:'' }}</textarea>
+                    </div>
                 </div>
 
                 <!-- Responsable et Priorité -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div>
-                        <label for="responsable_id" class="block text-sm font-medium text-gray-700 mb-1">
+                        <label for="responsable_id" class="block text-sm font-medium text-gray-700 mb-2">
                             Responsable
                         </label>
-                        <select id="responsable_id" 
-                                name="responsable_id" 
-                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
-                            <option value="">Assigner plus tard</option>
-                            {% if user.est_super_admin or user == projet.createur %}
-                            <option value="{{ user.id }}" {% if request.POST.responsable_id == user.id|stringformat:"s" %}selected{% endif %}>
-                                👤 {{ user.get_full_name }} (moi)
-                            </option>
-                            {% endif %}
-                            {% for membre in equipe %}
-                            {% if membre != user %}
-                            <option value="{{ membre.id }}" {% if request.POST.responsable_id == membre.id|stringformat:"s" %}selected{% endif %}>
-                                {{ membre.get_full_name }}
-                            </option>
-                            {% else %}
-                            {% if not user.est_super_admin and user != projet.createur %}
-                            <option value="{{ membre.id }}" {% if request.POST.responsable_id == membre.id|stringformat:"s" %}selected{% endif %}>
-                                👤 {{ membre.get_full_name }} (moi)
-                            </option>
-                            {% endif %}
-                            {% endif %}
-                            {% endfor %}
-                        </select>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-user text-gray-400"></i>
+                            </div>
+                            <select id="responsable_id" 
+                                    name="responsable_id" 
+                                    class="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white">
+                                <option value="">Assigner plus tard</option>
+                                {% if user.est_super_admin or user == projet.createur %}
+                                <option value="{{ user.id }}" {% if request.POST.responsable_id == user.id|stringformat:"s" %}selected{% endif %}>
+                                    👤 {{ user.get_full_name }} (moi)
+                                </option>
+                                {% endif %}
+                                {% for membre in equipe %}
+                                {% if membre != user %}
+                                <option value="{{ membre.id }}" {% if request.POST.responsable_id == membre.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ membre.get_full_name }}
+                                </option>
+                                {% else %}
+                                {% if not user.est_super_admin and user != projet.createur %}
+                                <option value="{{ membre.id }}" {% if request.POST.responsable_id == membre.id|stringformat:"s" %}selected{% endif %}>
+                                    👤 {{ membre.get_full_name }} (moi)
+                                </option>
+                                {% endif %}
+                                {% endif %}
+                                {% endfor %}
+                            </select>
+                            <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                <i class="fas fa-chevron-down text-gray-400"></i>
+                            </div>
+                        </div>
                     </div>
                     
                     <div>
-                        <label for="priorite" class="block text-sm font-medium text-gray-700 mb-1">
+                        <label for="priorite" class="block text-sm font-medium text-gray-700 mb-2">
                             Priorité
                         </label>
                         <select id="priorite" 
                                 name="priorite" 
-                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
-                            {% for value, label in priorites %}
-                            <option value="{{ value }}" {% if request.POST.priorite == value or value == 'MOYENNE' and not request.POST.priorite %}selected{% endif %}>
-                                {% if value == 'CRITIQUE' %}🔴 {{ label }}
-                                {% elif value == 'HAUTE' %}🟠 {{ label }}
-                                {% elif value == 'MOYENNE' %}🔵 {{ label }}
-                                {% else %}⚪ {{ label }}{% endif %}
-                            </option>
-                            {% endfor %}
+                                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white">
+                            <option value="BASSE" {% if request.POST.priorite == 'BASSE' %}selected{% endif %}>Basse</option>
+                            <option value="HAUTE" {% if request.POST.priorite == 'HAUTE' or not request.POST.priorite %}selected{% endif %}>Haute</option>
                         </select>
                     </div>
                 </div>
 
                 <!-- Dates -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div>
-                        <label for="date_debut" class="block text-sm font-medium text-gray-700 mb-1">
-                            Date de début
+                        <label for="date_debut" class="block text-sm font-medium text-gray-700 mb-2">
+                            Date de début <span class="text-red-500">*</span>
                         </label>
-                        <input type="date" 
-                               id="date_debut" 
-                               name="date_debut" 
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                               value="{{ request.POST.date_debut|default:'' }}">
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-calendar text-gray-400"></i>
+                            </div>
+                            <input type="date" 
+                                   id="date_debut" 
+                                   name="date_debut" 
+                                   required
+                                   class="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        </div>
                     </div>
                     
                     <div>
-                        <label for="date_fin" class="block text-sm font-medium text-gray-700 mb-1">
-                            Date de fin
+                        <label for="date_fin" class="block text-sm font-medium text-gray-700 mb-2">
+                            Date de fin <span class="text-red-500">*</span>
                         </label>
-                        <input type="date" 
-                               id="date_fin" 
-                               name="date_fin" 
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                               value="{{ request.POST.date_fin|default:'' }}">
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-calendar text-gray-400"></i>
+                            </div>
+                            <input type="date" 
+                                   id="date_fin" 
+                                   name="date_fin" 
+                                   required
+                                   class="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        </div>
                     </div>
                 </div>
 
@@ -163,13 +189,13 @@
                 {% endif %}
 
                 <!-- Actions -->
-                <div class="flex items-center justify-between pt-4 border-t border-gray-200">
-                    <a href="{% url 'detail_etape' projet.id etape.id %}" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium">
-                        Annuler
+                <div class="flex items-center justify-between pt-6 border-t border-gray-200">
+                    <a href="{% url 'detail_etape' projet.id etape.id %}" class="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium">
+                        <i class="fas fa-times mr-2"></i>Annuler
                     </a>
                     
-                    <button type="submit" class="px-6 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg font-medium">
-                        📋 Créer la tâche
+                    <button type="submit" class="px-6 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium">
+                        <i class="fas fa-check mr-2"></i>Créer la tâche
                     </button>
                 </div>
             </form>
@@ -178,6 +204,13 @@
 </div>
 
 <script>
+// Définir la date d'aujourd'hui par défaut
+document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('date_debut').value = today;
+    document.getElementById('date_fin').value = today;
+});
+
 // Validation simple des dates
 document.getElementById('date_debut').addEventListener('change', function() {
     const dateDebut = this.value;

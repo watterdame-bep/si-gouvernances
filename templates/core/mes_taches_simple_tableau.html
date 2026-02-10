@@ -1,0 +1,501 @@
+{% extends 'base.html' %}
+
+{% block title %}Mes Tâches - {{ projet.nom }} - SI-Gouvernance JCM{% endblock %}
+{% block page_title %}Mes Tâches - {{ projet.nom }}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    
+    <!-- Header -->
+    <div class="mb-6 flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Mes Tâches</h1>
+            <p class="text-gray-600">{{ projet.nom }}</p>
+        </div>
+        <a href="{% url 'projet_detail' projet.id %}" 
+           class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors">
+            <i class="fas fa-arrow-left mr-2"></i>Retour
+        </a>
+    </div>
+
+    <!-- Statistiques -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white rounded-lg shadow p-4 border-l-4 border-blue-500">
+            <div class="text-sm text-gray-600">Total</div>
+            <div class="text-2xl font-bold text-gray-900">{{ stats.total }}</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4 border-l-4 border-orange-500">
+            <div class="text-sm text-gray-600">En cours</div>
+            <div class="text-2xl font-bold text-gray-900">{{ stats.en_cours }}</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4 border-l-4 border-green-500">
+            <div class="text-sm text-gray-600">Terminées</div>
+            <div class="text-2xl font-bold text-gray-900">{{ stats.terminees }}</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4 border-l-4 border-yellow-500">
+            <div class="text-sm text-gray-600">En pause</div>
+            <div class="text-2xl font-bold text-gray-900">{{ stats.en_pause|default:0 }}</div>
+        </div>
+    </div>
+
+    <!-- Tableau des tâches -->
+    <div class="bg-white rounded-lg shadow overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tâche</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contexte</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Statut</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Progression</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden md:table-cell">Priorité</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden lg:table-cell">Échéance</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                <!-- Tâches d'étapes -->
+                {% for tache in mes_taches_etape %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-3">
+                        <div class="text-sm font-medium text-gray-900">{{ tache.nom }}</div>
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="text-sm text-gray-600">
+                            <i class="fas fa-layer-group mr-1"></i>{{ tache.etape.type_etape.get_nom_display }}
+                        </div>
+                    </td>
+                    <td class="px-4 py-3">
+                        {% if tache.statut == 'A_FAIRE' %}
+                            <span class="text-gray-500" title="À faire"><i class="fas fa-play-circle text-lg"></i></span>
+                        {% elif tache.statut == 'EN_COURS' %}
+                            <span class="text-orange-500" title="En cours"><i class="fas fa-play-circle text-lg"></i></span>
+                        {% elif tache.statut == 'EN_PAUSE' %}
+                            <span class="text-yellow-500" title="En pause"><i class="fas fa-pause-circle text-lg"></i></span>
+                        {% elif tache.statut == 'TERMINEE' %}
+                            <span class="text-green-500" title="Terminée"><i class="fas fa-check-circle text-lg"></i></span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        {% if tache.statut == 'EN_COURS' %}
+                            <button onclick="ouvrirModalProgression('{{ tache.id }}', 'etape', {{ tache.pourcentage_completion }})" 
+                                    class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                                <i class="fas fa-chart-line mr-1"></i>{{ tache.pourcentage_completion }}%
+                            </button>
+                        {% elif tache.statut == 'TERMINEE' %}
+                            <span class="text-green-600 font-medium text-sm">
+                                <i class="fas fa-check mr-1"></i>100%
+                            </span>
+                        {% else %}
+                            <span class="text-gray-400 text-sm">
+                                <i class="fas fa-lock mr-1"></i>{{ tache.pourcentage_completion }}%
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 hidden md:table-cell">
+                        {% if tache.priorite == 'HAUTE' %}
+                            <span class="text-orange-500" title="Haute"><i class="fas fa-arrow-up text-lg"></i></span>
+                        {% else %}
+                            <span class="text-gray-400" title="Basse"><i class="fas fa-arrow-down text-lg"></i></span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-500 hidden lg:table-cell">
+                        {% if tache.date_fin %}{{ tache.date_fin|date:"d/m/Y" }}{% else %}-{% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                        {% if tache.statut == 'A_FAIRE' %}
+                            <button onclick="demarrerTache('{{ tache.id }}', 'etape')" 
+                                    class="text-green-600 hover:text-green-800" title="Démarrer">
+                                <i class="fas fa-play-circle text-lg"></i>
+                            </button>
+                        {% elif tache.statut == 'EN_COURS' %}
+                            <button onclick="mettreEnPauseTache('{{ tache.id }}', 'etape')" 
+                                    class="text-yellow-600 hover:text-yellow-800 mr-2" title="Mettre en pause">
+                                <i class="fas fa-pause-circle text-lg"></i>
+                            </button>
+                            <button onclick="terminerTache('{{ tache.id }}', 'etape')" 
+                                    class="text-green-600 hover:text-green-800" title="Terminer">
+                                <i class="fas fa-check-circle text-lg"></i>
+                            </button>
+                        {% elif tache.statut == 'EN_PAUSE' %}
+                            <button onclick="reprendreTache('{{ tache.id }}', 'etape')" 
+                                    class="text-green-600 hover:text-green-800" title="Reprendre">
+                                <i class="fas fa-play-circle text-lg"></i>
+                            </button>
+                        {% elif tache.statut == 'TERMINEE' %}
+                            <span class="text-gray-400"><i class="fas fa-check-circle text-lg"></i></span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+
+                <!-- Tâches de modules -->
+                {% for tache in mes_taches_module %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-3">
+                        <div class="text-sm font-medium text-gray-900">{{ tache.nom }}</div>
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="text-sm text-gray-600">
+                            <i class="fas fa-puzzle-piece mr-1"></i>{{ tache.module.nom }}
+                        </div>
+                    </td>
+                    <td class="px-4 py-3">
+                        {% if tache.statut == 'A_FAIRE' %}
+                            <span class="text-gray-500" title="À faire"><i class="fas fa-play-circle text-lg"></i></span>
+                        {% elif tache.statut == 'EN_COURS' %}
+                            <span class="text-orange-500" title="En cours"><i class="fas fa-play-circle text-lg"></i></span>
+                        {% elif tache.statut == 'EN_PAUSE' %}
+                            <span class="text-yellow-500" title="En pause"><i class="fas fa-pause-circle text-lg"></i></span>
+                        {% elif tache.statut == 'TERMINEE' %}
+                            <span class="text-green-500" title="Terminée"><i class="fas fa-check-circle text-lg"></i></span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        {% if tache.statut == 'EN_COURS' %}
+                            <button onclick="ouvrirModalProgression('{{ tache.id }}', 'module', {{ tache.pourcentage_completion }})" 
+                                    class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                                <i class="fas fa-chart-line mr-1"></i>{{ tache.pourcentage_completion }}%
+                            </button>
+                        {% elif tache.statut == 'TERMINEE' %}
+                            <span class="text-green-600 font-medium text-sm">
+                                <i class="fas fa-check mr-1"></i>100%
+                            </span>
+                        {% else %}
+                            <span class="text-gray-400 text-sm">
+                                <i class="fas fa-lock mr-1"></i>{{ tache.pourcentage_completion }}%
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 hidden md:table-cell">
+                        {% if tache.priorite == 'HAUTE' %}
+                            <span class="text-orange-500" title="Haute"><i class="fas fa-arrow-up text-lg"></i></span>
+                        {% else %}
+                            <span class="text-gray-400" title="Basse"><i class="fas fa-arrow-down text-lg"></i></span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-500 hidden lg:table-cell">
+                        {% if tache.date_fin %}{{ tache.date_fin|date:"d/m/Y" }}{% else %}-{% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                        {% if tache.statut == 'A_FAIRE' %}
+                            <button onclick="demarrerTache('{{ tache.id }}', 'module')" 
+                                    class="text-green-600 hover:text-green-800" title="Démarrer">
+                                <i class="fas fa-play-circle text-lg"></i>
+                            </button>
+                        {% elif tache.statut == 'EN_COURS' %}
+                            <button onclick="mettreEnPauseTache('{{ tache.id }}', 'module')" 
+                                    class="text-yellow-600 hover:text-yellow-800 mr-2" title="Mettre en pause">
+                                <i class="fas fa-pause-circle text-lg"></i>
+                            </button>
+                            <button onclick="terminerTache('{{ tache.id }}', 'module')" 
+                                    class="text-green-600 hover:text-green-800" title="Terminer">
+                                <i class="fas fa-check-circle text-lg"></i>
+                            </button>
+                        {% elif tache.statut == 'EN_PAUSE' %}
+                            <button onclick="reprendreTache('{{ tache.id }}', 'module')" 
+                                    class="text-green-600 hover:text-green-800" title="Reprendre">
+                                <i class="fas fa-play-circle text-lg"></i>
+                            </button>
+                        {% elif tache.statut == 'TERMINEE' %}
+                            <span class="text-gray-400"><i class="fas fa-check-circle text-lg"></i></span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+
+                <!-- Message si aucune tâche -->
+                {% if not mes_taches_etape and not mes_taches_module %}
+                <tr>
+                    <td colspan="7" class="px-6 py-12 text-center">
+                        <div class="text-gray-400">
+                            <i class="fas fa-tasks text-4xl mb-3"></i>
+                            <p class="text-lg font-medium text-gray-900">Aucune tâche assignée</p>
+                            <p class="text-gray-500">Vous n'avez aucune tâche dans ce projet.</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal de progression -->
+<div id="progressionModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-lg bg-white">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-medium text-gray-900">
+                <i class="fas fa-chart-line mr-2 text-blue-500"></i>Progression
+            </h3>
+            <button onclick="fermerModalProgression()" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        
+        <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+                Progression: <span id="progressionValue" class="text-blue-600 font-bold">0%</span>
+            </label>
+            <input type="range" id="progressionSlider" min="0" max="100" step="5" value="0"
+                   class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+            <div class="flex justify-between text-xs text-gray-500 mt-1">
+                <span>0%</span>
+                <span>50%</span>
+                <span>100%</span>
+            </div>
+        </div>
+        
+        <div class="flex justify-end space-x-3">
+            <button onclick="fermerModalProgression()" 
+                    class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg">
+                Annuler
+            </button>
+            <button onclick="enregistrerProgression()" 
+                    class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg">
+                Enregistrer
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de confirmation -->
+<div id="confirmModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-lg bg-white">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-medium text-gray-900">
+                <i class="fas fa-question-circle mr-2 text-blue-500"></i>Confirmation
+            </h3>
+            <button onclick="fermerConfirmModal()" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <p id="confirmModalBody" class="text-gray-600 mb-6"></p>
+        <div class="flex justify-end space-x-3">
+            <button onclick="fermerConfirmModal()" 
+                    class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg">
+                Annuler
+            </button>
+            <button id="confirmModalBtn" 
+                    class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg">
+                Confirmer
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de succès -->
+<div id="successModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-lg bg-white">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-medium text-green-600">
+                <i class="fas fa-check-circle mr-2"></i>Succès
+            </h3>
+            <button onclick="fermerSuccessModal()" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <p id="successModalBody" class="text-gray-600 mb-6"></p>
+        <div class="flex justify-end">
+            <button onclick="fermerSuccessModal()" 
+                    class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg">
+                OK
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal d'erreur -->
+<div id="errorModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-lg bg-white">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-medium text-red-600">
+                <i class="fas fa-exclamation-triangle mr-2"></i>Erreur
+            </h3>
+            <button onclick="fermerErrorModal()" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <p id="errorModalBody" class="text-gray-600 mb-6"></p>
+        <div class="flex justify-end">
+            <button onclick="fermerErrorModal()" 
+                    class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg">
+                Fermer
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+let pendingAction = null;
+let currentTacheId = null;
+let currentTypeTache = null;
+
+// Gestion du slider
+document.addEventListener('DOMContentLoaded', function() {
+    const slider = document.getElementById('progressionSlider');
+    const valueDisplay = document.getElementById('progressionValue');
+    
+    if (slider && valueDisplay) {
+        slider.addEventListener('input', function() {
+            valueDisplay.textContent = this.value + '%';
+        });
+    }
+});
+
+// Modal Progression
+function ouvrirModalProgression(tacheId, typeTache, progressionActuelle) {
+    currentTacheId = tacheId;
+    currentTypeTache = typeTache;
+    const slider = document.getElementById('progressionSlider');
+    const valueDisplay = document.getElementById('progressionValue');
+    slider.value = progressionActuelle;
+    valueDisplay.textContent = progressionActuelle + '%';
+    document.getElementById('progressionModal').classList.remove('hidden');
+}
+
+function fermerModalProgression() {
+    document.getElementById('progressionModal').classList.add('hidden');
+}
+
+function enregistrerProgression() {
+    const pourcentage = parseInt(document.getElementById('progressionSlider').value);
+    const url = `/projets/{{ projet.id }}/taches/${currentTacheId}/progression/${currentTypeTache}/`;
+    
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ pourcentage: pourcentage })
+    })
+    .then(response => response.json())
+    .then(data => {
+        fermerModalProgression();
+        if (data.success) {
+            showSuccessModal(`Progression mise à jour à ${pourcentage}%`);
+        } else {
+            showErrorModal(data.error || 'Erreur');
+        }
+    })
+    .catch(() => showErrorModal('Erreur de connexion'));
+}
+
+// Modals
+function showConfirmModal(message, callback) {
+    document.getElementById('confirmModalBody').textContent = message;
+    pendingAction = callback;
+    document.getElementById('confirmModal').classList.remove('hidden');
+}
+
+function fermerConfirmModal() {
+    document.getElementById('confirmModal').classList.add('hidden');
+}
+
+document.getElementById('confirmModalBtn').addEventListener('click', function() {
+    if (pendingAction) {
+        pendingAction();
+        fermerConfirmModal();
+    }
+});
+
+function showSuccessModal(message) {
+    document.getElementById('successModalBody').textContent = message;
+    document.getElementById('successModal').classList.remove('hidden');
+    setTimeout(() => {
+        fermerSuccessModal();
+        location.reload();
+    }, 2000);
+}
+
+function fermerSuccessModal() {
+    document.getElementById('successModal').classList.add('hidden');
+}
+
+function showErrorModal(message) {
+    document.getElementById('errorModalBody').textContent = message;
+    document.getElementById('errorModal').classList.remove('hidden');
+}
+
+function fermerErrorModal() {
+    document.getElementById('errorModal').classList.add('hidden');
+}
+
+// Actions tâches
+function demarrerTache(tacheId, typeTache) {
+    showConfirmModal('Démarrer cette tâche maintenant ?', function() {
+        const url = `/projets/{{ projet.id }}/taches/${tacheId}/demarrer/${typeTache}/`;
+        fetch(url, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showSuccessModal('Tâche démarrée');
+            } else {
+                showErrorModal(data.error || 'Erreur');
+            }
+        })
+        .catch(() => showErrorModal('Erreur de connexion'));
+    });
+}
+
+function mettreEnPauseTache(tacheId, typeTache) {
+    showConfirmModal('Mettre cette tâche en pause ?', function() {
+        const url = `/projets/{{ projet.id }}/taches/${tacheId}/mettre-en-pause/${typeTache}/`;
+        fetch(url, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showSuccessModal('Tâche mise en pause');
+            } else {
+                showErrorModal(data.error || 'Erreur');
+            }
+        })
+        .catch(() => showErrorModal('Erreur de connexion'));
+    });
+}
+
+function reprendreTache(tacheId, typeTache) {
+    showConfirmModal('Reprendre le travail sur cette tâche ?', function() {
+        const url = `/projets/{{ projet.id }}/taches/${tacheId}/reprendre/${typeTache}/`;
+        fetch(url, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showSuccessModal('Tâche reprise');
+            } else {
+                showErrorModal(data.error || 'Erreur');
+            }
+        })
+        .catch(() => showErrorModal('Erreur de connexion'));
+    });
+}
+
+function terminerTache(tacheId, typeTache) {
+    showConfirmModal('Marquer cette tâche comme terminée ?', function() {
+        const url = `/projets/{{ projet.id }}/taches/${tacheId}/terminer/${typeTache}/`;
+        fetch(url, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showSuccessModal('Tâche terminée');
+            } else {
+                showErrorModal(data.error || 'Erreur');
+            }
+        })
+        .catch(() => showErrorModal('Erreur de connexion'));
+    });
+}
+</script>
+{% endblock %}
