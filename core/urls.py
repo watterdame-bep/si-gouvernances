@@ -136,6 +136,7 @@ urlpatterns = [
     path('projets/<uuid:projet_id>/modules/creer/', views.creer_module_view, name='creer_module'),
     path('projets/<uuid:projet_id>/modules/<int:module_id>/', views.detail_module_view, name='detail_module'),
     path('projets/<uuid:projet_id>/modules/<int:module_id>/modifier/', views.modifier_module_view, name='modifier_module'),
+    path('projets/<uuid:projet_id>/modules/<int:module_id>/supprimer/', views.supprimer_module_view, name='supprimer_module'),
     path('projets/<uuid:projet_id>/modules/<int:module_id>/affecter-nouveau/', views_affectation.affecter_module_nouveau, name='affecter_module_nouveau'),
     path('projets/<uuid:projet_id>/modules/<int:module_id>/equipe/', views_affectation.get_equipe_module_view, name='get_equipe_module'),
     path('projets/<uuid:projet_id>/modules/<int:module_id>/retirer-membre/', views_affectation.retirer_membre_module_view, name='retirer_membre_module'),
@@ -175,7 +176,9 @@ urlpatterns = [
     path('projets/<uuid:projet_id>/taches-module/<int:tache_id>/statut/', views.modifier_statut_tache_module_view, name='modifier_statut_tache_module'),
     path('projets/<uuid:projet_id>/taches-module/<int:tache_id>/progression/', views_taches_module.mettre_a_jour_progression_tache_module_view, name='mettre_a_jour_progression_tache_module'),
     path('projets/<uuid:projet_id>/taches-module/<int:tache_id>/demarrer/', views_taches_module.demarrer_tache_module_view, name='demarrer_tache_module'),
+    path('projets/<uuid:projet_id>/taches-module/<int:tache_id>/mettre-en-pause/', views_taches_module.mettre_en_pause_tache_module_view, name='mettre_en_pause_tache_module'),
     path('projets/<uuid:projet_id>/taches-module/<int:tache_id>/terminer/', views_taches_module.terminer_tache_module_view, name='terminer_tache_module'),
+    path('projets/<uuid:projet_id>/taches-module/<int:tache_id>/transferer/', views_taches_module.transferer_tache_module_view, name='transferer_tache_module'),
     
     # ============================================================================
     # SYSTÈME DE MAINTENANCE

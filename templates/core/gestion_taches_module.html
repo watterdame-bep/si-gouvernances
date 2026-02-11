@@ -57,29 +57,22 @@
                         <i class="fas fa-plus mr-2"></i>Nouvelle Tâche
                     </button>
                     {% endif %}
-                    {% if from_mes_modules %}
-                    <a href="{% url 'mes_modules' projet.id %}" 
+                    <a href="{% if from_mes_modules %}{% url 'mes_modules' projet.id %}{% else %}{% url 'gestion_modules' projet.id %}{% endif %}" 
                        class="inline-flex items-center px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md font-medium text-sm transition-colors">
-                        <i class="fas fa-arrow-left mr-2"></i>Retour à Mes Modules
+                        <i class="fas fa-arrow-left mr-2"></i>{% if from_mes_modules %}Retour à Mes Modules{% else %}Retour{% endif %}
                     </a>
-                    {% else %}
-                    <a href="{% url 'gestion_modules' projet.id %}" 
-                       class="inline-flex items-center px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md font-medium text-sm transition-colors">
-                        <i class="fas fa-arrow-left mr-2"></i>Retour
-                    </a>
-                    {% endif %}
                 </div>
             </div>
         </div>
 
-        <!-- Message informatif pour les membres simples -->
-        {% if est_membre_simple and from_mes_modules %}
+        <!-- Message informatif pour "Mes Modules" -->
+        {% if from_mes_modules and not peut_creer_taches %}
         <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
             <div class="flex items-start space-x-2">
                 <i class="fas fa-info-circle text-blue-600 mt-0.5"></i>
                 <div class="text-sm text-blue-800">
-                    <p class="font-medium">Vue personnelle</p>
-                    <p class="text-blue-700">Vous voyez uniquement les tâches que vous avez créées dans ce module.</p>
+                    <p class="font-medium">Mes Tâches</p>
+                    <p class="text-blue-700">Vous voyez uniquement les tâches qui vous sont assignées dans ce module. Seul le responsable d'une tâche peut la démarrer et la gérer.</p>
                 </div>
             </div>
         </div>
@@ -218,10 +211,18 @@
                             </td>
                             <td class="px-4 py-3 whitespace-nowrap">
                                 {% if tache.statut == 'EN_COURS' %}
-                                    <button onclick="ouvrirModalProgression('{{ tache.id }}', '{{ tache.nom|escapejs }}', {{ tache.pourcentage_completion }})" 
-                                            class="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                                        <i class="fas fa-chart-line mr-1"></i>{{ tache.pourcentage_completion }}%
-                                    </button>
+                                    {% if tache.responsable and tache.responsable.id == user.id %}
+                                        <!-- Responsable : Progression cliquable -->
+                                        <button onclick="ouvrirModalProgression('{{ tache.id }}', '{{ tache.nom|escapejs }}', {{ tache.pourcentage_completion }})" 
+                                                class="text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors">
+                                            <i class="fas fa-chart-line mr-1"></i>{{ tache.pourcentage_completion }}%
+                                        </button>
+                                    {% else %}
+                                        <!-- Autres : Progression non cliquable -->
+                                        <span class="text-blue-600 text-sm font-medium">
+                                            <i class="fas fa-chart-line mr-1"></i>{{ tache.pourcentage_completion }}%
+                                        </span>
+                                    {% endif %}
                                 {% elif tache.statut == 'TERMINEE' %}
                                     <span class="inline-flex items-center px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">
                                         <i class="fas fa-check mr-1"></i>100%
@@ -254,31 +255,31 @@
                                     </button>
                                     {% endif %}
                                     
-                                    {% comment %}Vérifier les permissions pour afficher les actions{% endcomment %}
-                                    {% if peut_modifier_taches %}
-                                        {% comment %}Responsable du module peut tout modifier{% endcomment %}
-                                        {% with peut_afficher_actions=True %}{% endwith %}
-                                    {% elif tache.createur.id == user.id %}
-                                        {% comment %}Créateur de la tâche peut la modifier{% endcomment %}
-                                        {% with peut_afficher_actions=True %}{% endwith %}
-                                    {% elif tache.responsable %}
-                                        {% if tache.responsable.id == user.id %}
-                                            {% comment %}Responsable de la tâche peut la modifier{% endcomment %}
-                                            {% with peut_afficher_actions=True %}{% endwith %}
-                                        {% endif %}
+                                    {% comment %}
+                                    Bouton Transférer - Visible uniquement pour le responsable du module
+                                    {% endcomment %}
+                                    {% if peut_creer_taches and tache.responsable and tache.statut != 'TERMINEE' %}
+                                    <button onclick="ouvrirModalTransfererTache('{{ tache.id }}', '{{ tache.nom|escapejs }}', '{{ tache.responsable.get_full_name|escapejs }}')"
+                                            class="text-purple-600 hover:text-purple-800" title="Transférer">
+                                        <i class="fas fa-exchange-alt text-lg"></i>
+                                    </button>
                                     {% endif %}
                                     
-                                    {% if peut_modifier_taches or tache.createur.id == user.id %}
+                                    {% comment %}
+                                    Actions disponibles UNIQUEMENT pour le responsable de la tâche
+                                    Le responsable du module et le créateur ne peuvent PAS démarrer/modifier les tâches
+                                    {% endcomment %}
+                                    {% if tache.responsable and tache.responsable.id == user.id %}
                                     <!-- Actions selon le statut -->
                                     {% if tache.statut == 'A_FAIRE' %}
                                         <button onclick="mettreEnCours('{{ tache.id }}')"
-                                                class="text-orange-600 hover:text-orange-800" title="Mettre en cours">
+                                                class="text-orange-600 hover:text-orange-800" title="Démarrer">
                                             <i class="fas fa-play-circle text-lg"></i>
                                         </button>
                                     {% elif tache.statut == 'EN_COURS' %}
-                                        <button onclick="ouvrirModalProgression('{{ tache.id }}', '{{ tache.nom|escapejs }}', {{ tache.pourcentage_completion }})"
-                                                class="text-blue-600 hover:text-blue-800" title="Progression ({{ tache.pourcentage_completion }}%)">
-                                            <i class="fas fa-tasks text-lg"></i>
+                                        <button onclick="mettreEnPause('{{ tache.id }}')"
+                                                class="text-yellow-600 hover:text-yellow-800" title="Mettre en pause">
+                                            <i class="fas fa-pause-circle text-lg"></i>
                                         </button>
                                         <button onclick="terminerTache('{{ tache.id }}')"
                                                 class="text-green-600 hover:text-green-800" title="Terminer">
@@ -286,31 +287,7 @@
                                         </button>
                                     {% elif tache.statut == 'EN_PAUSE' %}
                                         <button onclick="mettreEnCours('{{ tache.id }}')"
-                                                class="text-orange-600 hover:text-orange-800" title="Mettre en cours">
-                                            <i class="fas fa-play-circle text-lg"></i>
-                                        </button>
-                                    {% elif tache.statut == 'TERMINEE' %}
-                                        <span class="text-gray-400"><i class="fas fa-check-circle text-lg"></i></span>
-                                    {% endif %}
-                                    {% elif tache.responsable and tache.responsable.id == user.id %}
-                                    <!-- Actions pour le responsable de la tâche -->
-                                    {% if tache.statut == 'A_FAIRE' %}
-                                        <button onclick="mettreEnCours('{{ tache.id }}')"
-                                                class="text-orange-600 hover:text-orange-800" title="Mettre en cours">
-                                            <i class="fas fa-play-circle text-lg"></i>
-                                        </button>
-                                    {% elif tache.statut == 'EN_COURS' %}
-                                        <button onclick="ouvrirModalProgression('{{ tache.id }}', '{{ tache.nom|escapejs }}', {{ tache.pourcentage_completion }})"
-                                                class="text-blue-600 hover:text-blue-800" title="Progression ({{ tache.pourcentage_completion }}%)">
-                                            <i class="fas fa-tasks text-lg"></i>
-                                        </button>
-                                        <button onclick="terminerTache('{{ tache.id }}')"
-                                                class="text-green-600 hover:text-green-800" title="Terminer">
-                                            <i class="fas fa-check-circle text-lg"></i>
-                                        </button>
-                                    {% elif tache.statut == 'EN_PAUSE' %}
-                                        <button onclick="mettreEnCours('{{ tache.id }}')"
-                                                class="text-orange-600 hover:text-orange-800" title="Mettre en cours">
+                                                class="text-orange-600 hover:text-orange-800" title="Reprendre">
                                             <i class="fas fa-play-circle text-lg"></i>
                                         </button>
                                     {% elif tache.statut == 'TERMINEE' %}
@@ -498,6 +475,87 @@
     </div>
 </div>
 
+<!-- Modal Confirmation Démarrer -->
+<div id="modalConfirmerDemarrer" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div class="bg-orange-600 rounded-t-lg px-4 py-3 text-white">
+            <h3 class="text-lg font-semibold">
+                <i class="fas fa-play-circle mr-2"></i>Démarrer la Tâche
+            </h3>
+        </div>
+        
+        <div class="p-4">
+            <p class="text-gray-700">Voulez-vous mettre cette tâche en cours ?</p>
+            <input type="hidden" id="tacheIdDemarrer">
+        </div>
+        
+        <div class="bg-gray-50 rounded-b-lg px-4 py-3 flex items-center justify-end space-x-3">
+            <button onclick="fermerModalConfirmerDemarrer()" 
+                    class="px-3 py-1.5 text-gray-600 hover:text-gray-800 font-medium text-sm transition-colors">
+                Annuler
+            </button>
+            <button onclick="confirmerDemarrer()" 
+                    class="px-4 py-1.5 bg-orange-600 hover:bg-orange-700 text-white font-medium rounded-md text-sm transition-colors">
+                <i class="fas fa-play mr-1"></i>Démarrer
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Confirmation Pause -->
+<div id="modalConfirmerPause" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div class="bg-yellow-600 rounded-t-lg px-4 py-3 text-white">
+            <h3 class="text-lg font-semibold">
+                <i class="fas fa-pause-circle mr-2"></i>Mettre en Pause
+            </h3>
+        </div>
+        
+        <div class="p-4">
+            <p class="text-gray-700">Voulez-vous mettre cette tâche en pause ?</p>
+            <input type="hidden" id="tacheIdPause">
+        </div>
+        
+        <div class="bg-gray-50 rounded-b-lg px-4 py-3 flex items-center justify-end space-x-3">
+            <button onclick="fermerModalConfirmerPause()" 
+                    class="px-3 py-1.5 text-gray-600 hover:text-gray-800 font-medium text-sm transition-colors">
+                Annuler
+            </button>
+            <button onclick="confirmerPause()" 
+                    class="px-4 py-1.5 bg-yellow-600 hover:bg-yellow-700 text-white font-medium rounded-md text-sm transition-colors">
+                <i class="fas fa-pause mr-1"></i>Mettre en Pause
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Confirmation Terminer -->
+<div id="modalConfirmerTerminer" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div class="bg-green-600 rounded-t-lg px-4 py-3 text-white">
+            <h3 class="text-lg font-semibold">
+                <i class="fas fa-check-circle mr-2"></i>Terminer la Tâche
+            </h3>
+        </div>
+        
+        <div class="p-4">
+            <p class="text-gray-700">Voulez-vous marquer cette tâche comme terminée ?</p>
+            <input type="hidden" id="tacheIdTerminer">
+        </div>
+        
+        <div class="bg-gray-50 rounded-b-lg px-4 py-3 flex items-center justify-end space-x-3">
+            <button onclick="fermerModalConfirmerTerminer()" 
+                    class="px-3 py-1.5 text-gray-600 hover:text-gray-800 font-medium text-sm transition-colors">
+                Annuler
+            </button>
+            <button onclick="confirmerTerminer()" 
+                    class="px-4 py-1.5 bg-green-600 hover:bg-green-700 text-white font-medium rounded-md text-sm transition-colors">
+                <i class="fas fa-check mr-1"></i>Terminer
+            </button>
+        </div>
+    </div>
+</div>
+
 <!-- Modal Modifier Statut -->
 <div id="modalModifierStatut" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
@@ -549,7 +607,82 @@
     </div>
 </div>
 
+<!-- Modal Transférer Tâche -->
+<div id="modalTransfererTache" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div class="bg-purple-600 rounded-t-lg px-4 py-3 text-white">
+            <h3 class="text-lg font-semibold">
+                <i class="fas fa-exchange-alt mr-2"></i>Transférer la Tâche
+            </h3>
+            <p class="text-purple-100 text-sm" id="nomTacheTransferer">Tâche sélectionnée</p>
+        </div>
+        
+        <form id="formTransfererTache" class="p-4 space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="tache_id" id="tacheIdTransferer">
+            
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                <div class="flex items-start space-x-2">
+                    <i class="fas fa-info-circle text-blue-600 mt-0.5"></i>
+                    <div class="text-sm text-blue-800">
+                        <p class="font-medium">Responsable actuel</p>
+                        <p class="text-blue-700" id="responsableActuel">-</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                    <i class="fas fa-user text-purple-600 mr-1"></i>
+                    Nouveau responsable <span class="text-red-500">*</span>
+                </label>
+                <select name="nouveau_responsable_id" id="nouveauResponsableSelect" required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                    <option value="">Sélectionner un membre...</option>
+                    {% for membre in equipe_module %}
+                    <option value="{{ membre.utilisateur.id }}">
+                        {{ membre.utilisateur.get_full_name }} ({{ membre.role }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                <div class="flex items-start space-x-2">
+                    <i class="fas fa-exclamation-triangle text-yellow-600 mt-0.5"></i>
+                    <p class="text-sm text-yellow-800">
+                        Le nouveau responsable sera notifié et pourra gérer cette tâche. L'ancien responsable sera également informé du transfert.
+                    </p>
+                </div>
+            </div>
+        </form>
+        
+        <div class="bg-gray-50 rounded-b-lg px-4 py-3 flex items-center justify-end space-x-3">
+            <button onclick="fermerModalTransfererTache()" 
+                    class="px-3 py-1.5 text-gray-600 hover:text-gray-800 font-medium text-sm transition-colors">
+                Annuler
+            </button>
+            <button onclick="confirmerTransfererTache()" 
+                    class="px-4 py-1.5 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-md text-sm transition-colors">
+                <i class="fas fa-exchange-alt mr-1"></i>Transférer
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
+// Fonction pour recharger la page en préservant les paramètres
+function rechargerPage() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const fromMesModules = urlParams.get('from') === 'mes_modules';
+    
+    if (fromMesModules) {
+        window.location.href = window.location.pathname + '?from=mes_modules';
+    } else {
+        location.reload();
+    }
+}
+
 // Fonctions pour les modals
 function ouvrirModalCreerTache() {
     document.getElementById('modalCreerTache').classList.remove('hidden');
@@ -579,7 +712,7 @@ function confirmerCreerTache() {
             fermerModalCreerTache();
             afficherMessage('success', data.message || 'Tâche créée avec succès !');
             setTimeout(() => {
-                location.reload();
+                rechargerPage();
             }, 1500);
         } else {
             afficherMessage('error', data.error || 'Erreur lors de la création de la tâche');
@@ -623,7 +756,7 @@ function confirmerAssignerTache() {
             fermerModalAssignerTache();
             afficherMessage('success', data.message || 'Tâche assignée avec succès !');
             setTimeout(() => {
-                location.reload();
+                rechargerPage();
             }, 1500);
         } else {
             afficherMessage('error', data.error || 'Erreur lors de l\'assignation');
@@ -672,7 +805,7 @@ function confirmerModifierStatut() {
             fermerModalModifierStatut();
             afficherMessage('success', data.message || 'Statut modifié avec succès !');
             setTimeout(() => {
-                location.reload();
+                rechargerPage();
             }, 1500);
         } else {
             afficherMessage('error', data.error || 'Erreur lors de la modification');
@@ -711,6 +844,56 @@ function voirDetailsTache(tacheId, nomTache) {
     afficherMessage('info', `Détails de la tâche "${nomTache}" - Fonctionnalité en développement`);
 }
 
+// Fonctions pour transférer une tâche
+function ouvrirModalTransfererTache(tacheId, nomTache, responsableActuel) {
+    document.getElementById('tacheIdTransferer').value = tacheId;
+    document.getElementById('nomTacheTransferer').textContent = nomTache;
+    document.getElementById('responsableActuel').textContent = responsableActuel;
+    document.getElementById('nouveauResponsableSelect').value = '';
+    document.getElementById('modalTransfererTache').classList.remove('hidden');
+}
+
+function fermerModalTransfererTache() {
+    document.getElementById('modalTransfererTache').classList.add('hidden');
+}
+
+function confirmerTransfererTache() {
+    const tacheId = document.getElementById('tacheIdTransferer').value;
+    const nouveauResponsableId = document.getElementById('nouveauResponsableSelect').value;
+    
+    if (!nouveauResponsableId) {
+        afficherMessage('error', 'Veuillez sélectionner un nouveau responsable');
+        return;
+    }
+    
+    const url = `/projets/{{ projet.id }}/taches-module/${tacheId}/transferer/`;
+    const formData = new FormData();
+    formData.append('nouveau_responsable_id', nouveauResponsableId);
+    
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        fermerModalTransfererTache();
+        if (data.success) {
+            afficherMessage('success', data.message);
+            setTimeout(() => rechargerPage(), 1500);
+        } else {
+            afficherMessage('error', data.error || 'Erreur lors du transfert');
+        }
+    })
+    .catch(error => {
+        fermerModalTransfererTache();
+        console.error('Erreur:', error);
+        afficherMessage('error', 'Erreur de communication');
+    });
+}
+
 // Modal Progression
 function ouvrirModalProgression(tacheId, nomTache, pourcentageActuel) {
     document.getElementById('tacheIdProgression').value = tacheId;
@@ -746,7 +929,7 @@ function confirmerProgression() {
         if (data.success) {
             fermerModalProgression();
             afficherMessage('success', `Progression mise à jour : ${pourcentage}%`);
-            setTimeout(() => location.reload(), 1000);
+            setTimeout(() => rechargerPage(), 1000);
         } else {
             afficherMessage('error', data.error || 'Erreur lors de la mise à jour');
         }
@@ -759,8 +942,16 @@ function confirmerProgression() {
 
 // Fonctions pour gérer les statuts de tâches
 function mettreEnCours(tacheId) {
-    if (!confirm('Voulez-vous mettre cette tâche en cours ?')) return;
-    
+    document.getElementById('tacheIdDemarrer').value = tacheId;
+    document.getElementById('modalConfirmerDemarrer').classList.remove('hidden');
+}
+
+function fermerModalConfirmerDemarrer() {
+    document.getElementById('modalConfirmerDemarrer').classList.add('hidden');
+}
+
+function confirmerDemarrer() {
+    const tacheId = document.getElementById('tacheIdDemarrer').value;
     const url = `/projets/{{ projet.id }}/taches-module/${tacheId}/demarrer/`;
     
     fetch(url, {
@@ -772,22 +963,69 @@ function mettreEnCours(tacheId) {
     })
     .then(response => response.json())
     .then(data => {
+        fermerModalConfirmerDemarrer();
         if (data.success) {
             afficherMessage('success', 'Tâche mise en cours !');
-            setTimeout(() => location.reload(), 1000);
+            setTimeout(() => rechargerPage(), 1000);
         } else {
             afficherMessage('error', data.error || 'Erreur');
         }
     })
     .catch(error => {
+        fermerModalConfirmerDemarrer();
+        console.error('Erreur:', error);
+        afficherMessage('error', 'Erreur de communication');
+    });
+}
+
+function mettreEnPause(tacheId) {
+    document.getElementById('tacheIdPause').value = tacheId;
+    document.getElementById('modalConfirmerPause').classList.remove('hidden');
+}
+
+function fermerModalConfirmerPause() {
+    document.getElementById('modalConfirmerPause').classList.add('hidden');
+}
+
+function confirmerPause() {
+    const tacheId = document.getElementById('tacheIdPause').value;
+    const url = `/projets/{{ projet.id }}/taches-module/${tacheId}/mettre-en-pause/`;
+    
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/x-www-form-urlencoded',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        fermerModalConfirmerPause();
+        if (data.success) {
+            afficherMessage('success', 'Tâche mise en pause !');
+            setTimeout(() => rechargerPage(), 1000);
+        } else {
+            afficherMessage('error', data.error || 'Erreur');
+        }
+    })
+    .catch(error => {
+        fermerModalConfirmerPause();
         console.error('Erreur:', error);
         afficherMessage('error', 'Erreur de communication');
     });
 }
 
 function terminerTache(tacheId) {
-    if (!confirm('Voulez-vous marquer cette tâche comme terminée ?')) return;
-    
+    document.getElementById('tacheIdTerminer').value = tacheId;
+    document.getElementById('modalConfirmerTerminer').classList.remove('hidden');
+}
+
+function fermerModalConfirmerTerminer() {
+    document.getElementById('modalConfirmerTerminer').classList.add('hidden');
+}
+
+function confirmerTerminer() {
+    const tacheId = document.getElementById('tacheIdTerminer').value;
     const url = `/projets/{{ projet.id }}/taches-module/${tacheId}/terminer/`;
     
     fetch(url, {
@@ -799,14 +1037,16 @@ function terminerTache(tacheId) {
     })
     .then(response => response.json())
     .then(data => {
+        fermerModalConfirmerTerminer();
         if (data.success) {
             afficherMessage('success', 'Tâche terminée !');
-            setTimeout(() => location.reload(), 1000);
+            setTimeout(() => rechargerPage(), 1000);
         } else {
             afficherMessage('error', data.error || 'Erreur');
         }
     })
     .catch(error => {
+        fermerModalConfirmerTerminer();
         console.error('Erreur:', error);
         afficherMessage('error', 'Erreur de communication');
     });

@@ -117,12 +117,12 @@
             </div>
         </div>
 
-        <!-- Liste des modules -->
+        <!-- Tableau des modules -->
         <div class="bg-white rounded-lg shadow-sm border border-gray-200">
             <div class="p-4 border-b border-gray-200">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center">
-                        <i class="fas fa-list text-gray-600 mr-2"></i>
+                        <i class="fas fa-table text-gray-600 mr-2"></i>
                         <h2 class="text-lg font-semibold text-gray-900">Modules du Projet</h2>
                     </div>
                     <span class="text-sm text-gray-500">{{ modules.count }} élément{{ modules.count|pluralize }}</span>
@@ -130,158 +130,156 @@
             </div>
             
             {% if modules %}
-            <div class="divide-y divide-gray-200">
-                {% for module in modules %}
-                <div class="p-3 hover:bg-gray-50 transition-colors" 
-                     data-module-id="{{ module.id }}"
-                     data-module-name="{{ module.nom }}"
-                     data-module-description="{{ module.description }}"
-                     data-date-creation="{{ module.date_creation|date:'d/m/Y' }}"
-                     data-createur="{{ module.createur.get_full_name }}">
-                    <div class="flex items-start justify-between">
-                        <div class="flex items-start space-x-2 flex-1 min-w-0">
-                            <!-- Icône du module -->
-                            <div class="w-6 h-6 rounded flex items-center justify-center shadow-sm flex-shrink-0" 
-                                 style="background-color: {{ module.couleur }}20; border: 1px solid {{ module.couleur }}40;">
-                                <i class="fas fa-cube text-xs" style="color: {{ module.couleur }};"></i>
-                            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50 border-b border-gray-200">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Module</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Responsable</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Équipe</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Tâches</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        {% for module in modules %}
+                        <tr class="hover:bg-gray-50 transition-colors" 
+                            data-module-id="{{ module.id }}"
+                            data-module-name="{{ module.nom }}"
+                            data-module-description="{{ module.description }}"
+                            data-date-creation="{{ module.date_creation|date:'d/m/Y' }}"
+                            data-createur="{{ module.createur.get_full_name }}">
                             
-                            <!-- Informations du module -->
-                            <div class="flex-1 min-w-0">
-                                <div class="flex items-center space-x-2 mb-1">
-                                    <h3 class="text-sm font-semibold text-gray-900 truncate">{{ module.nom }}</h3>
-                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 flex-shrink-0">
-                                        {{ module.taches.count }}
-                                    </span>
+                            <!-- Colonne Module -->
+                            <td class="px-4 py-2">
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-8 h-8 rounded flex items-center justify-center shadow-sm flex-shrink-0" 
+                                         style="background-color: {{ module.couleur }}20; border: 1px solid {{ module.couleur }}40;">
+                                        <i class="fas fa-cube text-sm" style="color: {{ module.couleur }};"></i>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <p class="text-sm font-semibold text-gray-900 truncate">{{ module.nom }}</p>
+                                        <p class="text-xs text-gray-500">
+                                            <i class="fas fa-calendar-alt mr-1"></i>{{ module.date_creation|date:"d/m/Y" }}
+                                        </p>
+                                    </div>
                                 </div>
-                                
-                                <!-- Description tronquée -->
-                                <p class="text-xs text-gray-600 mb-2 line-clamp-1">{{ module.description }}</p>
-                                
-                                <!-- Responsable et équipe -->
-                                <div class="flex items-center space-x-2 mb-1">
-                                    {% with affectations=module.affectations.all %}
-                                        {% if affectations %}
-                                            {% with responsable=affectations|first %}
-                                                {% for affectation in affectations %}
-                                                    {% if affectation.role_module == 'RESPONSABLE' %}
-                                                        <div class="flex items-center space-x-1">
-                                                            <div class="w-4 h-4 bg-blue-600 rounded-full flex items-center justify-center">
-                                                                <span class="text-white text-xs font-bold">
-                                                                    {{ affectation.utilisateur.first_name.0 }}{{ affectation.utilisateur.last_name.0 }}
-                                                                </span>
-                                                            </div>
-                                                            <span class="text-xs text-gray-700 truncate">
-                                                                <i class="fas fa-crown text-yellow-500 mr-1" title="Responsable"></i>
-                                                                {{ affectation.utilisateur.get_full_name }}
-                                                            </span>
-                                                        </div>
-                                                    {% endif %}
-                                                {% endfor %}
-                                            {% endwith %}
-                                            
-                                            <!-- Bouton pour voir l'équipe complète -->
-                                            {% if affectations.count > 1 %}
-                                            <button onclick="voirEquipeModule('{{ module.id }}', '{{ module.nom }}')" 
-                                                    class="inline-flex items-center text-xs text-blue-600 hover:text-blue-800"
-                                                    title="Voir l'équipe complète">
-                                                <i class="fas fa-users mr-1"></i>+{{ affectations.count|add:"-1" }}
-                                            </button>
+                            </td>
+                            
+                            <!-- Colonne Responsable -->
+                            <td class="px-4 py-2 text-center">
+                                {% with affectations=module.affectations.all %}
+                                    {% if affectations %}
+                                        {% for affectation in affectations %}
+                                            {% if affectation.role_module == 'RESPONSABLE' %}
+                                                <span class="text-xs text-gray-700">
+                                                    {{ affectation.utilisateur.get_full_name }}
+                                                </span>
                                             {% endif %}
-                                        {% else %}
-                                            <span class="inline-flex items-center px-2 py-0.5 bg-yellow-100 border border-yellow-200 rounded text-xs text-yellow-800">
-                                                <i class="fas fa-exclamation-triangle mr-1"></i>Non affecté
-                                            </span>
-                                        {% endif %}
-                                    {% endwith %}
-                                </div>
-                                
-                                <!-- Métadonnées compactes -->
-                                <div class="flex items-center space-x-3 text-xs text-gray-500">
-                                    <span>
-                                        <i class="fas fa-calendar-alt mr-1"></i>{{ module.date_creation|date:"d/m" }}
-                                    </span>
-                                    <span>
-                                        <i class="fas fa-user mr-1"></i>{{ module.createur.first_name }} {{ module.createur.last_name.0 }}.
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Actions professionnelles -->
-                        <div class="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-1 ml-2 flex-shrink-0">
-                            <!-- Bouton Détails -->
-                            <button onclick="voirDetailsModule('{{ module.id }}', '{{ module.nom }}', '{{ module.description|escapejs }}')"
-                                    class="inline-flex items-center justify-center px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-xs font-medium transition-colors min-w-0"
-                                    title="Détails">
-                                <i class="fas fa-info-circle sm:mr-0"></i>
-                                <span class="ml-1 sm:hidden">Détails</span>
-                            </button>
-                            
-                            <!-- Bouton Tâches (seulement pour responsable module et responsable projet) -->
-                            {% comment %}
-                            Permissions pour le bouton Tâches :
-                            1. Super Admin : toujours
-                            2. Créateur du projet : toujours  
-                            3. Responsable principal du projet : toujours
-                            4. Responsable du module : seulement pour son module
-                            {% endcomment %}
-                            
-                            {% if user.est_super_admin %}
-                                <!-- Super Admin peut tout faire -->
-                                <button onclick="gererTachesModule('{{ module.id }}', '{{ module.nom }}')"
-                                        class="inline-flex items-center justify-center px-2 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-xs font-medium transition-colors min-w-0"
-                                        title="Gérer les tâches">
-                                    <i class="fas fa-tasks sm:mr-0"></i>
-                                    <span class="ml-1 sm:hidden">Tâches</span>
-                                </button>
-                            {% elif projet.createur == user %}
-                                <!-- Créateur du projet peut tout faire -->
-                                <button onclick="gererTachesModule('{{ module.id }}', '{{ module.nom }}')"
-                                        class="inline-flex items-center justify-center px-2 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-xs font-medium transition-colors min-w-0"
-                                        title="Gérer les tâches">
-                                    <i class="fas fa-tasks sm:mr-0"></i>
-                                    <span class="ml-1 sm:hidden">Tâches</span>
-                                </button>
-                            {% else %}
-                                {% comment %}Vérifier les autres permissions{% endcomment %}
-                                {% for affectation in projet.affectations.all %}
-                                    {% if affectation.utilisateur == user and affectation.est_responsable_principal and not affectation.date_fin %}
-                                        <!-- Responsable principal du projet -->
-                                        <button onclick="gererTachesModule('{{ module.id }}', '{{ module.nom }}')"
-                                                class="inline-flex items-center justify-center px-2 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-xs font-medium transition-colors min-w-0"
-                                                title="Gérer les tâches">
-                                            <i class="fas fa-tasks sm:mr-0"></i>
-                                            <span class="ml-1 sm:hidden">Tâches</span>
-                                        </button>
+                                        {% endfor %}
+                                    {% else %}
+                                        <span class="text-xs text-yellow-600">
+                                            <i class="fas fa-exclamation-triangle mr-1"></i>Non affecté
+                                        </span>
                                     {% endif %}
-                                {% endfor %}
-                                
-                                {% comment %}Vérifier si responsable du module{% endcomment %}
-                                {% for affectation_module in module.affectations.all %}
-                                    {% if affectation_module.utilisateur == user and affectation_module.role_module == 'RESPONSABLE' and not affectation_module.date_fin_affectation %}
-                                        <!-- Responsable du module -->
-                                        <button onclick="gererTachesModule('{{ module.id }}', '{{ module.nom }}')"
-                                                class="inline-flex items-center justify-center px-2 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-xs font-medium transition-colors min-w-0"
-                                                title="Gérer les tâches">
-                                            <i class="fas fa-tasks sm:mr-0"></i>
-                                            <span class="ml-1 sm:hidden">Tâches</span>
-                                        </button>
-                                    {% endif %}
-                                {% endfor %}
-                            {% endif %}
+                                {% endwith %}
+                            </td>
                             
-                            <!-- Bouton Affecter -->
-                            <button onclick="ouvrirModalAffecterModuleNouveau('{{ module.id }}', '{{ module.nom }}')"
-                                    class="inline-flex items-center justify-center px-2 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-xs font-medium transition-colors min-w-0"
-                                    title="Affecter">
-                                <i class="fas fa-user-plus sm:mr-0"></i>
-                                <span class="ml-1 sm:hidden">Affecter</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
+                            <!-- Colonne Équipe -->
+                            <td class="px-4 py-2 text-center">
+                                {% with affectations=module.affectations.all %}
+                                    {% if affectations %}
+                                        <button onclick="voirEquipeModule('{{ module.id }}', '{{ module.nom }}')" 
+                                                class="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+                                                title="Voir l'équipe complète">
+                                            <i class="fas fa-users mr-1"></i>{{ affectations.count }}
+                                        </button>
+                                    {% else %}
+                                        <span class="text-xs text-gray-400">-</span>
+                                    {% endif %}
+                                {% endwith %}
+                            </td>
+                            
+                            <!-- Colonne Tâches -->
+                            <td class="px-4 py-2 text-center">
+                                <span class="text-xs font-medium {% if module.taches.count > 0 %}text-blue-600{% else %}text-gray-400{% endif %}">
+                                    {{ module.taches.count }}
+                                </span>
+                            </td>
+                            
+                            <!-- Colonne Actions -->
+                            <td class="px-4 py-2">
+                                <div class="flex items-center justify-center space-x-1">
+                                    <!-- Bouton Détails -->
+                                    <button onclick="voirDetailsModule('{{ module.id }}', '{{ module.nom }}', '{{ module.description|escapejs }}')"
+                                            class="inline-flex items-center justify-center w-6 h-6 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded transition-colors"
+                                            title="Détails">
+                                        <i class="fas fa-info-circle text-xs"></i>
+                                    </button>
+                                    
+                                    <!-- Bouton Tâches (avec permissions - une seule fois) -->
+                                    {% if user.est_super_admin or projet.createur == user %}
+                                        <!-- Super Admin ou Créateur du projet -->
+                                        <button onclick="gererTachesModule('{{ module.id }}', '{{ module.nom }}')"
+                                                class="inline-flex items-center justify-center w-6 h-6 bg-green-600 hover:bg-green-700 text-white rounded transition-colors"
+                                                title="Gérer les tâches">
+                                            <i class="fas fa-tasks text-xs"></i>
+                                        </button>
+                                    {% else %}
+                                        {% comment %}Vérifier d'abord si responsable principal du projet{% endcomment %}
+                                        {% for affectation in projet.affectations.all %}
+                                            {% if affectation.utilisateur == user and affectation.est_responsable_principal and not affectation.date_fin %}
+                                                <button onclick="gererTachesModule('{{ module.id }}', '{{ module.nom }}')"
+                                                        class="inline-flex items-center justify-center w-6 h-6 bg-green-600 hover:bg-green-700 text-white rounded transition-colors"
+                                                        title="Gérer les tâches">
+                                                    <i class="fas fa-tasks text-xs"></i>
+                                                </button>
+                                            {% endif %}
+                                        {% empty %}
+                                            {% comment %}Si pas responsable projet, vérifier si responsable du module{% endcomment %}
+                                            {% for affectation_module in module.affectations.all %}
+                                                {% if affectation_module.utilisateur == user and affectation_module.role_module == 'RESPONSABLE' and not affectation_module.date_fin_affectation %}
+                                                    <button onclick="gererTachesModule('{{ module.id }}', '{{ module.nom }}')"
+                                                            class="inline-flex items-center justify-center w-6 h-6 bg-green-600 hover:bg-green-700 text-white rounded transition-colors"
+                                                            title="Gérer les tâches">
+                                                        <i class="fas fa-tasks text-xs"></i>
+                                                    </button>
+                                                {% endif %}
+                                            {% endfor %}
+                                        {% endfor %}
+                                    {% endif %}
+                                    
+                                    <!-- Bouton Affecter -->
+                                    <button onclick="ouvrirModalAffecterModuleNouveau('{{ module.id }}', '{{ module.nom }}')"
+                                            class="inline-flex items-center justify-center w-6 h-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded transition-colors"
+                                            title="Affecter un membre">
+                                        <i class="fas fa-user-plus text-xs"></i>
+                                    </button>
+                                    
+                                    <!-- Bouton Supprimer (uniquement pour responsables du projet) -->
+                                    {% if user.est_super_admin or projet.createur == user %}
+                                        <button onclick="confirmerSuppressionModule('{{ module.id }}', '{{ module.nom }}')"
+                                                class="inline-flex items-center justify-center w-6 h-6 bg-red-600 hover:bg-red-700 text-white rounded transition-colors"
+                                                title="Supprimer le module">
+                                            <i class="fas fa-trash text-xs"></i>
+                                        </button>
+                                    {% else %}
+                                        {% for affectation in projet.affectations.all %}
+                                            {% if affectation.utilisateur == user and affectation.est_responsable_principal and not affectation.date_fin %}
+                                                <button onclick="confirmerSuppressionModule('{{ module.id }}', '{{ module.nom }}')"
+                                                        class="inline-flex items-center justify-center w-6 h-6 bg-red-600 hover:bg-red-700 text-white rounded transition-colors"
+                                                        title="Supprimer le module">
+                                                    <i class="fas fa-trash text-xs"></i>
+                                                </button>
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
             {% else %}
             <!-- État vide -->
@@ -528,6 +526,55 @@
             <button onclick="fermerModalResponsableRequis(); ouvrirModalAffecterAvecResponsable()" 
                     class="px-4 py-1.5 bg-orange-600 hover:bg-orange-700 text-white font-medium rounded-md text-sm transition-colors">
                 <i class="fas fa-crown mr-1"></i>Nommer un responsable
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de confirmation de suppression -->
+<div id="modalConfirmerSuppression" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <!-- Header -->
+        <div class="bg-red-600 rounded-t-lg px-4 py-3 text-white">
+            <div class="flex items-center">
+                <i class="fas fa-exclamation-triangle text-lg mr-3"></i>
+                <div>
+                    <h3 class="text-lg font-semibold">Confirmer la suppression</h3>
+                    <p class="text-red-100 text-sm">Action irréversible</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Corps -->
+        <div class="p-4">
+            <div class="flex items-start space-x-3">
+                <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-trash text-red-600 text-lg"></i>
+                </div>
+                <div>
+                    <h4 class="text-base font-medium text-gray-900 mb-2">Êtes-vous sûr de vouloir supprimer ce module ?</h4>
+                    <p class="text-sm text-gray-700 mb-2">
+                        Module : <strong id="nomModuleSuppression"></strong>
+                    </p>
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-md p-3">
+                        <p class="text-sm text-yellow-800">
+                            <i class="fas fa-exclamation-circle mr-1"></i>
+                            <strong>Attention :</strong> Cette action est irréversible et supprimera également toutes les tâches associées à ce module.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="bg-gray-50 rounded-b-lg px-4 py-3 flex justify-end space-x-2">
+            <button onclick="fermerModalConfirmerSuppression()" 
+                    class="px-3 py-1.5 text-gray-600 hover:text-gray-800 font-medium text-sm transition-colors">
+                <i class="fas fa-times mr-1"></i>Annuler
+            </button>
+            <button onclick="executerSuppressionModule()" 
+                    class="px-4 py-1.5 bg-red-600 hover:bg-red-700 text-white font-medium rounded-md text-sm transition-colors">
+                <i class="fas fa-trash mr-1"></i>Supprimer
             </button>
         </div>
     </div>
@@ -865,6 +912,65 @@ function afficherMessage(type, message) {
             messageDiv.remove();
         }
     }, 5000);
+}
+
+// Variables globales pour la suppression
+let moduleIdSuppression = null;
+let nomModuleSuppression = null;
+
+function confirmerSuppressionModule(moduleId, nomModule) {
+    // Stocker les informations du module
+    moduleIdSuppression = moduleId;
+    nomModuleSuppression = nomModule;
+    
+    // Afficher le nom du module dans la modale
+    document.getElementById('nomModuleSuppression').textContent = nomModule;
+    
+    // Ouvrir la modale
+    document.getElementById('modalConfirmerSuppression').classList.remove('hidden');
+}
+
+function fermerModalConfirmerSuppression() {
+    document.getElementById('modalConfirmerSuppression').classList.add('hidden');
+    moduleIdSuppression = null;
+    nomModuleSuppression = null;
+}
+
+function executerSuppressionModule() {
+    if (!moduleIdSuppression) {
+        afficherMessage('error', 'Erreur : Module non identifié');
+        return;
+    }
+    
+    const projetId = '{{ projet.id }}';
+    const url = `/projets/${projetId}/modules/${moduleIdSuppression}/supprimer/`;
+    
+    // Fermer la modale
+    fermerModalConfirmerSuppression();
+    
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            afficherMessage('success', data.message || 'Module supprimé avec succès !');
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        } else {
+            afficherMessage('error', data.error || 'Erreur lors de la suppression du module.');
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        afficherMessage('error', 'Erreur de connexion. Veuillez réessayer.');
+    });
 }
 </script>
 {% endblock %}

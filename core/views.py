@@ -2441,16 +2441,57 @@ def detail_etape_view(request, projet_id, etape_id):
         description__icontains=etape.type_etape.get_nom_display()
     ).order_by('-timestamp')[:20]
     
-    # Statistiques de l'étape
+    # Statistiques des tâches d'étape
     stats = {
-        'total_taches': taches_etape.count(),
-        'taches_terminees': taches_etape.filter(statut='TERMINEE').count(),
-        'taches_en_cours': taches_etape.filter(statut='EN_COURS').count(),
-        'taches_bloquees': taches_etape.filter(statut='BLOQUEE').count(),
+        'total_taches_etape': taches_etape.count(),
+        'taches_etape_terminees': taches_etape.filter(statut='TERMINEE').count(),
+        'taches_etape_en_cours': taches_etape.filter(statut='EN_COURS').count(),
+        'taches_etape_bloquees': taches_etape.filter(statut='BLOQUEE').count(),
         'taches_speciales': taches_etape.filter(ajoutee_apres_cloture=True).count(),
         'modules_crees': modules_crees.count(),
         'duree_etape': None
     }
+    
+    # Calculer les statistiques des tâches de modules
+    total_taches_modules = 0
+    taches_modules_terminees = 0
+    taches_modules_en_cours = 0
+    
+    for module in modules_crees:
+        taches_module = module.taches.all()
+        total_taches_modules += taches_module.count()
+        taches_modules_terminees += taches_module.filter(statut='TERMINEE').count()
+        taches_modules_en_cours += taches_module.filter(statut='EN_COURS').count()
+    
+    stats['total_taches_modules'] = total_taches_modules
+    stats['taches_modules_terminees'] = taches_modules_terminees
+    stats['taches_modules_en_cours'] = taches_modules_en_cours
+    
+    # Calculer le total combiné
+    stats['total_taches'] = stats['total_taches_etape'] + stats['total_taches_modules']
+    stats['taches_terminees'] = stats['taches_etape_terminees'] + stats['taches_modules_terminees']
+    stats['taches_en_cours'] = stats['taches_etape_en_cours'] + stats['taches_modules_en_cours']
+    
+    # Progression des tâches d'étape uniquement
+    if stats['total_taches_etape'] > 0:
+        stats['progression_etape'] = round((stats['taches_etape_terminees'] / stats['total_taches_etape']) * 100)
+    else:
+        stats['progression_etape'] = 0
+    
+    # Progression des tâches de modules uniquement
+    if stats['total_taches_modules'] > 0:
+        stats['progression_modules'] = round((stats['taches_modules_terminees'] / stats['total_taches_modules']) * 100)
+    else:
+        stats['progression_modules'] = 0
+    
+    # Progression globale combinée (tâches d'étape + tâches de modules)
+    if stats['total_taches'] > 0:
+        stats['progression'] = round((stats['taches_terminees'] / stats['total_taches']) * 100)
+    else:
+        stats['progression'] = 0
+    
+    # Calculer les tâches restantes
+    stats['taches_restantes'] = stats['total_taches'] - stats['taches_terminees']
     
     # Statistiques spécifiques pour MAINTENANCE
     if etape.type_etape.nom == 'MAINTENANCE':
@@ -2469,12 +2510,6 @@ def detail_etape_view(request, projet_id, etape_id):
     if etape.statut == 'TERMINEE' and etape.date_debut_reelle and etape.date_fin_reelle:
         duree = etape.date_fin_reelle - etape.date_debut_reelle
         stats['duree_etape'] = duree.days
-    
-    # Progression des tâches
-    if stats['total_taches'] > 0:
-        stats['progression'] = round((stats['taches_terminees'] / stats['total_taches']) * 100)
-    else:
-        stats['progression'] = 0
     
     # Permissions
     can_manage = user.est_super_admin() or projet.createur == user
@@ -2947,6 +2982,59 @@ def modifier_module_view(request, projet_id, module_id):
     """Vue de modification d'un module"""
     # TODO: Implémenter selon les besoins
     pass
+
+@login_required
+def supprimer_module_view(request, projet_id, module_id):
+    """Vue de suppression d'un module"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Méthode non autorisée'}, status=405)
+    
+    user = request.user
+    projet = get_object_or_404(Projet, id=projet_id)
+    module = get_object_or_404(ModuleProjet, id=module_id, etape__projet=projet)
+    
+    # Vérifier les permissions (Super Admin, Créateur ou Responsable principal)
+    can_delete = user.est_super_admin() or projet.createur == user
+    
+    if not can_delete:
+        # Vérifier si responsable principal du projet
+        affectation_user = projet.affectations.filter(
+            utilisateur=user,
+            est_responsable_principal=True,
+            date_fin__isnull=True
+        ).first()
+        can_delete = affectation_user is not None
+    
+    if not can_delete:
+        return JsonResponse({
+            'success': False,
+            'error': 'Vous n\'avez pas les permissions pour supprimer ce module.'
+        }, status=403)
+    
+    try:
+        nom_module = module.nom
+        
+        # Supprimer le module (les tâches seront supprimées en cascade)
+        module.delete()
+        
+        # Créer une entrée d'audit
+        ActionAudit.objects.create(
+            utilisateur=user,
+            projet=projet,
+            type_action='SUPPRESSION_MODULE',
+            description=f'Suppression du module "{nom_module}"'
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Le module "{nom_module}" a été supprimé avec succès.'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Erreur lors de la suppression : {str(e)}'
+        }, status=500)
 
 @login_required
 def modifier_tache_view(request, module_id, tache_id):

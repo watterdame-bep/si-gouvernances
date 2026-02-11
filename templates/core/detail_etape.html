@@ -36,7 +36,8 @@
 
         <!-- Statistiques Rapides - Professional Cards (masquées pour MAINTENANCE) -->
         {% if etape.type_etape.nom != 'MAINTENANCE' %}
-        <div class="grid gap-4 {% if etape.type_etape.nom == 'DEVELOPPEMENT' %}grid-cols-2 lg:grid-cols-4{% else %}grid-cols-1 sm:grid-cols-3{% endif %}">
+        <div class="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+            <!-- Card Statut -->
             <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200 text-center">
                 <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-3">
                     <i class="fas fa-info-circle text-blue-600"></i>
@@ -49,31 +50,35 @@
                 <div class="text-xs text-gray-600">Statut</div>
             </div>
             
+            <!-- Card Tâches d'Étape -->
             <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200 text-center">
-                <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-3">
-                    <i class="fas fa-tasks text-purple-600"></i>
+                <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                    <i class="fas fa-tasks text-blue-600"></i>
                 </div>
-                <div class="text-lg font-bold text-purple-600 mb-1">{{ stats.total_taches }}</div>
-                <div class="text-xs text-gray-600">Total tâches</div>
+                <div class="text-lg font-bold text-blue-600 mb-1">{{ stats.taches_etape_terminees }}/{{ stats.total_taches_etape }}</div>
+                <div class="text-xs text-gray-600">Tâches d'Étape</div>
+                <div class="text-xs text-blue-600 font-medium mt-1">{{ stats.progression_etape }}%</div>
             </div>
             
+            <!-- Card Tâches de Modules -->
             <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200 text-center">
+                <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                    <i class="fas fa-puzzle-piece text-purple-600"></i>
+                </div>
+                <div class="text-lg font-bold text-purple-600 mb-1">{{ stats.taches_modules_terminees }}/{{ stats.total_taches_modules }}</div>
+                <div class="text-xs text-gray-600">Tâches de Modules</div>
+                <div class="text-xs text-purple-600 font-medium mt-1">{{ stats.progression_modules }}%</div>
+            </div>
+            
+            <!-- Card Progression Globale -->
+            <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg p-4 shadow-sm border-2 border-green-200 text-center">
                 <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-3">
                     <i class="fas fa-chart-line text-green-600"></i>
                 </div>
-                <div class="text-lg font-bold text-green-600 mb-1">{{ stats.progression }}%</div>
-                <div class="text-xs text-gray-600">Progression</div>
+                <div class="text-2xl font-bold text-green-600 mb-1">{{ stats.progression }}%</div>
+                <div class="text-xs text-green-700 font-medium">Progression Globale</div>
+                <div class="text-xs text-green-600 mt-1">{{ stats.taches_terminees }}/{{ stats.total_taches }} tâches</div>
             </div>
-            
-            {% if etape.type_etape.nom == 'DEVELOPPEMENT' %}
-            <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200 text-center">
-                <div class="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center mx-auto mb-3">
-                    <i class="fas fa-puzzle-piece text-emerald-600"></i>
-                </div>
-                <div class="text-lg font-bold text-emerald-600 mb-1">{{ stats.modules_crees }}</div>
-                <div class="text-xs text-gray-600">Modules</div>
-            </div>
-            {% endif %}
         </div>
 
         <!-- Détails de l'étape - Professional Layout (masqués pour MAINTENANCE) -->
@@ -166,7 +171,7 @@
             <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
                 <h3 class="text-lg font-semibold text-gray-900 flex items-center mb-4">
                     <i class="fas fa-chart-pie text-green-600 mr-2"></i>
-                    Progression
+                    Progression Globale
                 </h3>
                 
                 <div class="text-center">
@@ -180,6 +185,28 @@
                         </div>
                     </div>
                     
+                    <!-- Détail par type de tâche -->
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
+                        <div class="text-xs font-medium text-blue-900 mb-2">Détail de la progression</div>
+                        <div class="space-y-1.5 text-xs">
+                            <div class="flex items-center justify-between">
+                                <span class="text-blue-700 flex items-center">
+                                    <i class="fas fa-tasks mr-2"></i>
+                                    Tâches d'Étape
+                                </span>
+                                <span class="font-semibold text-blue-900">{{ stats.taches_etape_terminees }}/{{ stats.total_taches_etape }} ({{ stats.progression_etape }}%)</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-blue-700 flex items-center">
+                                    <i class="fas fa-puzzle-piece mr-2"></i>
+                                    Tâches de Modules
+                                </span>
+                                <span class="font-semibold text-blue-900">{{ stats.taches_modules_terminees }}/{{ stats.total_taches_modules }} ({{ stats.progression_modules }}%)</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Statistiques globales simplifiées -->
                     <div class="space-y-2 text-sm">
                         <div class="flex items-center justify-between">
                             <span class="text-gray-600 flex items-center">
@@ -190,17 +217,10 @@
                         </div>
                         <div class="flex items-center justify-between">
                             <span class="text-gray-600 flex items-center">
-                                <i class="fas fa-circle text-orange-500 mr-2 text-xs"></i>
-                                En cours
-                            </span>
-                            <span class="font-medium">{{ stats.taches_en_cours }}</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span class="text-gray-600 flex items-center">
                                 <i class="fas fa-circle text-gray-400 mr-2 text-xs"></i>
                                 Restantes
                             </span>
-                            <span class="font-medium">{{ stats.total_taches|add:"-"|add:stats.taches_terminees|add:"-"|add:stats.taches_en_cours }}</span>
+                            <span class="font-medium">{{ stats.taches_restantes }}</span>
                         </div>
                     </div>
                 </div>
@@ -371,8 +391,8 @@
                         <h3 class="text-lg font-semibold text-gray-900 flex items-center">
                             <i class="fas fa-clipboard-list text-purple-600 mr-2"></i>
                             Tâches
-                            <span class="ml-2 bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-xs font-medium">
-                                {{ stats.total_taches }}
+                            <span class="ml-2 bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
+                                {{ stats.total_taches_etape }}
                             </span>
                         </h3>
                         {% if can_manage %}
@@ -535,8 +555,8 @@
                     <h3 class="text-lg font-semibold text-gray-900 flex items-center">
                         <i class="fas fa-clipboard-list text-purple-600 mr-2"></i>
                         Tâches de l'étape
-                        <span class="ml-2 bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-xs font-medium">
-                            {{ stats.total_taches }}
+                        <span class="ml-2 bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
+                            {{ stats.total_taches_etape }}
                         </span>
                     </h3>
                     {% if can_manage %}

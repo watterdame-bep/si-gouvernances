@@ -28,9 +28,10 @@ def gestion_taches_module_view(request, projet_id, module_id):
     
     # Vérifier les permissions de gestion des tâches du module
     peut_gerer_taches = False
-    peut_creer_taches = False  # Nouvelle variable pour la permission de création
+    peut_creer_taches = False  # SEUL le responsable du module peut créer des tâches
     peut_modifier_taches = False  # Nouvelle variable pour la permission de modification
     est_membre_simple = False  # Nouveau flag pour identifier les membres simples
+    est_responsable_module = False  # Flag pour identifier le responsable du module
     
     # Super admin peut tout faire
     if user.est_super_admin():
@@ -53,42 +54,46 @@ def gestion_taches_module_view(request, projet_id, module_id):
             peut_gerer_taches = True
             peut_creer_taches = True
             peut_modifier_taches = True
-        else:
-            # Responsable du module peut gérer les tâches
-            affectation_module = module.affectations.filter(
-                utilisateur=user,
-                role_module='RESPONSABLE',
-                date_fin_affectation__isnull=True
-            ).first()
-            if affectation_module:
-                peut_gerer_taches = True
-                peut_creer_taches = True
-                peut_modifier_taches = True  # Responsable peut modifier toutes les tâches
-            else:
-                # Tout membre affecté au module peut voir ses tâches
-                affectation_membre = module.affectations.filter(
-                    utilisateur=user,
-                    date_fin_affectation__isnull=True
-                ).first()
-                if affectation_membre:
-                    peut_gerer_taches = True
-                    # Membre simple seulement s'il n'est pas responsable
-                    est_membre_simple = affectation_membre.role_module != 'RESPONSABLE'
-                    # Permission de créer des tâches selon l'affectation
-                    peut_creer_taches = affectation_membre.peut_creer_taches
-                    # Membre simple peut modifier ses propres tâches
-                    peut_modifier_taches = False  # Sera vérifié au niveau de chaque tâche
+    
+    # Vérifier si l'utilisateur est responsable du module (indépendamment des permissions projet)
+    affectation_module = module.affectations.filter(
+        utilisateur=user,
+        role_module='RESPONSABLE',
+        date_fin_affectation__isnull=True
+    ).first()
+    
+    if affectation_module:
+        peut_gerer_taches = True
+        peut_creer_taches = True  # SEUL le responsable peut créer
+        peut_modifier_taches = True  # Responsable peut modifier toutes les tâches
+        est_responsable_module = True
+    else:
+        # Contributeurs et consultants peuvent voir leurs tâches mais pas en créer
+        affectation_membre = module.affectations.filter(
+            utilisateur=user,
+            date_fin_affectation__isnull=True
+        ).first()
+        if affectation_membre:
+            peut_gerer_taches = True
+            # Membre simple seulement s'il n'est pas responsable
+            est_membre_simple = affectation_membre.role_module != 'RESPONSABLE'
+            # Les contributeurs NE PEUVENT PAS créer de tâches
+            peut_creer_taches = False
+            # Membre simple peut modifier ses propres tâches
+            peut_modifier_taches = False  # Sera vérifié au niveau de chaque tâche
     
     if not peut_gerer_taches:
         messages.error(request, 'Vous n\'avez pas les permissions pour gérer les tâches de ce module.')
         return redirect('mes_modules', projet_id=projet.id) if from_mes_modules else redirect('gestion_modules', projet_id=projet.id)
     
     # Récupérer les tâches du module
-    # Si membre simple venant de "Mes Modules", ne montrer que ses tâches
-    if est_membre_simple and from_mes_modules:
-        taches = module.taches.filter(createur=user).select_related('responsable').order_by('-date_creation')
+    # RÈGLE: Si on vient de "Mes Modules" ET qu'on n'est PAS responsable du module,
+    # on ne voit que ses propres tâches (même si on est responsable du projet)
+    if from_mes_modules and not est_responsable_module:
+        taches = module.taches.filter(responsable=user).select_related('responsable', 'createur').order_by('-date_creation')
     else:
-        taches = module.taches.all().select_related('responsable').order_by('-date_creation')
+        # Sinon, on voit toutes les tâches du module
+        taches = module.taches.all().select_related('responsable', 'createur').order_by('-date_creation')
     
     # Récupérer l'équipe du module pour les assignations
     equipe_module = []
@@ -214,7 +219,7 @@ def creer_tache_module_nouvelle_view(request, projet_id, module_id):
             description=description,
             responsable=responsable,
             createur=user,
-            statut='EN_ATTENTE'
+            statut='A_FAIRE'
         )
         
         # Audit
@@ -771,30 +776,12 @@ def mettre_a_jour_progression_tache_module_view(request, projet_id, tache_id):
         if pourcentage < 0 or pourcentage > 100:
             return JsonResponse({'success': False, 'error': 'Le pourcentage doit être entre 0 et 100'})
         
-        # Vérifier les permissions
-        peut_modifier = False
+        # RÈGLE: Seul le responsable de la tâche peut mettre à jour la progression
+        if not tache.responsable:
+            return JsonResponse({'success': False, 'error': 'Cette tâche n\'a pas de responsable assigné'})
         
-        # Super admin peut tout faire
-        if user.est_super_admin():
-            peut_modifier = True
-        # Créateur du projet peut tout faire
-        elif projet.createur == user:
-            peut_modifier = True
-        # Responsable principal du projet peut tout faire
-        elif projet.affectations.filter(utilisateur=user, est_responsable_principal=True, date_fin__isnull=True).exists():
-            peut_modifier = True
-        # Responsable du module peut modifier toutes les tâches
-        elif module.affectations.filter(utilisateur=user, role_module='RESPONSABLE', date_fin_affectation__isnull=True).exists():
-            peut_modifier = True
-        # Créateur de la tâche peut modifier sa tâche
-        elif tache.createur == user:
-            peut_modifier = True
-        # Responsable de la tâche peut modifier sa tâche
-        elif tache.responsable and tache.responsable == user:
-            peut_modifier = True
-        
-        if not peut_modifier:
-            return JsonResponse({'success': False, 'error': 'Vous n\'avez pas les permissions pour modifier cette tâche'})
+        if tache.responsable != user:
+            return JsonResponse({'success': False, 'error': 'Seul le responsable de la tâche peut mettre à jour la progression'})
         
         # CONTRAINTE: La tâche doit être EN_COURS pour mettre à jour la progression
         if tache.statut != 'EN_COURS':
@@ -809,27 +796,27 @@ def mettre_a_jour_progression_tache_module_view(request, projet_id, tache_id):
         # Si la progression passe à 100%, marquer comme terminée
         if pourcentage == 100:
             tache.statut = 'TERMINEE'
-            tache.date_fin_reelle = timezone.now()
-            if not tache.date_debut_reelle:
-                tache.date_debut_reelle = tache.date_fin_reelle
         
         tache.save()
         
-        # Notifier le responsable du projet si changement significatif (tous les 25%)
-        responsable_projet = projet.get_responsable_principal()
-        if responsable_projet and responsable_projet != user:
+        # Récupérer le responsable du module
+        responsable_module = module.affectations.filter(
+            role_module='RESPONSABLE',
+            date_fin_affectation__isnull=True
+        ).first()
+        
+        # Notifier le responsable du module si changement significatif (tous les 25%)
+        if responsable_module and responsable_module.utilisateur != user:
             # Notifier seulement aux paliers de 25%, 50%, 75%, 100%
             if pourcentage % 25 == 0 and ancien_pourcentage != pourcentage:
-                contexte = f"module '{module.nom}'"
-                
                 # Si 100%, utiliser le message de tâche terminée
                 if pourcentage == 100:
                     NotificationModule.objects.create(
-                        destinataire=responsable_projet,
+                        destinataire=responsable_module.utilisateur,
                         module=module,
                         type_notification='TACHE_TERMINEE',
                         titre=f"✅ Tâche terminée: {tache.nom}",
-                        message=f"{user.get_full_name()} a terminé la tâche '{tache.nom}' du {contexte}",
+                        message=f"{user.get_full_name()} a terminé la tâche '{tache.nom}' dans votre module '{module.nom}'",
                         emetteur=user,
                         donnees_contexte={
                             'tache_id': str(tache.id),
@@ -842,11 +829,11 @@ def mettre_a_jour_progression_tache_module_view(request, projet_id, tache_id):
                     )
                 else:
                     NotificationModule.objects.create(
-                        destinataire=responsable_projet,
+                        destinataire=responsable_module.utilisateur,
                         module=module,
                         type_notification='TACHE_TERMINEE',
                         titre=f"📊 Progression: {tache.nom} ({pourcentage}%)",
-                        message=f"{user.get_full_name()} a mis à jour la progression de '{tache.nom}' du {contexte} à {pourcentage}%",
+                        message=f"{user.get_full_name()} a mis à jour la progression de '{tache.nom}' dans votre module '{module.nom}' à {pourcentage}%",
                         emetteur=user,
                         donnees_contexte={
                             'tache_id': str(tache.id),
@@ -908,24 +895,12 @@ def demarrer_tache_module_view(request, projet_id, tache_id):
     try:
         from django.utils import timezone
         
-        # Vérifier les permissions
-        peut_modifier = False
+        # RÈGLE: Seul le responsable de la tâche peut la démarrer
+        if not tache.responsable:
+            return JsonResponse({'success': False, 'error': 'Cette tâche n\'a pas de responsable assigné'})
         
-        if user.est_super_admin():
-            peut_modifier = True
-        elif projet.createur == user:
-            peut_modifier = True
-        elif projet.affectations.filter(utilisateur=user, est_responsable_principal=True, date_fin__isnull=True).exists():
-            peut_modifier = True
-        elif module.affectations.filter(utilisateur=user, role_module='RESPONSABLE', date_fin_affectation__isnull=True).exists():
-            peut_modifier = True
-        elif tache.createur == user:
-            peut_modifier = True
-        elif tache.responsable and tache.responsable == user:
-            peut_modifier = True
-        
-        if not peut_modifier:
-            return JsonResponse({'success': False, 'error': 'Vous n\'avez pas les permissions pour modifier cette tâche'})
+        if tache.responsable != user:
+            return JsonResponse({'success': False, 'error': 'Seul le responsable de la tâche peut la démarrer'})
         
         # Vérifier que la tâche est bien à faire
         if tache.statut != 'A_FAIRE':
@@ -933,8 +908,6 @@ def demarrer_tache_module_view(request, projet_id, tache_id):
         
         # Mettre en cours
         tache.statut = 'EN_COURS'
-        if not tache.date_debut_reelle:
-            tache.date_debut_reelle = timezone.now()
         tache.save()
         
         # Audit
@@ -980,24 +953,12 @@ def terminer_tache_module_view(request, projet_id, tache_id):
     try:
         from django.utils import timezone
         
-        # Vérifier les permissions
-        peut_modifier = False
+        # RÈGLE: Seul le responsable de la tâche peut la terminer
+        if not tache.responsable:
+            return JsonResponse({'success': False, 'error': 'Cette tâche n\'a pas de responsable assigné'})
         
-        if user.est_super_admin():
-            peut_modifier = True
-        elif projet.createur == user:
-            peut_modifier = True
-        elif projet.affectations.filter(utilisateur=user, est_responsable_principal=True, date_fin__isnull=True).exists():
-            peut_modifier = True
-        elif module.affectations.filter(utilisateur=user, role_module='RESPONSABLE', date_fin_affectation__isnull=True).exists():
-            peut_modifier = True
-        elif tache.createur == user:
-            peut_modifier = True
-        elif tache.responsable and tache.responsable == user:
-            peut_modifier = True
-        
-        if not peut_modifier:
-            return JsonResponse({'success': False, 'error': 'Vous n\'avez pas les permissions pour modifier cette tâche'})
+        if tache.responsable != user:
+            return JsonResponse({'success': False, 'error': 'Seul le responsable de la tâche peut la terminer'})
         
         # Vérifier que la tâche n'est pas déjà terminée
         if tache.statut == 'TERMINEE':
@@ -1007,20 +968,21 @@ def terminer_tache_module_view(request, projet_id, tache_id):
         ancien_statut = tache.statut
         tache.statut = 'TERMINEE'
         tache.pourcentage_completion = 100
-        tache.date_fin_reelle = timezone.now()
-        if not tache.date_debut_reelle:
-            tache.date_debut_reelle = tache.date_fin_reelle
         tache.save()
         
-        # Notifier le responsable du projet
-        responsable_projet = projet.get_responsable_principal()
-        if responsable_projet and responsable_projet != user:
+        # Notifier UNIQUEMENT le responsable du module
+        responsable_module = module.affectations.filter(
+            role_module='RESPONSABLE',
+            date_fin_affectation__isnull=True
+        ).first()
+        
+        if responsable_module and responsable_module.utilisateur != user:
             NotificationModule.objects.create(
-                destinataire=responsable_projet,
+                destinataire=responsable_module.utilisateur,
                 module=module,
                 type_notification='TACHE_TERMINEE',
                 titre=f"✅ Tâche terminée: {tache.nom}",
-                message=f"{user.get_full_name()} a terminé la tâche '{tache.nom}' du module '{module.nom}'",
+                message=f"{user.get_full_name()} a terminé la tâche '{tache.nom}' dans votre module '{module.nom}'",
                 emetteur=user,
                 donnees_contexte={
                     'tache_id': str(tache.id),
@@ -1055,4 +1017,207 @@ def terminer_tache_module_view(request, projet_id, tache_id):
         return JsonResponse({
             'success': False,
             'error': f'Erreur lors de la terminaison : {str(e)}'
+        })
+
+
+@login_required
+@require_http_methods(["POST"])
+def mettre_en_pause_tache_module_view(request, projet_id, tache_id):
+    """Mettre en pause une tâche de module"""
+    user = request.user
+    projet = get_object_or_404(Projet, id=projet_id)
+    tache = get_object_or_404(TacheModule, id=tache_id, module__projet=projet)
+    module = tache.module
+    
+    # Vérifier l'accès au projet
+    if not user.est_super_admin():
+        if not user.a_acces_projet(projet) and projet.createur != user:
+            return JsonResponse({'success': False, 'error': 'Accès refusé au projet'})
+    
+    try:
+        # RÈGLE: Seul le responsable de la tâche peut la mettre en pause
+        if not tache.responsable:
+            return JsonResponse({'success': False, 'error': 'Cette tâche n\'a pas de responsable assigné'})
+        
+        if tache.responsable != user:
+            return JsonResponse({'success': False, 'error': 'Seul le responsable de la tâche peut la mettre en pause'})
+        
+        # Vérifier que la tâche est bien en cours
+        if tache.statut != 'EN_COURS':
+            return JsonResponse({'success': False, 'error': 'Cette tâche n\'est pas en cours'})
+        
+        # Mettre en pause
+        tache.statut = 'EN_PAUSE'
+        tache.save()
+        
+        # Audit
+        enregistrer_audit(
+            utilisateur=user,
+            type_action='PAUSE_TACHE_MODULE',
+            description=f'Mise en pause de la tâche "{tache.nom}"',
+            projet=projet,
+            request=request,
+            donnees_apres={
+                'tache_id': str(tache.id),
+                'tache_nom': tache.nom,
+                'statut': tache.statut
+            }
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Tâche mise en pause avec succès'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Erreur lors de la mise en pause : {str(e)}'
+        })
+
+
+@login_required
+@require_http_methods(["POST"])
+def transferer_tache_module_view(request, projet_id, tache_id):
+    """Transférer une tâche de module à un autre membre de l'équipe"""
+    user = request.user
+    projet = get_object_or_404(Projet, id=projet_id)
+    tache = get_object_or_404(TacheModule, id=tache_id, module__projet=projet)
+    module = tache.module
+    
+    # Vérifier l'accès au projet
+    if not user.est_super_admin():
+        if not user.a_acces_projet(projet) and projet.createur != user:
+            return JsonResponse({'success': False, 'error': 'Accès refusé au projet'})
+    
+    try:
+        # RÈGLE: Seul le responsable du module peut transférer une tâche
+        est_responsable_module = module.affectations.filter(
+            utilisateur=user,
+            role_module='RESPONSABLE',
+            date_fin_affectation__isnull=True
+        ).exists()
+        
+        # Super admin et créateur du projet peuvent aussi transférer
+        peut_transferer = user.est_super_admin() or projet.createur == user or est_responsable_module
+        
+        if not peut_transferer:
+            return JsonResponse({
+                'success': False,
+                'error': 'Seul le responsable du module peut transférer une tâche'
+            })
+        
+        # Récupérer le nouveau responsable
+        nouveau_responsable_id = request.POST.get('nouveau_responsable_id')
+        
+        if not nouveau_responsable_id:
+            return JsonResponse({
+                'success': False,
+                'error': 'Veuillez sélectionner un nouveau responsable'
+            })
+        
+        # Vérifier que le nouveau responsable existe et fait partie de l'équipe du module
+        try:
+            nouveau_responsable = Utilisateur.objects.get(id=nouveau_responsable_id)
+            
+            if not module.affectations.filter(
+                utilisateur=nouveau_responsable,
+                date_fin_affectation__isnull=True
+            ).exists():
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Le nouveau responsable doit faire partie de l\'équipe du module'
+                })
+        except Utilisateur.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': 'Nouveau responsable invalide'
+            })
+        
+        # Vérifier qu'on ne transfère pas à la même personne
+        if tache.responsable and tache.responsable.id == nouveau_responsable.id:
+            return JsonResponse({
+                'success': False,
+                'error': 'La tâche est déjà assignée à cette personne'
+            })
+        
+        # Sauvegarder l'ancien responsable
+        ancien_responsable = tache.responsable
+        
+        # Transférer la tâche
+        tache.responsable = nouveau_responsable
+        tache.save()
+        
+        # Créer une notification pour le nouveau responsable
+        if nouveau_responsable != user:
+            try:
+                NotificationModule.objects.create(
+                    destinataire=nouveau_responsable,
+                    module=module,
+                    type_notification='NOUVELLE_TACHE',
+                    titre=f"📋 Tâche transférée: {tache.nom}",
+                    message=f"{user.get_full_name()} vous a transféré la tâche '{tache.nom}' dans le module '{module.nom}'",
+                    emetteur=user,
+                    donnees_contexte={
+                        'tache_id': str(tache.id),
+                        'type_tache': 'module',
+                        'projet_id': str(projet.id),
+                        'module_id': module.id,
+                        'ancien_responsable': ancien_responsable.get_full_name() if ancien_responsable else None
+                    }
+                )
+            except Exception as e:
+                print(f"Erreur création notification transfert: {e}")
+        
+        # Notifier l'ancien responsable si différent de l'utilisateur actuel
+        if ancien_responsable and ancien_responsable != user and ancien_responsable != nouveau_responsable:
+            try:
+                NotificationModule.objects.create(
+                    destinataire=ancien_responsable,
+                    module=module,
+                    type_notification='TACHE_TERMINEE',
+                    titre=f"🔄 Tâche retirée: {tache.nom}",
+                    message=f"{user.get_full_name()} a transféré votre tâche '{tache.nom}' à {nouveau_responsable.get_full_name()}",
+                    emetteur=user,
+                    donnees_contexte={
+                        'tache_id': str(tache.id),
+                        'type_tache': 'module',
+                        'projet_id': str(projet.id),
+                        'module_id': module.id,
+                        'nouveau_responsable': nouveau_responsable.get_full_name()
+                    }
+                )
+            except Exception as e:
+                print(f"Erreur création notification ancien responsable: {e}")
+        
+        # Audit
+        enregistrer_audit(
+            utilisateur=user,
+            type_action='TRANSFERT_TACHE_MODULE',
+            description=f'Transfert de la tâche "{tache.nom}" de {ancien_responsable.get_full_name() if ancien_responsable else "Non assignée"} vers {nouveau_responsable.get_full_name()}',
+            projet=projet,
+            request=request,
+            donnees_apres={
+                'tache_id': str(tache.id),
+                'tache_nom': tache.nom,
+                'ancien_responsable': ancien_responsable.get_full_name() if ancien_responsable else None,
+                'nouveau_responsable': nouveau_responsable.get_full_name(),
+                'module_id': module.id,
+                'module_nom': module.nom
+            }
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Tâche transférée à {nouveau_responsable.get_full_name()} avec succès'
+        })
+        
+    except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"Erreur transfert tâche: {error_trace}")
+        
+        return JsonResponse({
+            'success': False,
+            'error': f'Erreur lors du transfert : {str(e)}'
         })
