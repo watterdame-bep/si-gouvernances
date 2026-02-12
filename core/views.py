@@ -468,10 +468,10 @@ def creer_projet_view(request):
     if request.method == 'POST':
         # Récupérer les données essentielles uniquement
         nom = request.POST.get('nom', '').strip()
-        description = request.POST.get('description', '').strip()
         client = request.POST.get('client', '').strip()
         statut_nom = request.POST.get('statut')
         priorite = request.POST.get('priorite', 'MOYENNE')
+        fichier_description = request.FILES.get('fichier_description')
         
         # Récupérer et convertir la durée en jours
         duree_valeur = request.POST.get('duree_valeur', '').strip()
@@ -499,8 +499,30 @@ def creer_projet_view(request):
         elif Projet.objects.filter(nom=nom).exists():
             errors.append('Ce nom de projet existe déjà.')
             
-        if not description:
-            errors.append('La description du projet est obligatoire.')
+        # Validation du fichier (seulement si fourni)
+        if fichier_description:
+            # Validation du fichier
+            max_size = 10 * 1024 * 1024  # 10 MB
+            allowed_extensions = ['.pdf', '.doc', '.docx']
+            allowed_content_types = [
+                'application/pdf',
+                'application/msword',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            ]
+            
+            # Vérifier la taille
+            if fichier_description.size > max_size:
+                errors.append('Le fichier est trop volumineux. Taille maximale : 10 MB')
+            
+            # Vérifier l'extension
+            import os
+            file_ext = os.path.splitext(fichier_description.name)[1].lower()
+            if file_ext not in allowed_extensions:
+                errors.append('Format de fichier non accepté. Utilisez PDF ou Word (.doc, .docx)')
+            
+            # Vérifier le type MIME
+            if fichier_description.content_type not in allowed_content_types:
+                errors.append('Type de fichier non valide.')
         
         if not duree_projet_jours or duree_projet_jours <= 0:
             errors.append('La durée du projet doit être supérieure à 0.')
@@ -521,7 +543,8 @@ def creer_projet_view(request):
                 # Créer le projet avec valeurs par défaut
                 projet = Projet.objects.create(
                     nom=nom,
-                    description=description,
+                    description='Voir fichier joint' if fichier_description else 'Description à compléter',
+                    fichier_description=fichier_description if fichier_description else None,
                     client=client if client else 'À définir',  # Valeur par défaut si vide
                     budget_previsionnel=Decimal('0'),  # Budget par défaut à 0
                     devise='EUR',
@@ -547,6 +570,7 @@ def creer_projet_view(request):
                         'statut': statut.nom,
                         'priorite': priorite,
                         'duree_projet': duree_projet_jours,
+                        'fichier_description': fichier_description.name if fichier_description else None,
                         'etapes_initialisees': True
                     }
                 )
@@ -566,6 +590,135 @@ def creer_projet_view(request):
     }
     
     return render(request, 'core/creer_projet.html', context)
+
+@login_required
+def telecharger_fichier_description_view(request, projet_id):
+    """Vue pour télécharger le fichier de description d'un projet de manière sécurisée"""
+    from django.http import FileResponse, Http404
+    import os
+    
+    # Récupérer le projet
+    projet = get_object_or_404(Projet, id=projet_id)
+    
+    # Vérifier les permissions d'accès au projet
+    user = request.user
+    if not user.est_super_admin():
+        if not user.a_acces_projet(projet) and projet.createur != user:
+            messages.error(request, 'Vous n\'avez pas accès à ce projet.')
+            return redirect('projets_list')
+    
+    # Vérifier que le fichier existe
+    if not projet.fichier_description:
+        raise Http404("Aucun fichier de description n'est disponible pour ce projet.")
+    
+    # Vérifier que le fichier existe physiquement
+    if not os.path.exists(projet.fichier_description.path):
+        raise Http404("Le fichier de description n'existe plus sur le serveur.")
+    
+    # Déterminer le type de contenu
+    file_ext = os.path.splitext(projet.fichier_description.name)[1].lower()
+    content_types = {
+        '.pdf': 'application/pdf',
+        '.doc': 'application/msword',
+        '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    }
+    content_type = content_types.get(file_ext, 'application/octet-stream')
+    
+    # Ouvrir et retourner le fichier
+    try:
+        response = FileResponse(
+            open(projet.fichier_description.path, 'rb'),
+            content_type=content_type
+        )
+        response['Content-Disposition'] = f'attachment; filename="{os.path.basename(projet.fichier_description.name)}"'
+        
+        # Audit
+        enregistrer_audit(
+            utilisateur=user,
+            type_action='TELECHARGEMENT_FICHIER',
+            description=f'Téléchargement du fichier de description du projet {projet.nom}',
+            projet=projet,
+            request=request
+        )
+        
+        return response
+    except Exception as e:
+        raise Http404(f"Erreur lors du téléchargement du fichier : {str(e)}")
+
+@require_super_admin
+def ajouter_fichier_description_view(request, projet_id):
+    """Vue pour ajouter ou modifier le fichier de description d'un projet (Admin uniquement)"""
+    import os
+    
+    projet = get_object_or_404(Projet, id=projet_id)
+    
+    if request.method == 'POST':
+        fichier_description = request.FILES.get('fichier_description')
+        
+        if not fichier_description:
+            messages.error(request, 'Veuillez sélectionner un fichier.')
+            return redirect('projet_detail', projet_id=projet.id)
+        
+        # Validation du fichier
+        max_size = 10 * 1024 * 1024  # 10 MB
+        allowed_extensions = ['.pdf', '.doc', '.docx']
+        allowed_content_types = [
+            'application/pdf',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        ]
+        
+        errors = []
+        
+        # Vérifier la taille
+        if fichier_description.size > max_size:
+            errors.append('Le fichier est trop volumineux. Taille maximale : 10 MB')
+        
+        # Vérifier l'extension
+        file_ext = os.path.splitext(fichier_description.name)[1].lower()
+        if file_ext not in allowed_extensions:
+            errors.append('Format de fichier non accepté. Utilisez PDF ou Word (.doc, .docx)')
+        
+        # Vérifier le type MIME
+        if fichier_description.content_type not in allowed_content_types:
+            errors.append('Type de fichier non valide.')
+        
+        if errors:
+            for error in errors:
+                messages.error(request, error)
+            return redirect('projet_detail', projet_id=projet.id)
+        
+        try:
+            # Supprimer l'ancien fichier s'il existe
+            if projet.fichier_description:
+                ancien_fichier = projet.fichier_description.path
+                if os.path.exists(ancien_fichier):
+                    os.remove(ancien_fichier)
+            
+            # Ajouter le nouveau fichier
+            projet.fichier_description = fichier_description
+            projet.description = 'Voir fichier joint'
+            projet.save()
+            
+            # Audit
+            enregistrer_audit(
+                utilisateur=request.user,
+                type_action='MODIFICATION_PROJET',
+                description=f'Ajout/modification du fichier de description du projet {projet.nom}',
+                projet=projet,
+                request=request,
+                donnees_apres={
+                    'fichier_description': fichier_description.name,
+                    'taille': fichier_description.size
+                }
+            )
+            
+            messages.success(request, 'Fichier de description ajouté avec succès !')
+            
+        except Exception as e:
+            messages.error(request, f'Erreur lors de l\'ajout du fichier : {str(e)}')
+    
+    return redirect('projet_detail', projet_id=projet.id)
 
 @require_super_admin
 def projet_cree_success_view(request):
@@ -2402,7 +2555,23 @@ def terminer_etape(request, projet_id, etape_id):
         })
         
     except ValidationError as e:
-        return JsonResponse({'success': False, 'error': str(e)})
+        # Extraire le message proprement (sans crochets ni guillemets)
+        if hasattr(e, 'message'):
+            error_message = e.message
+        elif hasattr(e, 'messages') and e.messages:
+            error_message = e.messages[0] if isinstance(e.messages, list) else str(e.messages)
+        else:
+            error_message = str(e).strip("[]'\"")
+        
+        # Détecter si c'est une erreur de tâches non terminées
+        if 'Impossible de terminer l\'étape' in error_message or 'ne sont pas terminées' in error_message:
+            return JsonResponse({
+                'success': False, 
+                'error': error_message,
+                'message': error_message,
+                'show_modal': True
+            })
+        return JsonResponse({'success': False, 'error': error_message})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
 
@@ -2991,7 +3160,14 @@ def supprimer_module_view(request, projet_id, module_id):
     
     user = request.user
     projet = get_object_or_404(Projet, id=projet_id)
-    module = get_object_or_404(ModuleProjet, id=module_id, etape__projet=projet)
+    module = get_object_or_404(ModuleProjet, id=module_id, etape_creation__projet=projet)
+    
+    # Vérifier si le module est clôturé
+    if module.est_cloture:
+        return JsonResponse({
+            'success': False,
+            'error': 'Impossible de supprimer un module clôturé.'
+        }, status=403)
     
     # Vérifier les permissions (Super Admin, Créateur ou Responsable principal)
     can_delete = user.est_super_admin() or projet.createur == user
@@ -3017,12 +3193,24 @@ def supprimer_module_view(request, projet_id, module_id):
         # Supprimer le module (les tâches seront supprimées en cascade)
         module.delete()
         
+        # Récupérer l'adresse IP de l'utilisateur
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            adresse_ip = x_forwarded_for.split(',')[0]
+        else:
+            adresse_ip = request.META.get('REMOTE_ADDR', '127.0.0.1')
+        
+        # Récupérer le user agent
+        user_agent = request.META.get('HTTP_USER_AGENT', 'Unknown')
+        
         # Créer une entrée d'audit
         ActionAudit.objects.create(
             utilisateur=user,
             projet=projet,
             type_action='SUPPRESSION_MODULE',
-            description=f'Suppression du module "{nom_module}"'
+            description=f'Suppression du module "{nom_module}"',
+            adresse_ip=adresse_ip,
+            user_agent=user_agent
         )
         
         return JsonResponse({
@@ -3034,6 +3222,114 @@ def supprimer_module_view(request, projet_id, module_id):
         return JsonResponse({
             'success': False,
             'error': f'Erreur lors de la suppression : {str(e)}'
+        }, status=500)
+
+@login_required
+def cloturer_module_view(request, projet_id, module_id):
+    """Vue de clôture d'un module"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Méthode non autorisée'}, status=405)
+    
+    user = request.user
+    projet = get_object_or_404(Projet, id=projet_id)
+    module = get_object_or_404(ModuleProjet, id=module_id, etape_creation__projet=projet)
+    
+    # Vérifier si le module est déjà clôturé
+    if module.est_cloture:
+        return JsonResponse({
+            'success': False,
+            'error': 'Ce module est déjà clôturé.'
+        }, status=400)
+    
+    # Vérifier les permissions (Super Admin, Créateur, Responsable principal ou Responsable du module)
+    can_close = user.est_super_admin() or projet.createur == user
+    
+    if not can_close:
+        # Vérifier si responsable principal du projet
+        affectation_projet = projet.affectations.filter(
+            utilisateur=user,
+            est_responsable_principal=True,
+            date_fin__isnull=True
+        ).first()
+        can_close = affectation_projet is not None
+    
+    if not can_close:
+        # Vérifier si responsable du module
+        affectation_module = module.affectations.filter(
+            utilisateur=user,
+            role_module='RESPONSABLE',
+            date_fin_affectation__isnull=True
+        ).first()
+        can_close = affectation_module is not None
+    
+    if not can_close:
+        return JsonResponse({
+            'success': False,
+            'error': 'Vous n\'avez pas les permissions pour clôturer ce module.'
+        }, status=403)
+    
+    try:
+        from django.utils import timezone
+        
+        # Clôturer le module
+        module.est_cloture = True
+        module.date_cloture = timezone.now()
+        module.cloture_par = user
+        module.save()
+        
+        # Récupérer l'adresse IP de l'utilisateur
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            adresse_ip = x_forwarded_for.split(',')[0]
+        else:
+            adresse_ip = request.META.get('REMOTE_ADDR', '127.0.0.1')
+        
+        # Récupérer le user agent
+        user_agent = request.META.get('HTTP_USER_AGENT', 'Unknown')
+        
+        # Créer une entrée d'audit
+        ActionAudit.objects.create(
+            utilisateur=user,
+            projet=projet,
+            type_action='CLOTURE_MODULE',
+            description=f'Clôture du module "{module.nom}"',
+            adresse_ip=adresse_ip,
+            user_agent=user_agent
+        )
+        
+        # Envoyer une notification au responsable du projet
+        # Récupérer le responsable principal du projet
+        responsable_principal = projet.affectations.filter(
+            est_responsable_principal=True,
+            date_fin__isnull=True
+        ).first()
+        
+        if responsable_principal and responsable_principal.utilisateur != user:
+            # Créer la notification pour le responsable du projet
+            NotificationModule.objects.create(
+                destinataire=responsable_principal.utilisateur,
+                module=module,
+                type_notification='MODULE_TERMINE',
+                titre=f'Module "{module.nom}" clôturé',
+                message=f'{user.get_full_name()} a clôturé le module "{module.nom}" du projet "{projet.nom}". Toutes les tâches ont été terminées.',
+                emetteur=user,
+                donnees_contexte={
+                    'projet_id': str(projet.id),
+                    'module_id': module.id,
+                    'date_cloture': module.date_cloture.isoformat(),
+                    'cloture_par': user.get_full_name()
+                }
+            )
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Le module "{module.nom}" a été clôturé avec succès.'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Erreur lors de la clôture : {str(e)}'
         }, status=500)
 
 @login_required
@@ -3939,8 +4235,11 @@ def notification_redirect_view(request, notification_id):
             if not notif.lue:
                 notif.marquer_comme_lue()
             
-            # Construire l'URL de redirection
-            if notif.projet:
+            # Utiliser le lien dans donnees_contexte si disponible
+            if notif.donnees_contexte and 'lien' in notif.donnees_contexte:
+                redirect_url = notif.donnees_contexte['lien']
+            elif notif.projet:
+                # Fallback vers la page du projet
                 redirect_url = f'/projets/{notif.projet.id}/'
             
             return redirect(redirect_url)
@@ -5392,6 +5691,28 @@ def mes_modules_view(request, projet_id):
         date_fin_affectation__isnull=True
     ).select_related('module').prefetch_related('module__taches')
     
+    # Enrichir chaque affectation avec les informations de clôture
+    affectations_enrichies = []
+    for affectation in mes_affectations:
+        module = affectation.module
+        total_taches = module.taches.count()
+        taches_terminees = module.taches.filter(statut='TERMINEE').count()
+        
+        # Déterminer si l'utilisateur peut clôturer ce module
+        peut_cloturer = (
+            affectation.role_module == 'RESPONSABLE' and 
+            not module.est_cloture and
+            total_taches > 0 and
+            total_taches == taches_terminees
+        )
+        
+        # Ajouter les informations calculées à l'affectation
+        affectation.total_taches = total_taches
+        affectation.taches_terminees = taches_terminees
+        affectation.taches_restantes = total_taches - taches_terminees
+        affectation.peut_cloturer = peut_cloturer
+        affectations_enrichies.append(affectation)
+    
     # Récupérer les tâches privées de l'utilisateur dans ces modules
     mes_taches = TacheModule.objects.filter(
         module__projet=projet,
@@ -5400,7 +5721,7 @@ def mes_modules_view(request, projet_id):
     
     context = {
         'projet': projet,
-        'mes_affectations': mes_affectations,
+        'mes_affectations': affectations_enrichies,
         'mes_taches': mes_taches,
         'peut_creer_taches': True,
     }

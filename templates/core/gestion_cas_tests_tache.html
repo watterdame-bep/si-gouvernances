@@ -29,10 +29,22 @@
                         <i class="fas fa-plus mr-2"></i>Nouveau Cas
                     </button>
                     {% endif %}
+                    {% if request.GET.from == 'mes_tests' %}
+                    <a href="{% url 'mes_taches' projet.id %}" 
+                       class="inline-flex items-center px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md font-medium text-sm transition-colors">
+                        <i class="fas fa-arrow-left mr-2"></i>Retour à Mes Tests
+                    </a>
+                    {% elif request.GET.from == 'mes_taches' %}
+                    <a href="{% url 'mes_taches' projet.id %}" 
+                       class="inline-flex items-center px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md font-medium text-sm transition-colors">
+                        <i class="fas fa-arrow-left mr-2"></i>Retour à Mes Tâches
+                    </a>
+                    {% else %}
                     <a href="{% url 'gestion_taches_etape' projet.id etape.id %}" 
                        class="inline-flex items-center px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md font-medium text-sm transition-colors">
                         <i class="fas fa-arrow-left mr-2"></i>Retour
                     </a>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -234,17 +246,15 @@
                                         <i class="fas fa-eye text-sm"></i>
                                     </button>
                                     
-                                    {% if cas.statut != 'PASSE' %}
-                                    <!-- Bouton Marquer comme Passé -->
+                                    {% if cas.statut != 'PASSE' and cas.statut != 'ECHEC' %}
+                                    <!-- Bouton Marquer comme Passé (seulement si pas encore exécuté) -->
                                     <button onclick="executerCas('{{ cas.id }}', 'PASSE', '{{ cas.nom|escapejs }}')"
                                             class="text-green-600 hover:text-green-800 p-1.5 rounded transition-colors"
                                             title="Marquer comme réussi">
                                         <i class="fas fa-check text-sm"></i>
                                     </button>
-                                    {% endif %}
                                     
-                                    {% if cas.statut != 'ECHEC' %}
-                                    <!-- Bouton Marquer comme Échoué -->
+                                    <!-- Bouton Marquer comme Échoué (seulement si pas encore exécuté) -->
                                     <button onclick="executerCas('{{ cas.id }}', 'ECHEC', '{{ cas.nom|escapejs }}')"
                                             class="text-red-600 hover:text-red-800 p-1.5 rounded transition-colors"
                                             title="Marquer comme échoué">

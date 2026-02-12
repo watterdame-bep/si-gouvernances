@@ -145,6 +145,13 @@ def creer_tache_module_nouvelle_view(request, projet_id, module_id):
     projet = get_object_or_404(Projet, id=projet_id)
     module = get_object_or_404(ModuleProjet, id=module_id, projet=projet)
     
+    # Vérifier si le module est clôturé
+    if module.est_cloture:
+        return JsonResponse({
+            'success': False,
+            'error': 'Impossible de créer une tâche dans un module clôturé.'
+        })
+    
     # Vérifier les permissions
     peut_creer_taches = False
     

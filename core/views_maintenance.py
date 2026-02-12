@@ -28,10 +28,9 @@ def gestion_contrats_view(request, projet_id):
     user = request.user
     projet = get_object_or_404(Projet, id=projet_id)
     
-    # Vérifier les permissions
+    # Vérifier les permissions d'accès
     if not user.est_super_admin():
-        role_projet = user.get_role_sur_projet(projet)
-        if not role_projet or role_projet.nom != 'RESPONSABLE_PRINCIPAL':
+        if not user.a_acces_projet(projet) and projet.createur != user:
             messages.error(request, 'Vous n\'avez pas accès à ce projet.')
             return redirect('projets_list')
     
@@ -42,12 +41,15 @@ def gestion_contrats_view(request, projet_id):
     contrats_actifs = [c for c in contrats if c.est_actif]
     contrats_expires = [c for c in contrats if not c.est_actif]
     
+    # RÈGLE DE GOUVERNANCE : Seul l'Admin peut créer/modifier des contrats
+    peut_creer_contrat = user.est_super_admin()
+    
     context = {
         'projet': projet,
         'contrats': contrats,
         'contrats_actifs': contrats_actifs,
         'contrats_expires': contrats_expires,
-        'peut_creer': True,  # Chef projet ou Admin
+        'peut_creer': peut_creer_contrat,
     }
     
     return render(request, 'core/gestion_contrats.html', context)
@@ -59,10 +61,9 @@ def creer_contrat_view(request, projet_id):
     user = request.user
     projet = get_object_or_404(Projet, id=projet_id)
     
-    # Vérifier les permissions
-    role_projet = user.get_role_sur_projet(projet)
-    if not user.est_super_admin() and not (role_projet and role_projet.nom == 'RESPONSABLE_PRINCIPAL'):
-        messages.error(request, 'Permissions insuffisantes.')
+    # RÈGLE DE GOUVERNANCE : Seul l'Administrateur peut créer un contrat
+    if not user.est_super_admin():
+        messages.error(request, 'Permissions insuffisantes. Seul l\'Administrateur peut créer un contrat de maintenance.')
         return redirect('gestion_contrats', projet_id=projet.id)
     
     # GET: Afficher le formulaire
@@ -123,10 +124,9 @@ def gestion_tickets_view(request, projet_id):
     user = request.user
     projet = get_object_or_404(Projet, id=projet_id)
     
-    # Vérifier les permissions
+    # Vérifier les permissions d'accès
     if not user.est_super_admin():
-        role_projet = user.get_role_sur_projet(projet)
-        if not role_projet and not user.a_acces_projet(projet):
+        if not user.a_acces_projet(projet) and projet.createur != user:
             messages.error(request, 'Vous n\'avez pas accès à ce projet.')
             return redirect('projets_list')
     
@@ -159,12 +159,17 @@ def gestion_tickets_view(request, projet_id):
     # Contrats actifs pour création
     contrats_actifs = [c for c in projet.contrats_garantie.all() if c.est_actif]
     
+    # RÈGLE DE GOUVERNANCE : Seuls Admin et Responsable du projet peuvent créer un ticket
+    responsable_projet = projet.get_responsable_principal()
+    peut_creer_ticket = user.est_super_admin() or (responsable_projet and responsable_projet == user)
+    
     context = {
         'projet': projet,
         'tickets': tickets,
         'stats': stats,
         'contrats_actifs': contrats_actifs,
-        'peut_creer': True,
+        'peut_creer': peut_creer_ticket,
+        'a_contrat_actif': len(contrats_actifs) > 0,
     }
     
     return render(request, 'core/gestion_tickets.html', context)
@@ -176,10 +181,23 @@ def creer_ticket_view(request, projet_id):
     user = request.user
     projet = get_object_or_404(Projet, id=projet_id)
     
+    # RÈGLE DE GOUVERNANCE 1 : Seuls Admin et Responsable du projet peuvent créer un ticket
+    responsable_projet = projet.get_responsable_principal()
+    peut_creer = user.est_super_admin() or (responsable_projet and responsable_projet == user)
+    
+    if not peut_creer:
+        messages.error(request, 'Permissions insuffisantes. Seuls l\'Administrateur et le Responsable du projet peuvent créer un ticket de maintenance.')
+        return redirect('gestion_tickets', projet_id=projet.id)
+    
+    # RÈGLE DE GOUVERNANCE 2 : Vérifier qu'il existe un contrat actif
+    contrats_actifs = [c for c in projet.contrats_garantie.all() if c.est_actif]
+    
+    if not contrats_actifs:
+        messages.error(request, 'Impossible de créer un ticket : aucun contrat de maintenance actif pour ce projet.')
+        return redirect('gestion_tickets', projet_id=projet.id)
+    
     # GET: Afficher le formulaire
     if request.method == 'GET':
-        contrats_actifs = [c for c in projet.contrats_garantie.all() if c.est_actif]
-        
         context = {
             'projet': projet,
             'contrats_actifs': contrats_actifs,
@@ -203,6 +221,10 @@ def creer_ticket_view(request, projet_id):
         contrat = None
         if contrat_id:
             contrat = get_object_or_404(ContratGarantie, id=contrat_id, projet=projet)
+            # Vérifier que le contrat est actif
+            if not contrat.est_actif:
+                messages.error(request, 'Le contrat sélectionné n\'est plus actif.')
+                return redirect('creer_ticket', projet_id=projet.id)
         
         # Créer le ticket
         ticket = TicketMaintenance.objects.create(

@@ -93,29 +93,51 @@ class ContratGarantie(models.Model):
 
 class TicketMaintenance(models.Model):
     """
-    Ticket de maintenance (incident)
-    Point d'entrée pour toute demande de maintenance
+    Ticket de maintenance SIMPLIFIÉ
+    Unité unique de travail - Inspiré de Jira/GitHub Issues
     """
-    GRAVITE_CHOICES = [
-        ('MINEUR', 'Mineur'),
-        ('MAJEUR', 'Majeur'),
+    
+    # Types de demande
+    TYPE_DEMANDE_CHOICES = [
+        ('BUG', '🐛 Bug / Anomalie'),
+        ('AMELIORATION', '✨ Amélioration'),
+        ('QUESTION', '❓ Question / Support'),
+        ('AUTRE', '📋 Autre'),
+    ]
+    
+    # Priorités
+    PRIORITE_CHOICES = [
+        ('BASSE', 'Basse'),
+        ('NORMALE', 'Normale'),
+        ('HAUTE', 'Haute'),
         ('CRITIQUE', 'Critique'),
     ]
     
+    # Gravité (impact)
+    GRAVITE_CHOICES = [
+        ('MINEUR', 'Mineur - Impact faible'),
+        ('MAJEUR', 'Majeur - Impact modéré'),
+        ('CRITIQUE', 'Critique - Impact sévère'),
+        ('BLOQUANT', 'Bloquant - Système inutilisable'),
+    ]
+    
+    # Origine
     ORIGINE_CHOICES = [
         ('CLIENT', 'Client'),
         ('MONITORING', 'Monitoring'),
         ('INTERNE', 'Interne'),
     ]
     
+    # Statuts
     STATUT_CHOICES = [
-        ('OUVERT', 'Ouvert'),
-        ('EN_COURS', 'En cours'),
-        ('RESOLU', 'Résolu'),
-        ('FERME', 'Fermé'),
-        ('REJETE', 'Rejeté'),
+        ('OUVERT', '🆕 Ouvert'),
+        ('EN_COURS', '🔵 En cours'),
+        ('RESOLU', '✅ Résolu'),
+        ('FERME', '🔒 Fermé'),
+        ('REJETE', '❌ Rejeté'),
     ]
     
+    # Identification
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     numero_ticket = models.CharField(max_length=20, unique=True, editable=False)
     
@@ -124,54 +146,142 @@ class TicketMaintenance(models.Model):
     contrat_garantie = models.ForeignKey(
         ContratGarantie, 
         on_delete=models.SET_NULL, 
-        null=True, 
-        blank=True,
-        related_name='tickets'
+        null=True,
+        related_name='tickets',
+        verbose_name="Contrat de garantie"
     )
     
-    # Description du problème
-    titre = models.CharField(max_length=200, verbose_name="Titre du problème")
+    # Description
+    titre = models.CharField(max_length=200, verbose_name="Titre")
     description_probleme = models.TextField(verbose_name="Description détaillée")
-    gravite = models.CharField(max_length=20, choices=GRAVITE_CHOICES)
-    origine = models.CharField(max_length=20, choices=ORIGINE_CHOICES)
     
-    # Statut et suivi
-    statut = models.CharField(max_length=20, choices=STATUT_CHOICES, default='OUVERT')
-    est_payant = models.BooleanField(
-        default=False,
-        verbose_name="Intervention payante",
-        help_text="True si hors garantie ou garantie inactive"
+    # Classification
+    type_demande = models.CharField(
+        max_length=20, 
+        choices=TYPE_DEMANDE_CHOICES,
+        default='BUG',
+        verbose_name="Type de demande"
+    )
+    priorite = models.CharField(
+        max_length=20, 
+        choices=PRIORITE_CHOICES,
+        default='NORMALE',
+        verbose_name="Priorité"
+    )
+    gravite = models.CharField(
+        max_length=20, 
+        choices=GRAVITE_CHOICES,
+        default='MAJEUR',
+        verbose_name="Gravité"
+    )
+    origine = models.CharField(max_length=20, choices=ORIGINE_CHOICES, default='CLIENT')
+    
+    # Statut et workflow
+    statut = models.CharField(
+        max_length=20, 
+        choices=STATUT_CHOICES, 
+        default='OUVERT',
+        verbose_name="Statut"
+    )
+    
+    # Assignation (ManyToMany pour permettre plusieurs développeurs)
+    assignes_a = models.ManyToManyField(
+        'Utilisateur',
+        blank=True,
+        related_name='tickets_assignes',
+        verbose_name="Assigné à"
+    )
+    
+    # Suivi temporel
+    date_creation = models.DateTimeField(auto_now_add=True, verbose_name="Date de création")
+    date_debut_travail = models.DateTimeField(
+        null=True, 
+        blank=True,
+        verbose_name="Date de début du travail"
+    )
+    date_resolution = models.DateTimeField(
+        null=True, 
+        blank=True,
+        verbose_name="Date de résolution"
+    )
+    date_fermeture = models.DateTimeField(
+        null=True, 
+        blank=True,
+        verbose_name="Date de fermeture"
+    )
+    
+    # Estimation et suivi du temps
+    temps_estime = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name="Temps estimé (heures)",
+        help_text="Estimation initiale du temps nécessaire"
+    )
+    temps_passe = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=0,
+        verbose_name="Temps passé (heures)",
+        help_text="Temps réel passé sur le ticket"
+    )
+    
+    # Résolution
+    solution = models.TextField(
+        blank=True,
+        verbose_name="Solution apportée",
+        help_text="Description de la solution et des actions effectuées"
+    )
+    fichiers_modifies = models.TextField(
+        blank=True,
+        verbose_name="Fichiers modifiés",
+        help_text="Liste des fichiers modifiés (un par ligne)"
+    )
+    
+    # Garantie
+    est_sous_garantie = models.BooleanField(
+        default=True,
+        verbose_name="Sous garantie",
+        help_text="True si couvert par un contrat actif"
     )
     raison_rejet = models.TextField(
         blank=True,
-        verbose_name="Raison du rejet",
-        help_text="Pourquoi le ticket a été rejeté"
+        verbose_name="Raison hors garantie",
+        help_text="Pourquoi le ticket n'est pas couvert"
     )
     
-    # Dates
-    date_creation = models.DateTimeField(auto_now_add=True)
-    date_resolution = models.DateTimeField(null=True, blank=True)
-    date_fermeture = models.DateTimeField(null=True, blank=True)
-    
-    # Acteurs
+    # Métadonnées
     cree_par = models.ForeignKey(
         'Utilisateur', 
         on_delete=models.SET_NULL, 
         null=True,
-        related_name='tickets_crees'
+        related_name='tickets_crees',
+        verbose_name="Créé par"
     )
-    assigne_a = models.ForeignKey(
+    modifie_par = models.ForeignKey(
         'Utilisateur',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='tickets_assignes'
+        related_name='tickets_modifies',
+        verbose_name="Modifié par"
+    )
+    date_modification = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Date de modification"
     )
     
     class Meta:
         verbose_name = "Ticket de Maintenance"
         verbose_name_plural = "Tickets de Maintenance"
         ordering = ['-date_creation']
+        indexes = [
+            models.Index(fields=['numero_ticket']),
+            models.Index(fields=['statut']),
+            models.Index(fields=['priorite']),
+            models.Index(fields=['-date_creation']),
+        ]
     
     def __str__(self):
         return f"{self.numero_ticket} - {self.titre}"
@@ -179,8 +289,6 @@ class TicketMaintenance(models.Model):
     def save(self, *args, **kwargs):
         # Générer le numéro de ticket
         if not self.numero_ticket:
-            from django.db.models import Max
-            dernier = TicketMaintenance.objects.aggregate(Max('id'))
             count = TicketMaintenance.objects.count() + 1
             self.numero_ticket = f"MAINT-{count:05d}"
         
@@ -193,33 +301,21 @@ class TicketMaintenance(models.Model):
     def _verifier_garantie(self):
         """
         RÈGLE MÉTIER CRITIQUE:
-        Vérifier si le ticket peut être traité gratuitement
+        Vérifier si le ticket est couvert par la garantie
         """
         if not self.contrat_garantie:
-            # Pas de contrat → payant
-            self.est_payant = True
+            self.est_sous_garantie = False
+            self.raison_rejet = "Aucun contrat de garantie associé"
             return
         
         if not self.contrat_garantie.est_actif:
-            # Contrat inactif → payant
-            self.est_payant = True
-            self.raison_rejet = "Contrat de garantie expiré"
+            self.est_sous_garantie = False
+            self.raison_rejet = f"Contrat de garantie expiré (fin: {self.contrat_garantie.date_fin})"
             return
         
-        # Contrat actif → gratuit
-        self.est_payant = False
-    
-    @property
-    def peut_etre_traite(self):
-        """Vérifie si le ticket peut être traité"""
-        if self.statut == 'REJETE':
-            return False
-        
-        if self.est_payant:
-            # Logique future: vérifier si paiement accepté
-            return False
-        
-        return True
+        # Contrat actif → sous garantie
+        self.est_sous_garantie = True
+        self.raison_rejet = ""
     
     @property
     def temps_ecoule(self):
@@ -238,25 +334,111 @@ class TicketMaintenance(models.Model):
         
         return self.temps_ecoule > self.contrat_garantie.sla_heures
     
-    def resoudre(self):
+    @property
+    def temps_restant_estime(self):
+        """Calcule le temps restant estimé"""
+        if not self.temps_estime:
+            return None
+        return max(0, float(self.temps_estime) - float(self.temps_passe))
+    
+    @property
+    def pourcentage_avancement(self):
+        """Calcule le pourcentage d'avancement basé sur le temps"""
+        if not self.temps_estime or self.temps_estime == 0:
+            return 0
+        return min(100, int((float(self.temps_passe) / float(self.temps_estime)) * 100))
+    
+    def demarrer_travail(self, utilisateur):
+        """Démarrer le travail sur le ticket"""
+        if self.statut == 'OUVERT':
+            self.statut = 'EN_COURS'
+            self.date_debut_travail = timezone.now()
+            self.modifie_par = utilisateur
+            self.save()
+            
+            # Créer un commentaire automatique
+            CommentaireTicket.objects.create(
+                ticket=self,
+                auteur=utilisateur,
+                contenu=f"🔵 Travail démarré sur le ticket",
+                est_interne=False
+            )
+    
+    def resoudre(self, utilisateur, solution, fichiers_modifies=""):
         """Marquer le ticket comme résolu"""
+        if not solution:
+            raise ValidationError("Une solution doit être fournie pour résoudre le ticket")
+        
         self.statut = 'RESOLU'
         self.date_resolution = timezone.now()
+        self.solution = solution
+        self.fichiers_modifies = fichiers_modifies
+        self.modifie_par = utilisateur
         self.save()
+        
+        # Créer un commentaire automatique
+        CommentaireTicket.objects.create(
+            ticket=self,
+            auteur=utilisateur,
+            contenu=f"✅ Ticket résolu\n\nSolution: {solution[:200]}...",
+            est_interne=False
+        )
     
-    def fermer(self):
+    def fermer(self, utilisateur):
         """Fermer le ticket (après validation client)"""
         if self.statut != 'RESOLU':
             raise ValidationError("Le ticket doit être résolu avant d'être fermé")
         
         self.statut = 'FERME'
         self.date_fermeture = timezone.now()
+        self.modifie_par = utilisateur
         self.save()
+        
+        # Créer un commentaire automatique
+        CommentaireTicket.objects.create(
+            ticket=self,
+            auteur=utilisateur,
+            contenu=f"🔒 Ticket fermé et validé",
+            est_interne=False
+        )
     
-    def rejeter(self, raison):
+    def rejeter(self, utilisateur, raison):
         """Rejeter le ticket"""
+        if not raison:
+            raise ValidationError("Une raison doit être fournie pour rejeter le ticket")
+        
         self.statut = 'REJETE'
         self.raison_rejet = raison
+        self.modifie_par = utilisateur
+        self.save()
+        
+        # Créer un commentaire automatique
+        CommentaireTicket.objects.create(
+            ticket=self,
+            auteur=utilisateur,
+            contenu=f"❌ Ticket rejeté\n\nRaison: {raison}",
+            est_interne=False
+        )
+    
+    def assigner(self, utilisateurs, assigne_par):
+        """Assigner le ticket à un ou plusieurs développeurs"""
+        self.assignes_a.set(utilisateurs)
+        self.modifie_par = assigne_par
+        self.save()
+        
+        # Créer un commentaire automatique
+        noms = ", ".join([u.get_full_name() for u in utilisateurs])
+        CommentaireTicket.objects.create(
+            ticket=self,
+            auteur=assigne_par,
+            contenu=f"👤 Ticket assigné à: {noms}",
+            est_interne=False
+        )
+    
+    def ajouter_temps(self, heures, utilisateur):
+        """Ajouter du temps passé sur le ticket"""
+        self.temps_passe += heures
+        self.modifie_par = utilisateur
         self.save()
 
 
@@ -404,16 +586,138 @@ class InterventionMaintenance(models.Model):
                 pass  # On pourrait lever un warning
 
 
+class CommentaireTicket(models.Model):
+    """
+    Commentaires et historique du ticket
+    Permet le suivi des échanges et des actions
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # Relations
+    ticket = models.ForeignKey(
+        TicketMaintenance,
+        on_delete=models.CASCADE,
+        related_name='commentaires',
+        verbose_name="Ticket"
+    )
+    auteur = models.ForeignKey(
+        'Utilisateur',
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='commentaires_tickets',
+        verbose_name="Auteur"
+    )
+    
+    # Contenu
+    contenu = models.TextField(verbose_name="Commentaire")
+    
+    # Visibilité
+    est_interne = models.BooleanField(
+        default=False,
+        verbose_name="Commentaire interne",
+        help_text="Si True, visible seulement par l'équipe technique"
+    )
+    
+    # Pièce jointe (optionnel)
+    fichier = models.FileField(
+        upload_to='tickets/commentaires/',
+        null=True,
+        blank=True,
+        verbose_name="Pièce jointe"
+    )
+    
+    # Métadonnées
+    date_creation = models.DateTimeField(auto_now_add=True, verbose_name="Date de création")
+    modifie = models.BooleanField(default=False, verbose_name="Modifié")
+    date_modification = models.DateTimeField(null=True, blank=True, verbose_name="Date de modification")
+    
+    class Meta:
+        verbose_name = "Commentaire de Ticket"
+        verbose_name_plural = "Commentaires de Tickets"
+        ordering = ['date_creation']
+    
+    def __str__(self):
+        return f"Commentaire sur {self.ticket.numero_ticket} par {self.auteur}"
+    
+    def modifier(self, nouveau_contenu):
+        """Modifier le commentaire"""
+        self.contenu = nouveau_contenu
+        self.modifie = True
+        self.date_modification = timezone.now()
+        self.save()
+
+
+class PieceJointeTicket(models.Model):
+    """
+    Pièces jointes liées à un ticket
+    Captures d'écran, logs, fichiers de configuration, etc.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # Relations
+    ticket = models.ForeignKey(
+        TicketMaintenance,
+        on_delete=models.CASCADE,
+        related_name='pieces_jointes',
+        verbose_name="Ticket"
+    )
+    uploade_par = models.ForeignKey(
+        'Utilisateur',
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='pieces_jointes_uploadees',
+        verbose_name="Uploadé par"
+    )
+    
+    # Fichier
+    fichier = models.FileField(
+        upload_to='tickets/pieces_jointes/',
+        verbose_name="Fichier"
+    )
+    nom_fichier = models.CharField(max_length=255, verbose_name="Nom du fichier")
+    taille_fichier = models.IntegerField(verbose_name="Taille (octets)")
+    type_mime = models.CharField(max_length=100, blank=True, verbose_name="Type MIME")
+    
+    # Description
+    description = models.TextField(
+        blank=True,
+        verbose_name="Description",
+        help_text="Description optionnelle de la pièce jointe"
+    )
+    
+    # Métadonnées
+    date_upload = models.DateTimeField(auto_now_add=True, verbose_name="Date d'upload")
+    
+    class Meta:
+        verbose_name = "Pièce Jointe"
+        verbose_name_plural = "Pièces Jointes"
+        ordering = ['-date_upload']
+    
+    def __str__(self):
+        return f"{self.nom_fichier} - {self.ticket.numero_ticket}"
+    
+    def save(self, *args, **kwargs):
+        if self.fichier:
+            self.nom_fichier = self.fichier.name
+            self.taille_fichier = self.fichier.size
+        super().save(*args, **kwargs)
+
+
+# ============================================================================
+# ANCIENS MODÈLES - CONSERVÉS POUR COMPATIBILITÉ (À SUPPRIMER APRÈS MIGRATION)
+# ============================================================================
+
 class StatutTechnique(models.Model):
     """
     Rapport technique final (obligatoire)
     RÈGLE: Un ticket ne peut être clôturé sans statut technique
+    ⚠️ ANCIEN MODÈLE - À SUPPRIMER APRÈS MIGRATION
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     
     # Relation (OneToOne car un seul statut par intervention)
     intervention = models.OneToOneField(
-        InterventionMaintenance,
+        'InterventionMaintenance',
         on_delete=models.CASCADE,
         related_name='statut_technique'
     )
@@ -482,4 +786,7 @@ class StatutTechnique(models.Model):
         self.save()
         
         # Marquer le ticket comme résolu
-        self.intervention.billet.ticket.resoudre()
+        ticket = self.intervention.billet.ticket
+        ticket.statut = 'RESOLU'
+        ticket.date_resolution = timezone.now()
+        ticket.save()

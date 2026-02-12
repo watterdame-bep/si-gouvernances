@@ -20,13 +20,26 @@
         
         {% for tache in mes_taches_etape %}
         <div class="border-b py-2">
-            <h3 class="font-medium">{{ tache.nom }}</h3>
-            <p class="text-sm text-gray-600">{{ tache.description|truncatewords:10 }}</p>
-            <p class="text-xs text-gray-500">
-                Statut: {{ tache.statut }} | 
-                Priorité: {{ tache.priorite }} | 
-                Progression: {{ tache.pourcentage_completion|default:0 }}%
-            </p>
+            <div class="flex items-center justify-between">
+                <div class="flex-1">
+                    <h3 class="font-medium">{{ tache.nom }}</h3>
+                    <p class="text-sm text-gray-600">{{ tache.description|truncatewords:10 }}</p>
+                    <p class="text-xs text-gray-500">
+                        Statut: {{ tache.statut }} | 
+                        Priorité: {{ tache.priorite }} | 
+                        Progression: {{ tache.pourcentage_completion|default:0 }}%
+                    </p>
+                </div>
+                {% if tache.etape.type_etape.nom == 'TESTS' %}
+                <div class="ml-4">
+                    <a href="{% url 'gestion_cas_tests_tache' projet.id tache.etape.id tache.id %}?from=mes_tests" 
+                       class="inline-flex items-center px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-medium rounded transition-colors"
+                       title="Accéder aux cas de test">
+                        <i class="fas fa-vial mr-1"></i>Cas de Test
+                    </a>
+                </div>
+                {% endif %}
+            </div>
         </div>
         {% empty %}
         <p class="text-gray-500">Aucune tâche d'étape assignée.</p>

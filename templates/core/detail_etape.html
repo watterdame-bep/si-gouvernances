@@ -36,7 +36,7 @@
 
         <!-- Statistiques Rapides - Professional Cards (masquées pour MAINTENANCE) -->
         {% if etape.type_etape.nom != 'MAINTENANCE' %}
-        <div class="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="grid gap-4 grid-cols-1 sm:grid-cols-2 {% if etape.type_etape.nom == 'DEVELOPPEMENT' %}lg:grid-cols-4{% else %}lg:grid-cols-3{% endif %}">
             <!-- Card Statut -->
             <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200 text-center">
                 <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-3">
@@ -60,7 +60,8 @@
                 <div class="text-xs text-blue-600 font-medium mt-1">{{ stats.progression_etape }}%</div>
             </div>
             
-            <!-- Card Tâches de Modules -->
+            <!-- Card Tâches de Modules (uniquement pour l'étape DEVELOPPEMENT) -->
+            {% if etape.type_etape.nom == 'DEVELOPPEMENT' %}
             <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200 text-center">
                 <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-3">
                     <i class="fas fa-puzzle-piece text-purple-600"></i>
@@ -69,6 +70,7 @@
                 <div class="text-xs text-gray-600">Tâches de Modules</div>
                 <div class="text-xs text-purple-600 font-medium mt-1">{{ stats.progression_modules }}%</div>
             </div>
+            {% endif %}
             
             <!-- Card Progression Globale -->
             <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg p-4 shadow-sm border-2 border-green-200 text-center">
@@ -196,6 +198,7 @@
                                 </span>
                                 <span class="font-semibold text-blue-900">{{ stats.taches_etape_terminees }}/{{ stats.total_taches_etape }} ({{ stats.progression_etape }}%)</span>
                             </div>
+                            {% if etape.type_etape.nom == 'DEVELOPPEMENT' %}
                             <div class="flex items-center justify-between">
                                 <span class="text-blue-700 flex items-center">
                                     <i class="fas fa-puzzle-piece mr-2"></i>
@@ -203,6 +206,7 @@
                                 </span>
                                 <span class="font-semibold text-blue-900">{{ stats.taches_modules_terminees }}/{{ stats.total_taches_modules }} ({{ stats.progression_modules }}%)</span>
                             </div>
+                            {% endif %}
                         </div>
                     </div>
                     

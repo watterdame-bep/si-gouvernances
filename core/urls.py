@@ -6,7 +6,9 @@ from . import views_admin_profile
 from . import views_tests
 from . import views_deploiement
 from . import views_maintenance
+from . import views_maintenance_v2  # Nouvelles vues simplifiées
 from . import views_demarrage_projet
+from . import views_alertes  # Vues pour les alertes
 
 urlpatterns = [
     path('', views.dashboard_view, name='dashboard'),
@@ -17,6 +19,8 @@ urlpatterns = [
     path('projets/creer/', views.creer_projet_view, name='creer_projet'),
     path('projets/cree-success/', views.projet_cree_success_view, name='projet_cree_success'),
     path('projets/<uuid:projet_id>/', views.projet_detail_view, name='projet_detail'),
+    path('projets/<uuid:projet_id>/fichier-description/', views.telecharger_fichier_description_view, name='telecharger_fichier_description'),
+    path('projets/<uuid:projet_id>/ajouter-fichier-description/', views.ajouter_fichier_description_view, name='ajouter_fichier_description'),
     path('projets/<uuid:projet_id>/modifier-budget/', views.modifier_budget_projet, name='modifier_budget_projet'),
     path('projets/<uuid:projet_id>/modifier/', views.modifier_projet_view, name='modifier_projet'),
     path('projets/<uuid:projet_id>/parametres/', views.parametres_projet_view, name='parametres_projet'),
@@ -131,12 +135,22 @@ urlpatterns = [
     path('notifications/<int:notification_id>/lue/', views.marquer_notification_lue, name='marquer_notification_lue'),
     path('notifications/<int:notification_id>/redirect/', views.notification_redirect_view, name='notification_redirect'),
     
+    # ========================================================================
+    # ALERTES PROJETS
+    # ========================================================================
+    path('alertes/', views_alertes.alertes_view, name='alertes'),
+    path('alertes/<int:alerte_id>/lue/', views_alertes.marquer_alerte_lue, name='marquer_alerte_lue'),
+    path('alertes/marquer-toutes-lues/', views_alertes.marquer_toutes_alertes_lues, name='marquer_toutes_alertes_lues'),
+    path('api/alertes/count/', views_alertes.api_alertes_count, name='api_alertes_count'),
+    path('api/alertes/list/', views_alertes.api_alertes_list, name='api_alertes_list'),
+    
     # Gestion des modules
     path('projets/<uuid:projet_id>/modules/', views.gestion_modules_view, name='gestion_modules'),
     path('projets/<uuid:projet_id>/modules/creer/', views.creer_module_view, name='creer_module'),
     path('projets/<uuid:projet_id>/modules/<int:module_id>/', views.detail_module_view, name='detail_module'),
     path('projets/<uuid:projet_id>/modules/<int:module_id>/modifier/', views.modifier_module_view, name='modifier_module'),
     path('projets/<uuid:projet_id>/modules/<int:module_id>/supprimer/', views.supprimer_module_view, name='supprimer_module'),
+    path('projets/<uuid:projet_id>/modules/<int:module_id>/cloturer/', views.cloturer_module_view, name='cloturer_module'),
     path('projets/<uuid:projet_id>/modules/<int:module_id>/affecter-nouveau/', views_affectation.affecter_module_nouveau, name='affecter_module_nouveau'),
     path('projets/<uuid:projet_id>/modules/<int:module_id>/equipe/', views_affectation.get_equipe_module_view, name='get_equipe_module'),
     path('projets/<uuid:projet_id>/modules/<int:module_id>/retirer-membre/', views_affectation.retirer_membre_module_view, name='retirer_membre_module'),
@@ -181,28 +195,31 @@ urlpatterns = [
     path('projets/<uuid:projet_id>/taches-module/<int:tache_id>/transferer/', views_taches_module.transferer_tache_module_view, name='transferer_tache_module'),
     
     # ============================================================================
-    # SYSTÈME DE MAINTENANCE
+    # SYSTÈME DE MAINTENANCE V2 - SIMPLIFIÉ
     # ============================================================================
     
     # Gestion des contrats de garantie
-    path('projets/<uuid:projet_id>/contrats/', views_maintenance.gestion_contrats_view, name='gestion_contrats'),
-    path('projets/<uuid:projet_id>/contrats/creer/', views_maintenance.creer_contrat_view, name='creer_contrat'),
+    path('projets/<uuid:projet_id>/contrats/', views_maintenance_v2.gestion_contrats_view, name='gestion_contrats'),
+    path('projets/<uuid:projet_id>/contrats/creer/', views_maintenance_v2.creer_contrat_view, name='creer_contrat'),
     
-    # Gestion des tickets de maintenance
-    path('projets/<uuid:projet_id>/tickets/', views_maintenance.gestion_tickets_view, name='gestion_tickets'),
-    path('projets/<uuid:projet_id>/tickets/creer/', views_maintenance.creer_ticket_view, name='creer_ticket'),
-    path('projets/<uuid:projet_id>/tickets/<uuid:ticket_id>/', views_maintenance.detail_ticket_view, name='detail_ticket'),
-    path('projets/<uuid:projet_id>/tickets/<uuid:ticket_id>/fermer/', views_maintenance.fermer_ticket_view, name='fermer_ticket'),
+    # Gestion des tickets de maintenance (SIMPLIFIÉ)
+    path('projets/<uuid:projet_id>/tickets/', views_maintenance_v2.gestion_tickets_view, name='gestion_tickets'),
+    path('projets/<uuid:projet_id>/tickets/creer/', views_maintenance_v2.creer_ticket_view, name='creer_ticket'),
+    path('projets/<uuid:projet_id>/tickets/<uuid:ticket_id>/', views_maintenance_v2.detail_ticket_view, name='detail_ticket'),
     
-    # Gestion des billets d'intervention
-    path('projets/<uuid:projet_id>/tickets/<uuid:ticket_id>/emettre-billet/', views_maintenance.emettre_billet_view, name='emettre_billet'),
+    # Actions sur les tickets
+    path('projets/<uuid:projet_id>/tickets/<uuid:ticket_id>/assigner/', views_maintenance_v2.assigner_ticket_view, name='assigner_ticket'),
+    path('projets/<uuid:projet_id>/tickets/<uuid:ticket_id>/commentaire/', views_maintenance_v2.ajouter_commentaire_view, name='ajouter_commentaire'),
+    path('projets/<uuid:projet_id>/tickets/<uuid:ticket_id>/resoudre/', views_maintenance_v2.resoudre_ticket_view, name='resoudre_ticket'),
+    path('projets/<uuid:projet_id>/tickets/<uuid:ticket_id>/fermer/', views_maintenance_v2.fermer_ticket_view, name='fermer_ticket'),
+    path('projets/<uuid:projet_id>/tickets/<uuid:ticket_id>/rejeter/', views_maintenance_v2.rejeter_ticket_view, name='rejeter_ticket'),
+    path('projets/<uuid:projet_id>/tickets/<uuid:ticket_id>/temps/', views_maintenance_v2.ajouter_temps_view, name='ajouter_temps'),
     
-    # Gestion des interventions
-    path('projets/<uuid:projet_id>/tickets/<uuid:ticket_id>/billets/<uuid:billet_id>/intervenir/', views_maintenance.enregistrer_intervention_view, name='enregistrer_intervention'),
-    
-    # Gestion du statut technique
-    path('projets/<uuid:projet_id>/tickets/<uuid:ticket_id>/interventions/<uuid:intervention_id>/statut/', views_maintenance.rediger_statut_technique_view, name='rediger_statut_technique'),
-    path('projets/<uuid:projet_id>/tickets/<uuid:ticket_id>/statuts/<uuid:statut_id>/valider/', views_maintenance.valider_statut_technique_view, name='valider_statut_technique'),
+    # Navigation globale des tickets (sidebar)
+    path('mes-tickets/', views_maintenance_v2.mes_tickets_view, name='mes_tickets'),
+    path('tickets-projet/', views_maintenance_v2.tickets_projet_view, name='tickets_projet'),
+    path('tickets-projet/<uuid:projet_id>/', views_maintenance_v2.tickets_projet_view, name='tickets_projet_detail'),
+    path('tous-tickets/', views_maintenance_v2.tous_tickets_view, name='tous_tickets'),
     
     # ========================================================================
     # DÉMARRAGE ET SUIVI TEMPOREL DES PROJETS

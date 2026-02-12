@@ -8,7 +8,7 @@ Usage: python manage.py check_project_deadlines
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from datetime import timedelta
-from core.models import Projet, NotificationProjet, StatutProjet
+from core.models import Projet, AlerteProjet, StatutProjet
 
 
 class Command(BaseCommand):
@@ -104,13 +104,13 @@ class Command(BaseCommand):
             else:
                 message += "Assurez-vous de terminer vos tâches assignées avant la date limite."
             
-            NotificationProjet.objects.create(
+            AlerteProjet.objects.create(
                 destinataire=destinataire,
                 projet=projet,
-                type_notification='ALERTE_FIN_PROJET',
+                type_alerte='ECHEANCE_J7',
+                niveau='WARNING',
                 titre=titre,
                 message=message,
-                emetteur=None,  # Alerte système
                 lue=False,
                 donnees_contexte={
                     'jours_restants': 7,
@@ -137,9 +137,9 @@ class Command(BaseCommand):
         """
         aujourd_hui = timezone.now().date()
         
-        return NotificationProjet.objects.filter(
+        return AlerteProjet.objects.filter(
             destinataire=utilisateur,
             projet=projet,
-            type_notification='ALERTE_FIN_PROJET',
+            type_alerte='ECHEANCE_J7',
             date_creation__date=aujourd_hui
         ).exists()

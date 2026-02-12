@@ -58,8 +58,23 @@ def gestion_cas_tests_tache_view(request, projet_id, etape_id, tache_id):
     }
     
     # Permissions utilisateur
-    peut_creer = ServiceTests._peut_creer_tests(user, projet)
-    peut_executer = ServiceTests._peut_executer_tests(user, projet)
+    # Peut créer : QA, Chef de projet, Admin, Créateur du projet, Responsable du projet, Responsable de la tâche
+    # MAIS seulement si la tâche n'est pas terminée
+    responsable_projet = projet.get_responsable_principal()
+    a_permission_creer = (
+        ServiceTests._peut_creer_tests(user, projet) or
+        (responsable_projet and responsable_projet == user) or
+        tache.responsable == user
+    )
+    # Ne peut créer que si la tâche n'est pas terminée
+    peut_creer = a_permission_creer and tache.statut != 'TERMINEE'
+    
+    # Peut exécuter : QA, Admin, Créateur du projet, Responsable du projet, Responsable de la tâche
+    peut_executer = (
+        ServiceTests._peut_executer_tests(user, projet) or
+        (responsable_projet and responsable_projet == user) or
+        tache.responsable == user
+    )
     
     # Récupérer l'équipe du projet pour l'assignation
     equipe = projet.get_equipe()
@@ -89,8 +104,20 @@ def creer_cas_test_view(request, projet_id, etape_id, tache_id):
     tache_etape = get_object_or_404(TacheEtape, id=tache_id, etape=etape)
     
     # Vérifier les permissions
-    if not ServiceTests._peut_creer_tests(user, projet):
+    # Peut créer : QA, Chef de projet, Admin, Créateur du projet, Responsable du projet, Responsable de la tâche
+    responsable_projet = projet.get_responsable_principal()
+    a_permission_creer = (
+        ServiceTests._peut_creer_tests(user, projet) or
+        (responsable_projet and responsable_projet == user) or
+        tache_etape.responsable == user
+    )
+    
+    if not a_permission_creer:
         return JsonResponse({'success': False, 'error': 'Permissions insuffisantes'})
+    
+    # Vérifier que la tâche n'est pas terminée
+    if tache_etape.statut == 'TERMINEE':
+        return JsonResponse({'success': False, 'error': 'Impossible d\'ajouter un cas de test à une tâche terminée'})
     
     try:
         # Récupérer les données du formulaire
@@ -150,10 +177,16 @@ def executer_cas_test_view(request, projet_id, etape_id, cas_test_id):
     etape = get_object_or_404(EtapeProjet, id=etape_id, projet=projet)
     
     from .models import CasTest
-    cas_test = get_object_or_404(CasTest, id=cas_test_id, tache_etape__etape=etape)
+    cas_test = get_object_or_404(CasTest, id=cas_test_id, tache_etape__etape=etape)    # Vérifier les permissions
+    # Peut exécuter : QA, Admin, Créateur du projet, Responsable du projet, Responsable de la tâche
+    responsable_projet = projet.get_responsable_principal()
+    peut_executer = (
+        ServiceTests._peut_executer_tests(user, projet) or
+        (responsable_projet and responsable_projet == user) or
+        cas_test.tache_etape.responsable == user
+    )
     
-    # Vérifier les permissions
-    if not ServiceTests._peut_executer_tests(user, projet):
+    if not peut_executer:
         return JsonResponse({'success': False, 'error': 'Permissions insuffisantes'})
     
     try:
@@ -182,46 +215,6 @@ def executer_cas_test_view(request, projet_id, etape_id, cas_test_id):
         return JsonResponse({'success': False, 'error': f'Erreur lors de l\'exécution : {str(e)}'})
 
 
-@login_required
-def details_cas_test_view(request, projet_id, etape_id, cas_test_id):
-    """Vue des détails d'un cas de test"""
-    user = request.user
-    projet = get_object_or_404(Projet, id=projet_id)
-    etape = get_object_or_404(EtapeProjet, id=etape_id, projet=projet)
-    
-    from .models import CasTest
-    cas_test = get_object_or_404(CasTest, id=cas_test_id, tache_etape__etape=etape)
-    
-    # Vérifier les permissions
-    if not ServiceTests._peut_voir_tests(user, projet):
-        return JsonResponse({'success': False, 'error': 'Permissions insuffisantes'})
-    
-    try:
-        return JsonResponse({
-            'success': True,
-            'cas': {
-                'id': str(cas_test.id),
-                'numero_cas': cas_test.numero_cas,
-                'nom': cas_test.nom,
-                'description': cas_test.description,
-                'priorite': cas_test.priorite,
-                'priorite_display': cas_test.get_priorite_display(),
-                'statut': cas_test.statut,
-                'statut_display': cas_test.get_statut_display(),
-                'donnees_entree': cas_test.donnees_entree,
-                'preconditions': cas_test.preconditions,
-                'etapes_execution': cas_test.etapes_execution,
-                'resultats_attendus': cas_test.resultats_attendus,
-                'resultats_obtenus': cas_test.resultats_obtenus,
-                'date_creation': cas_test.date_creation.strftime('%d/%m/%Y à %H:%M'),
-                'date_execution': cas_test.date_execution.strftime('%d/%m/%Y à %H:%M') if cas_test.date_execution else None,
-                'executeur': cas_test.executeur.get_full_name() if cas_test.executeur else None,
-                'createur': cas_test.createur.get_full_name() if cas_test.createur else None,
-            }
-        })
-        
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': f'Erreur lors du chargement : {str(e)}'})
 
 
 # ============================================================================
@@ -663,10 +656,16 @@ def executer_cas_test_view(request, projet_id, etape_id, cas_test_id):
     etape = get_object_or_404(EtapeProjet, id=etape_id, projet=projet)
     
     from .models import CasTest
-    cas_test = get_object_or_404(CasTest, id=cas_test_id, tache_etape__etape=etape)
+    cas_test = get_object_or_404(CasTest, id=cas_test_id, tache_etape__etape=etape)    # Vérifier les permissions
+    # Peut exécuter : QA, Admin, Créateur du projet, Responsable du projet, Responsable de la tâche
+    responsable_projet = projet.get_responsable_principal()
+    peut_executer = (
+        ServiceTests._peut_executer_tests(user, projet) or
+        (responsable_projet and responsable_projet == user) or
+        cas_test.tache_etape.responsable == user
+    )
     
-    # Vérifier les permissions
-    if not ServiceTests._peut_executer_tests(user, projet):
+    if not peut_executer:
         return JsonResponse({'success': False, 'error': 'Permissions insuffisantes'})
     
     try:
@@ -706,8 +705,9 @@ def details_cas_test_view(request, projet_id, etape_id, cas_test_id):
     cas_test = get_object_or_404(CasTest, id=cas_test_id, tache_etape__etape=etape)
     
     # Vérifier les permissions
-    if not ServiceTests._peut_voir_tests(user, projet):
-        return JsonResponse({'success': False, 'error': 'Permissions insuffisantes'})
+    if not user.est_super_admin():
+        if not user.a_acces_projet(projet) and projet.createur != user:
+            return JsonResponse({'success': False, 'error': 'Permissions insuffisantes'})
     
     try:
         return JsonResponse({

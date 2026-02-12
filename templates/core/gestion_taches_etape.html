@@ -284,17 +284,14 @@
                                         <i class="fas fa-check text-sm"></i>
                                     </button>
                                     {% else %}
-                                    <!-- Tâche terminée - Afficher bouton imprimer pour étape TEST -->
+                                    <!-- Tâche terminée - Afficher bouton Cas de Test pour consultation -->
                                     {% if etape.type_etape.nom == 'TESTS' %}
-                                    <button onclick="imprimerRapportTache('{{ tache.id }}', '{{ tache.nom|escapejs }}')"
-                                            class="text-blue-600 hover:text-blue-800 p-1.5 rounded transition-colors"
-                                            title="Imprimer le rapport de tests">
-                                        <i class="fas fa-print text-sm"></i>
-                                    </button>
+                                    <a href="{% url 'gestion_cas_tests_tache' projet.id etape.id tache.id %}"
+                                       class="text-purple-600 hover:text-purple-800 p-1.5 rounded transition-colors"
+                                       title="Consulter les cas de test">
+                                        <i class="fas fa-vial text-sm"></i>
+                                    </a>
                                     {% endif %}
-                                    <span class="inline-flex items-center px-2 py-1 bg-green-50 text-green-700 rounded text-xs font-medium ml-2">
-                                        <i class="fas fa-check-circle mr-1"></i>Terminée
-                                    </span>
                                     {% endif %}
                                 </div>
                                 {% endif %}
