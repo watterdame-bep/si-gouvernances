@@ -48,6 +48,9 @@ Ce fichier vous aide à trouver rapidement la documentation dont vous avez besoi
 | Fichier | Description | Quand l'utiliser |
 |---------|-------------|------------------|
 | `SYSTEME_ALERTES_ECHEANCES.md` | Système d'alertes d'échéances | Pour comprendre les alertes J-7, J-3, J-1 |
+| `ALERTE_PROJET_EN_RETARD.md` | Alertes projets en retard | Pour comprendre les alertes de projets dépassant leur date de fin |
+| `ALERTE_TACHE_EN_RETARD.md` | Alertes tâches en retard | Pour comprendre les alertes de tâches dépassant leur date limite |
+| `ALERTE_CONTRAT_EXPIRATION.md` | Alertes contrats expirant | Pour comprendre les alertes de contrats expirant dans 30 jours |
 | `ETAT_SYSTEME_ALERTES_FINAL.md` | État final du système | Pour voir l'état actuel |
 | `RESUME_FINAL_ALERTES.md` | Résumé final | Pour un aperçu rapide |
 
@@ -80,10 +83,21 @@ Ce fichier vous aide à trouver rapidement la documentation dont vous avez besoi
 
 ### Je veux tester le système
 
-1. **Tests manuels**
-   - `GUIDE_TEST_SYSTEME_ALERTES.md` - 10 tests détaillés
+1. **Test rapide (5 minutes)**
+   - `COMMENT_TESTER_ALERTES.md` - En 3 commandes
+   - `GUIDE_TEST_RAPIDE_ALERTES.md` - Guide complet
+   - `test_alerte_j7.py` - Script automatique (alertes J-7)
+   - `test_alerte_retard.py` - Script automatique (projets en retard)
+   - `test_alerte_tache_retard.py` - Script automatique (tâches en retard)
+   - `test_alerte_contrat_expiration.py` - Script automatique (contrats expirant)
 
-2. **Vérifier la configuration**
+2. **Tests manuels détaillés**
+   - `GUIDE_TEST_SYSTEME_ALERTES.md` - 10 tests détaillés
+   - `COMMENT_TESTER_ALERTE_RETARD.md` - Test alerte projet en retard
+   - `COMMENT_TESTER_ALERTE_TACHE_RETARD.md` - Test alerte tâche en retard
+   - `COMMENT_TESTER_ALERTE_CONTRAT_EXPIRATION.md` - Test alerte contrat expirant
+
+3. **Vérifier la configuration**
    - `CHECKLIST_CONFIGURATION_PLANIFICATEUR.md` - Checklist
 
 ### Je veux configurer le planificateur
@@ -215,16 +229,16 @@ Ce fichier vous aide à trouver rapidement la documentation dont vous avez besoi
 - **Guides utilisateur** : 3 fichiers
 - **Guides développeur** : 4 fichiers
 - **Guides administrateur** : 3 fichiers
-- **Documentation de référence** : 4 fichiers
-- **Sessions** : 1 fichier
+- **Documentation de référence** : 6 fichiers (incluant alertes projets et tâches en retard)
+- **Sessions** : 2 fichiers
 
-**Total** : 15 fichiers de documentation
+**Total** : 18 fichiers de documentation
 
 ### Lignes de documentation
 
-- **Total** : ~3000 lignes
-- **Guides** : ~1500 lignes
-- **Technique** : ~1000 lignes
+- **Total** : ~4000 lignes
+- **Guides** : ~2000 lignes
+- **Technique** : ~1500 lignes
 - **Sessions** : ~500 lignes
 
 ---
@@ -269,7 +283,8 @@ Ce fichier vous aide à trouver rapidement la documentation dont vous avez besoi
 - `templates/base.html` - Menu sidebar et JavaScript
 
 ### Commandes
-- `core/management/commands/check_project_deadlines.py` - Vérification des échéances
+- `core/management/commands/check_project_deadlines.py` - Vérification des échéances projets
+- `core/management/commands/check_task_deadlines.py` - Vérification des échéances tâches
 
 ### Migrations
 - `core/migrations/0040_add_alerte_projet.py` - Création du modèle

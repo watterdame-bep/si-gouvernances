@@ -2284,6 +2284,8 @@ class AlerteProjet(models.Model):
         ('ECHEANCE_DEPASSEE', 'Échéance dépassée'),
         ('BUDGET_DEPASSE', 'Budget dépassé'),
         ('TACHES_EN_RETARD', 'Tâches en retard'),
+        ('CONTRAT_EXPIRATION', 'Contrat proche expiration'),
+        ('CONTRAT_EXPIRE', 'Contrat expiré'),
     ]
     
     NIVEAU_CHOICES = [
@@ -2345,6 +2347,8 @@ class AlerteProjet(models.Model):
             'ECHEANCE_DEPASSEE': 'fa-times-circle',
             'BUDGET_DEPASSE': 'fa-dollar-sign',
             'TACHES_EN_RETARD': 'fa-tasks',
+            'CONTRAT_EXPIRATION': 'fa-file-contract',
+            'CONTRAT_EXPIRE': 'fa-ban',
         }
         return icones.get(self.type_alerte, 'fa-bell')
 

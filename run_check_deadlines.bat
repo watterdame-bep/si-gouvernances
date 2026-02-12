@@ -1,44 +1,20 @@
 @echo off
-REM Script pour exécuter la vérification des échéances des tâches
-REM À planifier dans le Planificateur de tâches Windows
+REM ============================================
+REM Verification des alertes de projets
+REM Executer quotidiennement via le Planificateur de taches Windows
+REM ============================================
 
-REM Se déplacer dans le répertoire du projet
-cd /d E:\DOCERA\PROJETS\PYTHON\Django\SI-GOUVERNANCE
+echo [%date% %time%] Debut verification alertes >> logs\alertes.log
 
-REM Créer le dossier logs s'il n'existe pas
-if not exist logs mkdir logs
+REM Aller dans le repertoire du projet
+cd /d "%~dp0"
 
-echo ========================================
-echo Verification des echeances des taches
-echo ========================================
-echo.
+REM Activer l'environnement virtuel si necessaire
+REM Decommentez la ligne suivante si vous utilisez un venv
+REM call venv\Scripts\activate.bat
 
-REM Ajouter un séparateur dans le log
-echo ======================================================================== >> logs\planificateur.log
-echo [%date% %time%] Demarrage verification echeances >> logs\planificateur.log
-echo ======================================================================== >> logs\planificateur.log
+REM Executer la commande de verification
+python manage.py check_project_deadlines >> logs\alertes.log 2>&1
 
-REM Activer l'environnement virtuel si nécessaire
-REM call venv\Scripts\activate
-
-REM Exécuter la commande Django et capturer la sortie
-python manage.py check_task_deadlines >> logs\planificateur.log 2>&1
-
-REM Vérifier le code de sortie
-if %ERRORLEVEL% EQU 0 (
-    echo [%date% %time%] Verification terminee avec succes >> logs\planificateur.log
-    echo Verification terminee avec succes
-) else (
-    echo [%date% %time%] ERREUR: Code de sortie %ERRORLEVEL% >> logs\planificateur.log
-    echo ERREUR: Code de sortie %ERRORLEVEL%
-)
-
-echo. >> logs\planificateur.log
-echo.
-echo ========================================
-echo Verification terminee
-echo ========================================
-
-REM Garder la fenêtre ouverte pour voir les résultats (optionnel)
-REM pause
-
+echo [%date% %time%] Fin verification alertes >> logs\alertes.log
+echo. >> logs\alertes.log

@@ -8,11 +8,11 @@ Usage: python manage.py check_task_deadlines
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from datetime import timedelta
-from core.models import TacheEtape, NotificationTache
+from core.models import TacheEtape, AlerteProjet
 
 
 class Command(BaseCommand):
-    help = 'Vérifie les échéances des tâches et envoie des alertes'
+    help = 'Vérifie les échéances des tâches et envoie des alertes (tâches en retard)'
 
     def handle(self, *args, **options):
         self.stdout.write(self.style.SUCCESS('🔍 Vérification des échéances des tâches...'))
@@ -20,17 +20,15 @@ class Command(BaseCommand):
         aujourd_hui = timezone.now().date()
         
         # Compteurs
-        alertes_2_jours = 0
-        alertes_1_jour = 0
-        alertes_jour_j = 0
         alertes_retard = 0
+        alertes_ignorees = 0
         
         # Récupérer toutes les tâches non terminées avec une date de fin
         taches_actives = TacheEtape.objects.filter(
             statut__in=['A_FAIRE', 'EN_COURS', 'BLOQUEE']
         ).exclude(date_fin__isnull=True).select_related('responsable', 'etape__projet')
         
-        self.stdout.write(f'📊 {taches_actives.count()} tâches actives à vérifier')
+        self.stdout.write(f'📊 {taches_actives.count()} tâche(s) active(s) à vérifier')
         
         for tache in taches_actives:
             if not tache.date_fin:
@@ -38,176 +36,118 @@ class Command(BaseCommand):
                 
             jours_restants = (tache.date_fin - aujourd_hui).days
             
-            # 🟡 ALERTE : 2 jours avant échéance
-            if jours_restants == 2:
-                self._creer_alerte_2_jours(tache)
-                alertes_2_jours += 1
-                
-            # 🟠 ALERTE : 1 jour avant échéance (demain)
-            elif jours_restants == 1:
-                self._creer_alerte_1_jour(tache)
-                alertes_1_jour += 1
-                
-            # 🔴 ALERTE : Jour J (aujourd'hui)
-            elif jours_restants == 0:
-                self._creer_alerte_jour_j(tache)
-                alertes_jour_j += 1
-                
-            # 🔴 ALERTE : En retard
-            elif jours_restants < 0:
-                self._creer_alerte_retard(tache, abs(jours_restants))
-                alertes_retard += 1
+            # 🔴 ALERTE : Tâche en retard
+            if jours_restants < 0:
+                nb_alertes = self._creer_alerte_retard(tache, abs(jours_restants))
+                if nb_alertes > 0:
+                    alertes_retard += nb_alertes
+                    self.stdout.write(f'  🔴 {nb_alertes} alerte(s) RETARD créée(s) pour {tache.nom} ({abs(jours_restants)} jours)')
+                else:
+                    alertes_ignorees += 1
         
         # Résumé
         self.stdout.write(self.style.SUCCESS('\n✅ Vérification terminée !'))
-        self.stdout.write(f'🟡 Alertes 2 jours : {alertes_2_jours}')
-        self.stdout.write(f'🟠 Alertes 1 jour : {alertes_1_jour}')
-        self.stdout.write(f'🔴 Alertes jour J : {alertes_jour_j}')
-        self.stdout.write(f'🔴 Alertes retard : {alertes_retard}')
-        self.stdout.write(f'📧 Total alertes créées : {alertes_2_jours + alertes_1_jour + alertes_jour_j + alertes_retard}')
-
-    def _creer_alerte_2_jours(self, tache):
-        """Alerte 2 jours avant échéance - Destinataire : Responsable de la tâche"""
-        if not tache.responsable:
-            return
-        
-        # Vérifier que le responsable a accès au projet
-        if not tache.responsable.a_acces_projet(tache.etape.projet):
-            self.stdout.write(f'  ⚠️ Alerte ignorée : {tache.responsable.get_full_name()} n\'a pas accès au projet {tache.etape.projet.nom}')
-            return
-            
-        # Vérifier si une alerte similaire n'existe pas déjà aujourd'hui
-        if self._alerte_existe_aujourd_hui(tache, tache.responsable, '2_jours'):
-            return
-        
-        titre = "⚠️ Échéance dans 2 jours"
-        message = f"La tâche '{tache.nom}' arrive à échéance dans 2 jours ({tache.date_fin.strftime('%d/%m/%Y')})"
-        
-        NotificationTache.objects.create(
-            destinataire=tache.responsable,
-            tache=tache,
-            type_notification='ALERTE_ECHEANCE',
-            titre=titre,
-            message=message,
-            lue=False
-        )
-        
-        self.stdout.write(f'  🟡 Alerte 2 jours créée pour {tache.responsable.get_full_name()} - {tache.nom}')
-
-    def _creer_alerte_1_jour(self, tache):
-        """Alerte 1 jour avant échéance - Destinataire : Responsable de la tâche"""
-        if not tache.responsable:
-            return
-        
-        # Vérifier que le responsable a accès au projet
-        if not tache.responsable.a_acces_projet(tache.etape.projet):
-            self.stdout.write(f'  ⚠️ Alerte ignorée : {tache.responsable.get_full_name()} n\'a pas accès au projet {tache.etape.projet.nom}')
-            return
-            
-        if self._alerte_existe_aujourd_hui(tache, tache.responsable, '1_jour'):
-            return
-        
-        titre = "🔔 Échéance demain"
-        message = f"Urgent : La tâche '{tache.nom}' arrive à échéance demain !"
-        
-        NotificationTache.objects.create(
-            destinataire=tache.responsable,
-            tache=tache,
-            type_notification='ALERTE_ECHEANCE',
-            titre=titre,
-            message=message,
-            lue=False
-        )
-        
-        self.stdout.write(f'  🟠 Alerte 1 jour créée pour {tache.responsable.get_full_name()} - {tache.nom}')
-
-    def _creer_alerte_jour_j(self, tache):
-        """Alerte jour J - Destinataires : Responsable tâche + Responsable projet"""
-        destinataires = []
-        
-        # Responsable de la tâche (si a accès au projet)
-        if tache.responsable and tache.responsable.a_acces_projet(tache.etape.projet):
-            destinataires.append(tache.responsable)
-        elif tache.responsable:
-            self.stdout.write(f'  ⚠️ Alerte ignorée : {tache.responsable.get_full_name()} n\'a pas accès au projet {tache.etape.projet.nom}')
-        
-        # Responsable du projet (toujours inclus car c'est son projet)
-        if tache.etape.projet.createur and tache.etape.projet.createur not in destinataires:
-            destinataires.append(tache.etape.projet.createur)
-        
-        for destinataire in destinataires:
-            if self._alerte_existe_aujourd_hui(tache, destinataire, 'jour_j'):
-                continue
-            
-            titre = "🚨 Échéance aujourd'hui"
-            if destinataire == tache.responsable:
-                message = f"Critique : La tâche '{tache.nom}' doit être terminée aujourd'hui"
-            else:
-                message = f"La tâche '{tache.nom}' (assignée à {tache.responsable.get_full_name() if tache.responsable else 'Non assignée'}) doit être terminée aujourd'hui"
-            
-            NotificationTache.objects.create(
-                destinataire=destinataire,
-                tache=tache,
-                type_notification='ALERTE_CRITIQUE',
-                titre=titre,
-                message=message,
-                lue=False
-            )
-            
-            self.stdout.write(f'  🔴 Alerte jour J créée pour {destinataire.get_full_name()} - {tache.nom}')
+        self.stdout.write(f'🔴 Alertes RETARD : {alertes_retard}')
+        self.stdout.write(f'⚪ Alertes ignorées (doublons) : {alertes_ignorees}')
+        self.stdout.write(f'📧 Total alertes créées : {alertes_retard}')
 
     def _creer_alerte_retard(self, tache, jours_retard):
-        """Alerte de retard - Destinataires : Responsable tâche + Responsable projet"""
-        destinataires = []
+        """
+        Crée des alertes pour une tâche en retard
         
-        # Responsable de la tâche (si a accès au projet)
-        if tache.responsable and tache.responsable.a_acces_projet(tache.etape.projet):
-            destinataires.append(tache.responsable)
-        elif tache.responsable:
-            self.stdout.write(f'  ⚠️ Alerte ignorée : {tache.responsable.get_full_name()} n\'a pas accès au projet {tache.etape.projet.nom}')
+        Args:
+            tache: La tâche en retard
+            jours_retard: Nombre de jours de retard
         
-        # Responsable du projet (toujours inclus car c'est son projet)
-        if tache.etape.projet.createur and tache.etape.projet.createur not in destinataires:
-            destinataires.append(tache.etape.projet.createur)
+        Destinataires :
+        - Responsable de la tâche (utilisateur assigné)
+        - Responsable du projet
         
-        for destinataire in destinataires:
-            if self._alerte_existe_aujourd_hui(tache, destinataire, 'retard'):
-                continue
-            
-            titre = f"❌ Retard de {jours_retard} jour{'s' if jours_retard > 1 else ''}"
-            if destinataire == tache.responsable:
-                message = f"La tâche '{tache.nom}' est en retard de {jours_retard} jour{'s' if jours_retard > 1 else ''}"
+        PAS l'administrateur (selon spécification)
+        
+        Returns:
+            int: Nombre d'alertes créées
+        """
+        destinataires = set()
+        
+        # 1. Responsable de la tâche (utilisateur assigné)
+        if tache.responsable:
+            # Vérifier que le responsable a accès au projet
+            if tache.responsable.a_acces_projet(tache.etape.projet):
+                destinataires.add(tache.responsable)
             else:
-                message = f"La tâche '{tache.nom}' (assignée à {tache.responsable.get_full_name() if tache.responsable else 'Non assignée'}) est en retard de {jours_retard} jour{'s' if jours_retard > 1 else ''}"
-            
-            NotificationTache.objects.create(
-                destinataire=destinataire,
-                tache=tache,
-                type_notification='ALERTE_RETARD',
-                titre=titre,
-                message=message,
-                lue=False
-            )
-            
-            self.stdout.write(f'  🔴 Alerte retard créée pour {destinataire.get_full_name()} - {tache.nom} ({jours_retard}j)')
-
-    def _alerte_existe_aujourd_hui(self, tache, utilisateur, type_alerte):
-        """Vérifie si une alerte du même type existe déjà aujourd'hui pour éviter les doublons"""
+                self.stdout.write(f'  ⚠️  Alerte ignorée : {tache.responsable.get_full_name()} n\'a pas accès au projet')
+        
+        # 2. Responsable du projet
+        responsable_projet = tache.etape.projet.get_responsable_principal()
+        if responsable_projet:
+            destinataires.add(responsable_projet)
+        
+        # Créer les alertes
+        alertes_creees = 0
         aujourd_hui = timezone.now().date()
         
-        # Mapper les types d'alertes aux types de notifications
-        type_mapping = {
-            '2_jours': 'ALERTE_ECHEANCE',
-            '1_jour': 'ALERTE_ECHEANCE',
-            'jour_j': 'ALERTE_CRITIQUE',
-            'retard': 'ALERTE_RETARD'
-        }
+        for destinataire in destinataires:
+            # Vérifier si une alerte similaire n'existe pas déjà aujourd'hui
+            if self._alerte_retard_existe_aujourd_hui(tache, destinataire):
+                continue
+            
+            # Message personnalisé selon le nombre de jours
+            if jours_retard == 1:
+                jours_text = "1 jour"
+            else:
+                jours_text = f"{jours_retard} jours"
+            
+            # Titre et message selon le destinataire
+            if destinataire == tache.responsable:
+                titre = f"🔴 Tâche en retard - {tache.nom}"
+                message = f"La tâche '{tache.nom}' du projet '{tache.etape.projet.nom}' est en retard de {jours_text} (date limite : {tache.date_fin.strftime('%d/%m/%Y')}). Une action urgente est requise."
+            else:
+                # Responsable du projet
+                titre = f"🔴 Tâche en retard - {tache.nom}"
+                assignee_name = tache.responsable.get_full_name() if tache.responsable else "Non assignée"
+                message = f"La tâche '{tache.nom}' du projet '{tache.etape.projet.nom}' (assignée à {assignee_name}) est en retard de {jours_text} (date limite : {tache.date_fin.strftime('%d/%m/%Y')})."
+            
+            AlerteProjet.objects.create(
+                destinataire=destinataire,
+                projet=tache.etape.projet,
+                type_alerte='TACHES_EN_RETARD',
+                niveau='DANGER',
+                titre=titre,
+                message=message,
+                lue=False,
+                donnees_contexte={
+                    'jours_retard': jours_retard,
+                    'tache_id': str(tache.id),
+                    'tache_nom': tache.nom,
+                    'date_fin': tache.date_fin.isoformat(),
+                    'type_alerte': 'TACHE_RETARD'
+                }
+            )
+            
+            alertes_creees += 1
+            self.stdout.write(f'    📧 Alerte RETARD créée pour {destinataire.get_full_name()}')
         
-        type_notification = type_mapping.get(type_alerte)
+        return alertes_creees
+
+    def _alerte_retard_existe_aujourd_hui(self, tache, utilisateur):
+        """
+        Vérifie si une alerte de retard existe déjà aujourd'hui pour éviter les doublons
         
-        return NotificationTache.objects.filter(
+        Args:
+            tache: La tâche concernée
+            utilisateur: L'utilisateur destinataire
+        
+        Returns:
+            bool: True si une alerte existe déjà
+        """
+        aujourd_hui = timezone.now().date()
+        
+        return AlerteProjet.objects.filter(
             destinataire=utilisateur,
-            tache=tache,
-            type_notification=type_notification,
-            date_creation__date=aujourd_hui
+            projet=tache.etape.projet,
+            type_alerte='TACHES_EN_RETARD',
+            date_creation__date=aujourd_hui,
+            donnees_contexte__tache_id=str(tache.id)
         ).exists()
+

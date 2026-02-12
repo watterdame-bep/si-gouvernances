@@ -12,7 +12,7 @@ from core.models import Projet, AlerteProjet, StatutProjet
 
 
 class Command(BaseCommand):
-    help = 'Vérifie les échéances des projets et envoie des alertes à J-7'
+    help = 'Vérifie les échéances des projets et envoie des alertes (J-7 et projets en retard)'
 
     def handle(self, *args, **options):
         self.stdout.write(self.style.SUCCESS('🔍 Vérification des échéances des projets...'))
@@ -21,6 +21,7 @@ class Command(BaseCommand):
         
         # Compteurs
         alertes_j7 = 0
+        alertes_retard = 0
         alertes_ignorees = 0
         
         # Récupérer tous les projets EN_COURS avec une date de fin
@@ -42,8 +43,17 @@ class Command(BaseCommand):
             
             jours_restants = (projet.date_fin - aujourd_hui).days
             
+            # 🔴 ALERTE : Projet en retard (date dépassée)
+            if jours_restants < 0:
+                nb_alertes = self._creer_alerte_retard(projet, abs(jours_restants))
+                if nb_alertes > 0:
+                    alertes_retard += nb_alertes
+                    self.stdout.write(f'  🔴 {nb_alertes} alerte(s) RETARD créée(s) pour {projet.nom} ({abs(jours_restants)} jours)')
+                else:
+                    alertes_ignorees += 1
+            
             # 🟡 ALERTE : J-7 (7 jours avant la fin)
-            if jours_restants == 7:
+            elif jours_restants == 7:
                 nb_alertes = self._creer_alerte_j7(projet)
                 if nb_alertes > 0:
                     alertes_j7 += nb_alertes
@@ -54,8 +64,78 @@ class Command(BaseCommand):
         # Résumé
         self.stdout.write(self.style.SUCCESS('\n✅ Vérification terminée !'))
         self.stdout.write(f'🟡 Alertes J-7 : {alertes_j7}')
+        self.stdout.write(f'🔴 Alertes RETARD : {alertes_retard}')
         self.stdout.write(f'⚪ Alertes ignorées (doublons) : {alertes_ignorees}')
-        self.stdout.write(f'📧 Total alertes créées : {alertes_j7}')
+        self.stdout.write(f'📧 Total alertes créées : {alertes_j7 + alertes_retard}')
+
+    def _creer_alerte_retard(self, projet, jours_retard):
+        """
+        Crée des alertes pour un projet en retard
+        
+        Args:
+            projet: Le projet en retard
+            jours_retard: Nombre de jours de retard
+        
+        Destinataires :
+        - Administrateur (créateur du projet)
+        - Responsable du projet
+        
+        Returns:
+            int: Nombre d'alertes créées
+        """
+        destinataires = set()
+        
+        # 1. Administrateur (créateur du projet)
+        if projet.createur:
+            destinataires.add(projet.createur)
+        
+        # 2. Responsable du projet
+        responsable = projet.get_responsable_principal()
+        if responsable:
+            destinataires.add(responsable)
+        
+        # Créer les alertes
+        alertes_creees = 0
+        aujourd_hui = timezone.now().date()
+        
+        for destinataire in destinataires:
+            # Vérifier si une alerte similaire n'existe pas déjà aujourd'hui
+            if self._alerte_retard_existe_aujourd_hui(projet, destinataire):
+                continue
+            
+            # Message personnalisé selon le nombre de jours
+            if jours_retard == 1:
+                jours_text = "1 jour"
+            else:
+                jours_text = f"{jours_retard} jours"
+            
+            titre = f"🔴 Projet {projet.nom} - EN RETARD"
+            message = f"Le projet '{projet.nom}' est en retard de {jours_text} (date de fin prévue : {projet.date_fin.strftime('%d/%m/%Y')}). "
+            
+            if destinataire == responsable:
+                message += "En tant que responsable, une action urgente est requise pour rattraper le retard."
+            elif destinataire == projet.createur:
+                message += "En tant qu'administrateur, veuillez prendre les mesures nécessaires pour résoudre cette situation."
+            
+            AlerteProjet.objects.create(
+                destinataire=destinataire,
+                projet=projet,
+                type_alerte='ECHEANCE_DEPASSEE',
+                niveau='DANGER',
+                titre=titre,
+                message=message,
+                lue=False,
+                donnees_contexte={
+                    'jours_retard': jours_retard,
+                    'date_fin': projet.date_fin.isoformat(),
+                    'type_alerte': 'RETARD'
+                }
+            )
+            
+            alertes_creees += 1
+            self.stdout.write(f'    📧 Alerte RETARD créée pour {destinataire.get_full_name()}')
+        
+        return alertes_creees
 
     def _creer_alerte_j7(self, projet):
         """
@@ -123,6 +203,26 @@ class Command(BaseCommand):
             self.stdout.write(f'    📧 Alerte créée pour {destinataire.get_full_name()}')
         
         return alertes_creees
+
+    def _alerte_retard_existe_aujourd_hui(self, projet, utilisateur):
+        """
+        Vérifie si une alerte de retard existe déjà aujourd'hui pour éviter les doublons
+        
+        Args:
+            projet: Le projet concerné
+            utilisateur: L'utilisateur destinataire
+        
+        Returns:
+            bool: True si une alerte existe déjà
+        """
+        aujourd_hui = timezone.now().date()
+        
+        return AlerteProjet.objects.filter(
+            destinataire=utilisateur,
+            projet=projet,
+            type_alerte='ECHEANCE_DEPASSEE',
+            date_creation__date=aujourd_hui
+        ).exists()
 
     def _alerte_existe_aujourd_hui(self, projet, utilisateur):
         """
