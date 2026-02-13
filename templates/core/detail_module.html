@@ -12,7 +12,7 @@
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div class="flex items-center space-x-3">
                     <div class="w-10 h-10 rounded-lg flex items-center justify-center shadow-md" style="background-color: {{ module.couleur }};">
-                        <span class="text-white font-bold text-lg">{{ module.icone_emoji }}</span>
+                        <i class="fas fa-cube text-white text-lg"></i>
                     </div>
                     <div>
                         <h1 class="text-xl font-bold text-gray-900">{{ module.nom }}</h1>
@@ -21,12 +21,12 @@
                 </div>
                 <div class="flex items-center space-x-3">
                     {% if can_manage %}
-                    <a href="{% url 'creer_tache' module.id %}" class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-lg font-medium shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300 text-sm">
-                        <span class="mr-2">➕</span>Nouvelle tâche
+                    <a href="{% url 'creer_tache' module.id %}" class="inline-flex items-center justify-center w-9 h-9 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-lg shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300" title="Nouvelle tâche">
+                        <i class="fas fa-plus"></i>
                     </a>
                     {% endif %}
-                    <a href="{% url 'gestion_modules' projet.id %}" class="inline-flex items-center px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium shadow-md transition-all duration-300 text-sm">
-                        <span class="mr-2">←</span>Retour aux modules
+                    <a href="{% url 'gestion_modules' projet.id %}" class="inline-flex items-center justify-center w-9 h-9 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg shadow-md transition-all duration-300" title="Retour aux modules">
+                        <i class="fas fa-arrow-left"></i>
                     </a>
                 </div>
             </div>
@@ -40,7 +40,7 @@
                 <div class="bg-white rounded-lg p-6 shadow-md border border-white/20">
                     <div class="flex items-center space-x-3 mb-4">
                         <div class="w-8 h-8 bg-gradient-to-br from-gray-500 to-gray-600 rounded-lg flex items-center justify-center shadow-md">
-                            <span class="text-white text-sm">📝</span>
+                            <i class="fas fa-info-circle text-white text-sm"></i>
                         </div>
                         <h3 class="text-lg font-bold text-gray-900">Description</h3>
                     </div>
@@ -64,7 +64,7 @@
                 <div class="bg-orange-50 border border-orange-200 rounded-lg p-4">
                     <div class="flex items-center space-x-3 mb-3">
                         <div class="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg flex items-center justify-center shadow-md">
-                            <span class="text-white text-sm">⚠️</span>
+                            <i class="fas fa-exclamation-triangle text-white text-sm"></i>
                         </div>
                         <h3 class="text-lg font-bold text-orange-800">Justification de création tardive</h3>
                     </div>
@@ -81,8 +81,8 @@
                                 <p class="text-sm text-gray-600">{{ stats.total_taches }} tâche{{ stats.total_taches|pluralize }} • {{ stats.progression }}% terminé</p>
                             </div>
                             {% if can_manage %}
-                            <a href="{% url 'gestion_taches' module.id %}" class="inline-flex items-center px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg font-medium shadow-md transition-all duration-300 text-sm">
-                                <span class="mr-1">⚙️</span>Gérer
+                            <a href="{% url 'gestion_taches' module.id %}" class="inline-flex items-center justify-center w-8 h-8 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg shadow-md transition-all duration-300" title="Gérer les tâches">
+                                <i class="fas fa-cog"></i>
                             </a>
                             {% endif %}
                         </div>
@@ -103,10 +103,10 @@
                                                 {% elif tache.statut == 'EN_COURS' %}bg-blue-100 text-blue-800
                                                 {% elif tache.statut == 'BLOQUEE' %}bg-red-100 text-red-800
                                                 {% else %}bg-gray-100 text-gray-800{% endif %}">
-                                                {% if tache.statut == 'TERMINEE' %}✅ Terminée
-                                                {% elif tache.statut == 'EN_COURS' %}🔄 En cours
-                                                {% elif tache.statut == 'BLOQUEE' %}🚫 Bloquée
-                                                {% else %}📋 À faire{% endif %}
+                                                {% if tache.statut == 'TERMINEE' %}<i class="fas fa-check-circle mr-1"></i>Terminée
+                                                {% elif tache.statut == 'EN_COURS' %}<i class="fas fa-spinner mr-1"></i>En cours
+                                                {% elif tache.statut == 'BLOQUEE' %}<i class="fas fa-ban mr-1"></i>Bloquée
+                                                {% else %}<i class="fas fa-circle mr-1"></i>À faire{% endif %}
                                             </span>
                                             <!-- Badge de priorité -->
                                             <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
@@ -114,10 +114,10 @@
                                                 {% elif tache.priorite == 'HAUTE' %}bg-orange-100 text-orange-800
                                                 {% elif tache.priorite == 'MOYENNE' %}bg-blue-100 text-blue-800
                                                 {% else %}bg-gray-100 text-gray-800{% endif %}">
-                                                {% if tache.priorite == 'CRITIQUE' %}🔴 Critique
-                                                {% elif tache.priorite == 'HAUTE' %}🟠 Haute
-                                                {% elif tache.priorite == 'MOYENNE' %}🔵 Moyenne
-                                                {% else %}⚪ Basse{% endif %}
+                                                {% if tache.priorite == 'CRITIQUE' %}<i class="fas fa-exclamation-circle mr-1"></i>Critique
+                                                {% elif tache.priorite == 'HAUTE' %}<i class="fas fa-arrow-up mr-1"></i>Haute
+                                                {% elif tache.priorite == 'MOYENNE' %}<i class="fas fa-minus mr-1"></i>Moyenne
+                                                {% else %}<i class="fas fa-arrow-down mr-1"></i>Basse{% endif %}
                                             </span>
                                         </div>
                                         <p class="text-sm text-gray-600 line-clamp-2">{{ tache.description }}</p>
@@ -171,12 +171,12 @@
                                 {% if can_manage %}
                                 <div class="flex items-center space-x-2 mt-4 pt-3 border-t border-gray-200">
                                     {% if not tache.responsable %}
-                                    <button onclick="assignerTache('{{ tache.id }}')" class="text-xs text-blue-600 hover:text-blue-700 font-medium">
-                                        👤 Assigner
+                                    <button onclick="assignerTache('{{ tache.id }}')" class="inline-flex items-center justify-center w-7 h-7 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded transition-colors" title="Assigner un responsable">
+                                        <i class="fas fa-user-plus text-xs"></i>
                                     </button>
                                     {% endif %}
-                                    <a href="#" class="text-xs text-gray-600 hover:text-gray-700 font-medium">
-                                        ✏️ Modifier
+                                    <a href="#" class="inline-flex items-center justify-center w-7 h-7 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded transition-colors" title="Modifier la tâche">
+                                        <i class="fas fa-edit text-xs"></i>
                                     </a>
                                 </div>
                                 {% endif %}
@@ -192,8 +192,8 @@
                         <p class="text-lg font-medium text-gray-500 mb-2">Aucune tâche définie</p>
                         <p class="text-sm text-gray-400 mb-6">Créez des tâches pour organiser le travail de ce module</p>
                         {% if can_manage %}
-                        <a href="{% url 'creer_tache' module.id %}" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-lg font-medium shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300">
-                            <span class="mr-2">📋</span>Créer la première tâche
+                        <a href="{% url 'creer_tache' module.id %}" class="inline-flex items-center justify-center w-9 h-9 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-lg shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300" title="Créer la première tâche">
+                            <i class="fas fa-plus"></i>
                         </a>
                         {% endif %}
                     </div>
@@ -207,7 +207,7 @@
                 <div class="bg-white rounded-lg p-4 shadow-md border border-white/20">
                     <div class="flex items-center space-x-3 mb-4">
                         <div class="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center shadow-md">
-                            <span class="text-white text-sm">📊</span>
+                            <i class="fas fa-chart-bar text-white text-sm"></i>
                         </div>
                         <h3 class="text-lg font-bold text-gray-900">Statistiques</h3>
                     </div>
@@ -250,7 +250,7 @@
                 <div class="bg-white rounded-lg p-4 shadow-md border border-white/20">
                     <div class="flex items-center space-x-3 mb-4">
                         <div class="w-8 h-8 bg-gradient-to-br from-gray-500 to-gray-600 rounded-lg flex items-center justify-center shadow-md">
-                            <span class="text-white text-sm">ℹ️</span>
+                            <i class="fas fa-info-circle text-white text-sm"></i>
                         </div>
                         <h3 class="text-lg font-bold text-gray-900">Informations</h3>
                     </div>
@@ -280,7 +280,7 @@
                 <div class="bg-white rounded-lg p-4 shadow-md border border-white/20">
                     <div class="flex items-center space-x-3 mb-4">
                         <div class="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center shadow-md">
-                            <span class="text-white text-sm">👥</span>
+                            <i class="fas fa-users text-white text-sm"></i>
                         </div>
                         <h3 class="text-lg font-bold text-gray-900">Équipe</h3>
                     </div>

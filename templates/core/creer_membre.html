@@ -4,154 +4,155 @@
 {% block page_title %}Gestion des Membres{% endblock %}
 
 {% block content %}
-<div class="bg-gray-50 min-h-screen p-2 md:p-4">
-    <div class="max-w-7xl mx-auto space-y-3 md:space-y-4">
+<div class="bg-gray-50 min-h-screen p-2 sm:p-4">
+    <div class="max-w-5xl mx-auto space-y-3 sm:space-y-4">
         
         <!-- Header Modern -->
-        <div class="bg-white rounded-lg p-3 md:p-4 shadow-sm border border-gray-200">
+        <div class="bg-white rounded-lg p-3 sm:p-4 shadow-sm border border-gray-200">
             <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center">
+                <div class="w-9 h-9 sm:w-10 sm:h-10 bg-emerald-600 rounded-lg flex items-center justify-center flex-shrink-0">
                     <i class="fas fa-user-plus text-white text-sm"></i>
                 </div>
                 <div>
-                    <h1 class="text-lg md:text-xl font-semibold text-gray-900">Nouveau Membre</h1>
-                    <p class="text-xs md:text-sm text-gray-600">Créer un profil RH (informations personnelles et professionnelles)</p>
+                    <h1 class="text-base sm:text-lg font-semibold text-gray-900">Nouveau Membre</h1>
+                    <p class="text-xs text-gray-600 hidden sm:block">Créer un profil RH (informations personnelles et professionnelles)</p>
                 </div>
             </div>
         </div>
 
         <!-- Formulaire Modern -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-            <div class="p-4 md:p-6">
-                <form method="post" id="createMembreForm" class="space-y-6">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div class="p-3 sm:p-4">
+                <form method="post" id="createMembreForm" class="space-y-4 sm:space-y-5">
                     {% csrf_token %}
                     
                     <!-- Informations personnelles -->
                     <div>
-                        <h2 class="text-base md:text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                            <i class="fas fa-user mr-2 text-gray-600"></i>
+                        <h2 class="text-sm sm:text-base font-semibold text-gray-900 mb-3 flex items-center">
+                            <i class="fas fa-user mr-2 text-gray-600 text-sm"></i>
                             Informations Personnelles
                         </h2>
                         
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                             <div>
-                                <label for="prenom" class="block text-sm font-medium text-gray-700 mb-2">
+                                <label for="prenom" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                                    <i class="fas fa-user text-blue-600 mr-1"></i>
                                     Prénom <span class="text-red-500">*</span>
                                 </label>
                                 <input type="text" 
                                        id="prenom" 
                                        name="prenom" 
                                        required
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
-                                       placeholder="Entrez le prénom">
+                                       class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                       placeholder="Prénom">
                             </div>
                             
                             <div>
-                                <label for="nom" class="block text-sm font-medium text-gray-700 mb-2">
+                                <label for="nom" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                                    <i class="fas fa-user text-blue-600 mr-1"></i>
                                     Nom <span class="text-red-500">*</span>
                                 </label>
                                 <input type="text" 
                                        id="nom" 
                                        name="nom" 
                                        required
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
-                                       placeholder="Entrez le nom">
+                                       class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                       placeholder="Nom">
                             </div>
                             
                             <div>
-                                <label for="email_personnel" class="block text-sm font-medium text-gray-700 mb-2">
-                                    Email Personnel <span class="text-red-500">*</span>
+                                <label for="email_personnel" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                                    <i class="fas fa-envelope text-blue-600 mr-1"></i>
+                                    Email <span class="text-red-500">*</span>
                                 </label>
                                 <input type="email" 
                                        id="email_personnel" 
                                        name="email_personnel" 
                                        required
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
-                                       placeholder="membre@exemple.com">
+                                       class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                       placeholder="email@exemple.com">
                             </div>
                             
                             <div>
-                                <label for="telephone" class="block text-sm font-medium text-gray-700 mb-2">
+                                <label for="telephone" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                                    <i class="fas fa-phone text-green-600 mr-1"></i>
                                     Téléphone
                                 </label>
                                 <input type="tel" 
                                        id="telephone" 
                                        name="telephone"
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
+                                       class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                        placeholder="+33 1 23 45 67 89">
                             </div>
                             
                             <div>
-                                <label for="telephone_urgence" class="block text-sm font-medium text-gray-700 mb-2">
-                                    Téléphone d'urgence
+                                <label for="telephone_urgence" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                                    <i class="fas fa-phone-square text-red-600 mr-1"></i>
+                                    Tél. urgence
                                 </label>
                                 <input type="tel" 
                                        id="telephone_urgence" 
                                        name="telephone_urgence"
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
+                                       class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                        placeholder="+33 1 23 45 67 89">
                             </div>
-                        </div>
-                    </div>
-
-                    <!-- Adresse -->
-                    <div>
-                        <h2 class="text-base md:text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                            <i class="fas fa-home mr-2 text-gray-600"></i>
-                            Adresse
-                        </h2>
-                        
-                        <div>
-                            <label for="adresse" class="block text-sm font-medium text-gray-700 mb-2">
-                                Adresse complète <span class="text-red-500">*</span>
-                            </label>
-                            <input type="text" 
-                                   id="adresse" 
-                                   name="adresse"
-                                   required
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
-                                   placeholder="123 Rue de la Paix, 75001 Paris">
+                            
+                            <div class="sm:col-span-2 lg:col-span-1">
+                                <label for="adresse" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                                    <i class="fas fa-home text-purple-600 mr-1"></i>
+                                    Adresse <span class="text-red-500">*</span>
+                                </label>
+                                <input type="text" 
+                                       id="adresse" 
+                                       name="adresse"
+                                       required
+                                       class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                       placeholder="Adresse complète">
+                            </div>
                         </div>
                     </div>
 
                     <!-- Informations professionnelles -->
                     <div>
-                        <h2 class="text-base md:text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                            <i class="fas fa-briefcase mr-2 text-gray-600"></i>
+                        <h2 class="text-sm sm:text-base font-semibold text-gray-900 mb-3 flex items-center">
+                            <i class="fas fa-briefcase mr-2 text-gray-600 text-sm"></i>
                             Informations Professionnelles
                         </h2>
                         
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                             <div>
-                                <label for="poste" class="block text-sm font-medium text-gray-700 mb-2">
-                                    Poste/Fonction
+                                <label for="poste" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                                    <i class="fas fa-id-badge text-indigo-600 mr-1"></i>
+                                    Poste
                                 </label>
                                 <input type="text" 
                                        id="poste" 
                                        name="poste"
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
-                                       placeholder="Développeur Full Stack">
+                                       class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                       placeholder="Développeur">
                             </div>
                             
                             <div>
-                                <label for="departement" class="block text-sm font-medium text-gray-700 mb-2">
+                                <label for="departement" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                                    <i class="fas fa-building text-orange-600 mr-1"></i>
                                     Département
                                 </label>
                                 <input type="text" 
                                        id="departement" 
                                        name="departement"
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
-                                       placeholder="IT / Développement">
+                                       class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                       placeholder="IT">
                             </div>
                             
                             <div>
-                                <label for="niveau_experience" class="block text-sm font-medium text-gray-700 mb-2">
-                                    Niveau d'expérience
+                                <label for="niveau_experience" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                                    <i class="fas fa-chart-line text-green-600 mr-1"></i>
+                                    Expérience
                                 </label>
                                 <select id="niveau_experience" 
                                         name="niveau_experience"
-                                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white text-sm">
-                                    <option value="">Sélectionner un niveau</option>
+                                        class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
+                                    <option value="">Sélectionner</option>
                                     {% for value, label in niveau_experience_choices %}
                                     <option value="{{ value }}">{{ label }}</option>
                                     {% endfor %}
@@ -159,73 +160,72 @@
                             </div>
                             
                             <div>
-                                <label for="date_embauche" class="block text-sm font-medium text-gray-700 mb-2">
-                                    Date d'embauche
+                                <label for="date_embauche" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                                    <i class="fas fa-calendar text-blue-600 mr-1"></i>
+                                    Embauche
                                 </label>
                                 <input type="date" 
                                        id="date_embauche" 
                                        name="date_embauche"
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm">
+                                       class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                             </div>
                         </div>
                     </div>
 
                     <!-- Compétences et spécialités -->
                     <div>
-                        <h2 class="text-base md:text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                            <i class="fas fa-cogs mr-2 text-gray-600"></i>
+                        <h2 class="text-sm sm:text-base font-semibold text-gray-900 mb-3 flex items-center">
+                            <i class="fas fa-cogs mr-2 text-gray-600 text-sm"></i>
                             Compétences et Spécialités
                         </h2>
                         
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
                             <div>
-                                <label for="competences_techniques" class="block text-sm font-medium text-gray-700 mb-2">
+                                <label for="competences_techniques" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                                    <i class="fas fa-code text-purple-600 mr-1"></i>
                                     Compétences techniques
                                 </label>
                                 <textarea id="competences_techniques" 
                                           name="competences_techniques"
-                                          rows="4"
-                                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
-                                          placeholder="Python, Django, React, PostgreSQL, Docker..."></textarea>
+                                          rows="3"
+                                          class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                          placeholder="Python, Django, React..."></textarea>
                             </div>
                             
                             <div>
-                                <label for="specialites" class="block text-sm font-medium text-gray-700 mb-2">
+                                <label for="specialites" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                                    <i class="fas fa-star text-yellow-600 mr-1"></i>
                                     Spécialités
                                 </label>
                                 <textarea id="specialites" 
                                           name="specialites"
-                                          rows="4"
-                                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
-                                          placeholder="Architecture microservices, DevOps, Sécurité..."></textarea>
+                                          rows="3"
+                                          class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                          placeholder="Architecture, DevOps..."></textarea>
                             </div>
                         </div>
                     </div>
 
                     <!-- Informations importantes -->
-                    <div class="bg-blue-50 border border-blue-200 rounded-md p-4">
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
                         <div class="flex items-start">
-                            <i class="fas fa-info-circle text-blue-600 mr-3 text-sm mt-0.5"></i>
-                            <div class="text-sm text-blue-800">
-                                <p class="font-medium mb-2">Profil RH uniquement :</p>
-                                <ul class="list-disc list-inside space-y-1 text-sm">
-                                    <li>Ce formulaire crée uniquement un profil membre (informations RH)</li>
-                                    <li>Aucun accès système n'est attribué à cette étape</li>
-                                    <li>La création d'un compte utilisateur se fait séparément depuis la fiche du membre</li>
-                                </ul>
+                            <i class="fas fa-info-circle text-blue-600 mr-2 text-sm mt-0.5 flex-shrink-0"></i>
+                            <div class="text-xs sm:text-sm text-blue-800">
+                                <p class="font-medium mb-1">Profil RH uniquement</p>
+                                <p>Ce formulaire crée un profil membre sans accès système. La création d'un compte utilisateur se fait séparément.</p>
                             </div>
                         </div>
                     </div>
                     
                     <!-- Boutons d'action -->
-                    <div class="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-200">
+                    <div class="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 sm:pt-4 border-t border-gray-200">
                         <a href="{% url 'gestion_membres' %}" 
-                           class="flex-1 bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-md font-medium text-sm hover:bg-gray-50 transition-colors flex items-center justify-center">
+                           class="flex-1 bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors flex items-center justify-center">
                             <i class="fas fa-arrow-left mr-2"></i>Annuler
                         </a>
                         
                         <button type="submit" 
-                                class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium text-sm transition-colors flex items-center justify-center">
+                                class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center">
                             <i class="fas fa-user-plus mr-2"></i>Créer le Membre
                         </button>
                     </div>
@@ -239,7 +239,6 @@
 // Animation du bouton de soumission
 document.getElementById('createMembreForm').addEventListener('submit', function(e) {
     const submitBtn = document.querySelector('button[type="submit"]');
-    const originalContent = submitBtn.innerHTML;
     
     // Vérifier que tous les champs requis sont remplis
     const prenom = document.getElementById('prenom').value.trim();
@@ -249,12 +248,12 @@ document.getElementById('createMembreForm').addEventListener('submit', function(
     
     if (!prenom || !nom || !email || !adresse) {
         e.preventDefault();
-        alert('Veuillez remplir tous les champs obligatoires (prénom, nom, email, adresse).');
+        alert('Veuillez remplir tous les champs obligatoires.');
         return false;
     }
     
     // Animation du bouton
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Création en cours...';
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Création...';
     submitBtn.disabled = true;
     
     return true;

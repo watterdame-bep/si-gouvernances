@@ -27,91 +27,79 @@
     <div class="max-w-6xl mx-auto space-y-4">
         
         <!-- Header professionnel -->
-        <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div class="flex items-center space-x-3">
-                    <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-cubes text-white text-sm"></i>
+        <div class="bg-white rounded-lg p-2 shadow-sm border border-gray-200">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div class="flex items-center space-x-2">
+                    <div class="w-7 h-7 bg-blue-600 rounded flex items-center justify-center">
+                        <i class="fas fa-cubes text-white text-xs"></i>
                     </div>
                     <div>
-                        <h1 class="text-lg font-semibold text-gray-900">{{ projet.nom }}</h1>
-                        <p class="text-sm text-gray-600">
+                        <h1 class="text-sm sm:text-base font-semibold text-gray-900">{{ projet.nom }}</h1>
+                        <p class="text-xs text-gray-600">
                             <i class="fas fa-layer-group mr-1"></i>
-                            {{ modules.count }} module{{ modules.count|pluralize }} • Phase {{ etape_courante.type_etape.get_nom_display }}
+                            {{ modules.count }} module{{ modules.count|pluralize }} • {{ etape_courante.type_etape.get_nom_display }}
                         </p>
                     </div>
                 </div>
-                <div class="flex items-center space-x-2">
+                <div class="flex items-center space-x-1">
                     <button onclick="ouvrirModalCreerModule()" 
-                            class="inline-flex items-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md text-sm transition-colors">
-                        <i class="fas fa-plus mr-2"></i>Nouveau Module
+                            class="inline-flex items-center px-2 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded text-xs transition-colors">
+                        <i class="fas fa-plus mr-1"></i>Nouveau
                     </button>
                     <a href="{% url 'projet_detail' projet.id %}" 
-                       class="inline-flex items-center px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md font-medium text-sm transition-colors">
-                        <i class="fas fa-arrow-left mr-2"></i>Retour
+                       class="inline-flex items-center px-2 py-1.5 bg-gray-600 hover:bg-gray-700 text-white rounded font-medium text-xs transition-colors">
+                        <i class="fas fa-arrow-left mr-1"></i>Retour
                     </a>
                 </div>
             </div>
         </div>
 
         <!-- Statistiques professionnelles -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <div class="bg-white rounded-lg p-2 shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm font-medium text-gray-600">Modules Totaux</p>
-                        <p class="text-2xl font-bold text-gray-900">{{ stats.modules_totaux }}</p>
-                        <p class="text-xs text-gray-500 mt-1">
-                            <i class="fas fa-chart-line mr-1"></i>Actifs
-                        </p>
+                        <p class="text-xs font-medium text-gray-600">Modules</p>
+                        <p class="text-base sm:text-lg font-bold text-gray-900">{{ stats.modules_totaux }}</p>
                     </div>
-                    <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-cubes text-blue-600 text-xl"></i>
+                    <div class="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
+                        <i class="fas fa-cubes text-blue-600 text-sm"></i>
                     </div>
                 </div>
             </div>
             
-            <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+            <div class="bg-white rounded-lg p-2 shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm font-medium text-gray-600">Modules Affectés</p>
-                        <p class="text-2xl font-bold text-green-600">{{ stats.modules_affectes }}</p>
-                        <p class="text-xs text-gray-500 mt-1">
-                            <i class="fas fa-user-check mr-1"></i>Avec équipe
-                        </p>
+                        <p class="text-xs font-medium text-gray-600">Affectés</p>
+                        <p class="text-base sm:text-lg font-bold text-green-600">{{ stats.modules_affectes }}</p>
                     </div>
-                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-users text-green-600 text-xl"></i>
+                    <div class="w-8 h-8 bg-green-100 rounded flex items-center justify-center">
+                        <i class="fas fa-users text-green-600 text-sm"></i>
                     </div>
                 </div>
             </div>
             
-            <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+            <div class="bg-white rounded-lg p-2 shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm font-medium text-gray-600">Tâches Totales</p>
-                        <p class="text-2xl font-bold text-orange-600">{{ stats.total_taches }}</p>
-                        <p class="text-xs text-gray-500 mt-1">
-                            <i class="fas fa-clipboard-list mr-1"></i>En cours
-                        </p>
+                        <p class="text-xs font-medium text-gray-600">Tâches</p>
+                        <p class="text-base sm:text-lg font-bold text-orange-600">{{ stats.total_taches }}</p>
                     </div>
-                    <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-tasks text-orange-600 text-xl"></i>
+                    <div class="w-8 h-8 bg-orange-100 rounded flex items-center justify-center">
+                        <i class="fas fa-tasks text-orange-600 text-sm"></i>
                     </div>
                 </div>
             </div>
             
-            <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+            <div class="bg-white rounded-lg p-2 shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm font-medium text-gray-600">Phase Actuelle</p>
-                        <p class="text-lg font-bold text-purple-600">{{ stats.phase_actuelle }}</p>
-                        <p class="text-xs text-gray-500 mt-1">
-                            <i class="fas fa-clock mr-1"></i>En cours
-                        </p>
+                        <p class="text-xs font-medium text-gray-600">Phase</p>
+                        <p class="text-xs sm:text-sm font-bold text-purple-600">{{ stats.phase_actuelle }}</p>
                     </div>
-                    <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-project-diagram text-purple-600 text-xl"></i>
+                    <div class="w-8 h-8 bg-purple-100 rounded flex items-center justify-center">
+                        <i class="fas fa-project-diagram text-purple-600 text-sm"></i>
                     </div>
                 </div>
             </div>
@@ -119,13 +107,13 @@
 
         <!-- Tableau des modules -->
         <div class="bg-white rounded-lg shadow-sm border border-gray-200">
-            <div class="p-4 border-b border-gray-200">
+            <div class="p-2 border-b border-gray-200">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center">
-                        <i class="fas fa-table text-gray-600 mr-2"></i>
-                        <h2 class="text-lg font-semibold text-gray-900">Modules du Projet</h2>
+                        <i class="fas fa-table text-gray-600 mr-1 text-xs"></i>
+                        <h2 class="text-sm font-semibold text-gray-900">Modules du Projet</h2>
                     </div>
-                    <span class="text-sm text-gray-500">{{ modules.count }} élément{{ modules.count|pluralize }}</span>
+                    <span class="text-xs text-gray-500">{{ modules.count }} élément{{ modules.count|pluralize }}</span>
                 </div>
             </div>
             
@@ -134,11 +122,11 @@
                 <table class="w-full">
                     <thead class="bg-gray-50 border-b border-gray-200">
                         <tr>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Module</th>
-                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Responsable</th>
-                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Équipe</th>
-                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Tâches</th>
-                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Module</th>
+                            <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Responsable</th>
+                            <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Équipe</th>
+                            <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">Tâches</th>
+                            <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
@@ -151,15 +139,15 @@
                             data-createur="{{ module.createur.get_full_name }}">
                             
                             <!-- Colonne Module -->
-                            <td class="px-4 py-2">
+                            <td class="px-3 py-2">
                                 <div class="flex items-center space-x-2">
-                                    <div class="w-8 h-8 rounded flex items-center justify-center shadow-sm flex-shrink-0" 
+                                    <div class="w-6 h-6 rounded flex items-center justify-center shadow-sm flex-shrink-0" 
                                          style="background-color: {{ module.couleur }}20; border: 1px solid {{ module.couleur }}40;">
-                                        <i class="fas fa-cube text-sm" style="color: {{ module.couleur }};"></i>
+                                        <i class="fas fa-cube text-xs" style="color: {{ module.couleur }};"></i>
                                     </div>
                                     <div class="min-w-0 flex-1">
-                                        <div class="flex items-center space-x-2">
-                                            <p class="text-sm font-semibold text-gray-900 truncate">{{ module.nom }}</p>
+                                        <div class="flex items-center space-x-1">
+                                            <p class="text-xs sm:text-sm font-semibold text-gray-900 truncate">{{ module.nom }}</p>
                                             {% if module.est_cloture %}
                                                 <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 flex-shrink-0">
                                                     <i class="fas fa-check-circle mr-1"></i>Clôturé
@@ -174,7 +162,7 @@
                             </td>
                             
                             <!-- Colonne Responsable -->
-                            <td class="px-4 py-2 text-center">
+                            <td class="px-3 py-2 text-center hidden md:table-cell">
                                 {% with affectations=module.affectations.all %}
                                     {% if affectations %}
                                         {% for affectation in affectations %}
@@ -193,7 +181,7 @@
                             </td>
                             
                             <!-- Colonne Équipe -->
-                            <td class="px-4 py-2 text-center">
+                            <td class="px-3 py-2 text-center">
                                 {% with affectations=module.affectations.all %}
                                     {% if affectations %}
                                         <button onclick="voirEquipeModule('{{ module.id }}', '{{ module.nom }}')" 
@@ -208,14 +196,14 @@
                             </td>
                             
                             <!-- Colonne Tâches -->
-                            <td class="px-4 py-2 text-center">
+                            <td class="px-3 py-2 text-center hidden sm:table-cell">
                                 <span class="text-xs font-medium {% if module.taches.count > 0 %}text-blue-600{% else %}text-gray-400{% endif %}">
                                     {{ module.taches.count }}
                                 </span>
                             </td>
                             
                             <!-- Colonne Actions -->
-                            <td class="px-4 py-2">
+                            <td class="px-3 py-2">
                                 <div class="flex items-center justify-center space-x-1">
                                     <!-- Bouton Détails -->
                                     <button onclick="voirDetailsModule('{{ module.id }}', '{{ module.nom }}', '{{ module.description|escapejs }}')"

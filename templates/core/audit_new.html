@@ -4,79 +4,79 @@
 {% block page_title %}Audit & Sécurité{% endblock %}
 
 {% block content %}
-<div class="p-6 space-y-6">
-    <!-- Header -->
-    <div class="bg-gradient-to-r from-red-600 to-red-700 rounded-2xl p-6 text-white">
+<div class="px-2 py-2 space-y-2">
+    <!-- Header ultra-compact -->
+    <div class="bg-red-600 rounded-lg p-2 text-white">
         <div class="flex items-center justify-between">
             <div>
-                <h1 class="text-2xl font-bold">Journal d'Audit</h1>
-                <p class="text-red-100 mt-1">Traçabilité complète des actions système</p>
+                <h1 class="text-sm md:text-base font-bold">Journal d'Audit</h1>
+                <p class="text-red-100 text-xs hidden sm:block">Traçabilité complète des actions système</p>
             </div>
             <div class="hidden md:block">
-                <i class="fas fa-shield-alt text-4xl text-red-200"></i>
+                <i class="fas fa-shield-alt text-2xl text-red-200"></i>
             </div>
         </div>
     </div>
 
-    <!-- Statistiques rapides -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div class="flex items-center">
-                <div class="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-history text-primary-600 text-xl"></i>
+    <!-- Statistiques ultra-compactes -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-2">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-history text-primary-600 text-sm"></i>
                 </div>
-                <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-500">Actions Totales</p>
-                    <p class="text-2xl font-bold text-gray-900">{{ page_obj.paginator.count|default:0 }}</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div class="flex items-center">
-                <div class="w-12 h-12 bg-success-100 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-user-check text-success-600 text-xl"></i>
-                </div>
-                <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-500">Connexions Aujourd'hui</p>
-                    <p class="text-2xl font-bold text-gray-900">{{ stats.connexions_today|default:0 }}</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div class="flex items-center">
-                <div class="w-12 h-12 bg-warning-100 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-exclamation-triangle text-warning-600 text-xl"></i>
-                </div>
-                <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-500">Tentatives Échouées</p>
-                    <p class="text-2xl font-bold text-gray-900">{{ stats.failed_attempts|default:0 }}</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div class="flex items-center">
-                <div class="w-12 h-12 bg-danger-100 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-ban text-danger-600 text-xl"></i>
-                </div>
-                <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-500">Actions Bloquées</p>
-                    <p class="text-2xl font-bold text-gray-900">{{ stats.blocked_actions|default:0 }}</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Filtres et recherche -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <form method="GET" class="space-y-4">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
-                    <label for="user" class="block text-sm font-medium text-gray-700 mb-2">Utilisateur</label>
-                    <select name="user" id="user" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
-                        <option value="">Tous les utilisateurs</option>
+                    <p class="text-xs text-gray-500">Actions</p>
+                    <p class="text-base md:text-lg font-bold text-gray-900">{{ page_obj.paginator.count|default:0 }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-2">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-success-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-user-check text-success-600 text-sm"></i>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500">Connexions</p>
+                    <p class="text-base md:text-lg font-bold text-gray-900">{{ stats.connexions_today|default:0 }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-2">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-warning-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-exclamation-triangle text-warning-600 text-sm"></i>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500">Échecs</p>
+                    <p class="text-base md:text-lg font-bold text-gray-900">{{ stats.failed_attempts|default:0 }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-2">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-danger-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-ban text-danger-600 text-sm"></i>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500">Bloqués</p>
+                    <p class="text-base md:text-lg font-bold text-gray-900">{{ stats.blocked_actions|default:0 }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtres ultra-compacts -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-2">
+        <form method="GET" class="space-y-2">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+                <div>
+                    <label for="user" class="block text-xs font-medium text-gray-700 mb-1">Utilisateur</label>
+                    <select name="user" id="user" class="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        <option value="">Tous</option>
                         {% for user_item in users %}
                         <option value="{{ user_item.id }}" {% if request.GET.user == user_item.id|stringformat:"s" %}selected{% endif %}>
                             {{ user_item.get_full_name }}
@@ -86,9 +86,9 @@
                 </div>
 
                 <div>
-                    <label for="action_type" class="block text-sm font-medium text-gray-700 mb-2">Type d'action</label>
-                    <select name="action_type" id="action_type" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
-                        <option value="">Toutes les actions</option>
+                    <label for="action_type" class="block text-xs font-medium text-gray-700 mb-1">Type d'action</label>
+                    <select name="action_type" id="action_type" class="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        <option value="">Toutes</option>
                         {% for type_code, type_name in types_actions %}
                         <option value="{{ type_code }}" {% if request.GET.action_type == type_code %}selected{% endif %}>
                             {{ type_name }}
@@ -98,102 +98,160 @@
                 </div>
 
                 <div>
-                    <label for="date_from" class="block text-sm font-medium text-gray-700 mb-2">Date début</label>
+                    <label for="date_from" class="block text-xs font-medium text-gray-700 mb-1">Date début</label>
                     <input type="date" name="date_from" id="date_from" value="{{ request.GET.date_from }}" 
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                           class="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
                 </div>
 
                 <div>
-                    <label for="date_to" class="block text-sm font-medium text-gray-700 mb-2">Date fin</label>
+                    <label for="date_to" class="block text-xs font-medium text-gray-700 mb-1">Date fin</label>
                     <input type="date" name="date_to" id="date_to" value="{{ request.GET.date_to }}" 
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                           class="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
                 </div>
             </div>
 
-            <div class="flex items-center justify-between">
-                <div class="flex-1 max-w-md">
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                <div class="flex-1">
                     <div class="relative">
-                        <input type="text" name="search" placeholder="Rechercher dans les logs..." 
+                        <input type="text" name="search" placeholder="Rechercher..." 
                                value="{{ request.GET.search }}"
-                               class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <i class="fas fa-search text-gray-400"></i>
+                               class="w-full pl-8 pr-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        <div class="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                            <i class="fas fa-search text-gray-400 text-xs"></i>
                         </div>
                     </div>
                 </div>
-                <div class="flex space-x-3 ml-4">
-                    <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
-                        <i class="fas fa-filter mr-2"></i>Filtrer
+                <div class="flex gap-2">
+                    <button type="submit" 
+                            title="Filtrer"
+                            class="flex-1 sm:flex-none w-7 h-7 sm:w-auto sm:h-auto sm:px-2 sm:py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-xs flex items-center justify-center">
+                        <i class="fas fa-filter"></i>
+                        <span class="hidden sm:inline ml-1">Filtrer</span>
                     </button>
-                    <a href="{% url 'audit' %}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-                        <i class="fas fa-times mr-2"></i>Réinitialiser
+                    <a href="{% url 'audit' %}" 
+                       title="Réinitialiser"
+                       class="flex-1 sm:flex-none w-7 h-7 sm:w-auto sm:h-auto sm:px-2 sm:py-1.5 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-xs flex items-center justify-center">
+                        <i class="fas fa-times"></i>
+                        <span class="hidden sm:inline ml-1">Reset</span>
                     </a>
                 </div>
             </div>
         </form>
     </div>
 
-    <!-- Tableau des logs d'audit -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-200">
-            <h3 class="text-lg font-semibold text-gray-900">Journal des Activités</h3>
+    <!-- Tableau des logs d'audit - Version responsive -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-2 py-2 border-b border-gray-200 bg-gray-50">
+            <h3 class="text-xs md:text-sm font-semibold text-gray-900">Journal des Activités</h3>
         </div>
         
         {% if page_obj.object_list %}
-        <div class="overflow-x-auto">
+        <!-- Version mobile : Cards -->
+        <div class="block md:hidden divide-y divide-gray-100">
+            {% for log in page_obj.object_list %}
+            <div class="p-2 hover:bg-blue-50 transition-colors">
+                <div class="flex items-start gap-2 mb-2">
+                    <div class="w-7 h-7 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span class="text-xs font-semibold text-primary-700">
+                            {{ log.utilisateur.first_name.0 }}{{ log.utilisateur.last_name.0 }}
+                        </span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-xs font-medium text-gray-900">{{ log.utilisateur.get_full_name }}</div>
+                        <div class="text-xs text-gray-500">{{ log.timestamp|date:"d/m/Y H:i" }}</div>
+                    </div>
+                    <button onclick="showLogDetails('{{ log.id }}')" 
+                            title="Détails"
+                            class="w-6 h-6 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-xs transition-colors flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+                <div class="flex flex-wrap items-center gap-1 mb-1">
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium
+                        {% if log.type_action == 'CONNEXION' %}bg-success-100 text-success-800
+                        {% elif log.type_action == 'DECONNEXION' %}bg-gray-100 text-gray-800
+                        {% elif log.type_action == 'CREATION_PROJET' or log.type_action == 'CREATION_UTILISATEUR' %}bg-primary-100 text-primary-800
+                        {% elif log.type_action == 'MODIFICATION_PROJET' or log.type_action == 'MODIFICATION_BUDGET' or log.type_action == 'MODIFICATION_UTILISATEUR' %}bg-warning-100 text-warning-800
+                        {% elif log.type_action == 'TENTATIVE_CONNEXION_ECHOUEE' or log.type_action == 'ACCES_REFUSE' or log.type_action == 'DESACTIVATION_UTILISATEUR' %}bg-danger-100 text-danger-800
+                        {% elif log.type_action == 'REACTIVATION_UTILISATEUR' %}bg-success-100 text-success-800
+                        {% elif log.type_action == 'REINITIALISATION_MOT_PASSE' %}bg-purple-100 text-purple-800
+                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                        <i class="{% if log.type_action == 'CONNEXION' %}fas fa-sign-in-alt
+                                {% elif log.type_action == 'DECONNEXION' %}fas fa-sign-out-alt
+                                {% elif log.type_action == 'CREATION_PROJET' or log.type_action == 'CREATION_UTILISATEUR' %}fas fa-plus
+                                {% elif log.type_action == 'MODIFICATION_PROJET' or log.type_action == 'MODIFICATION_BUDGET' or log.type_action == 'MODIFICATION_UTILISATEUR' %}fas fa-edit
+                                {% elif log.type_action == 'TENTATIVE_CONNEXION_ECHOUEE' or log.type_action == 'ACCES_REFUSE' %}fas fa-times
+                                {% elif log.type_action == 'DESACTIVATION_UTILISATEUR' %}fas fa-user-slash
+                                {% elif log.type_action == 'REACTIVATION_UTILISATEUR' %}fas fa-user-check
+                                {% elif log.type_action == 'REINITIALISATION_MOT_PASSE' %}fas fa-key
+                                {% else %}fas fa-eye{% endif %} text-xs mr-1"></i>
+                        {{ log.get_type_action_display }}
+                    </span>
+                </div>
+                <div class="text-xs text-gray-600 mb-1 line-clamp-2">{{ log.description }}</div>
+                {% if log.projet %}
+                <div class="text-xs text-gray-500 mb-1">
+                    <i class="fas fa-folder text-xs mr-1"></i>{{ log.projet.nom }}
+                </div>
+                {% endif %}
+                <div class="text-xs text-gray-500 font-mono">
+                    <i class="fas fa-network-wired text-xs mr-1"></i>{{ log.adresse_ip|default:"N/A" }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Version desktop : Tableau -->
+        <div class="hidden md:block overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Date & Heure
+                        <th class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                            Date
                         </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                             Utilisateur
                         </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                             Action
                         </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase hidden lg:table-cell">
                             Description
                         </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase hidden xl:table-cell">
                             IP
                         </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Détails
+                        <th class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                            Actions
                         </th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     {% for log in page_obj.object_list %}
                     <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td class="px-2 py-2 text-xs text-gray-900">
                             <div class="flex flex-col">
                                 <span class="font-medium">{{ log.timestamp|date:"d/m/Y" }}</span>
-                                <span class="text-gray-500">{{ log.timestamp|time:"H:i:s" }}</span>
+                                <span class="text-gray-500">{{ log.timestamp|time:"H:i" }}</span>
                             </div>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="flex items-center">
-                                <div class="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
+                        <td class="px-2 py-2">
+                            <div class="flex items-center gap-2">
+                                <div class="w-6 h-6 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
                                     <span class="text-xs font-semibold text-primary-700">
                                         {{ log.utilisateur.first_name.0 }}{{ log.utilisateur.last_name.0 }}
                                     </span>
                                 </div>
-                                <div class="ml-3">
-                                    <div class="text-sm font-medium text-gray-900">{{ log.utilisateur.get_full_name }}</div>
-                                    <div class="text-sm text-gray-500">
-                                        {% if log.utilisateur.est_super_admin %}
-                                            Super Administrateur
-                                        {% else %}
-                                            Utilisateur
-                                        {% endif %}
+                                <div>
+                                    <div class="text-xs font-medium text-gray-900">{{ log.utilisateur.get_full_name|truncatewords:2 }}</div>
+                                    <div class="text-xs text-gray-500">
+                                        {% if log.utilisateur.est_super_admin %}Admin{% else %}User{% endif %}
                                     </div>
                                 </div>
                             </div>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                        <td class="px-2 py-2">
+                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium
                                 {% if log.type_action == 'CONNEXION' %}bg-success-100 text-success-800
                                 {% elif log.type_action == 'DECONNEXION' %}bg-gray-100 text-gray-800
                                 {% elif log.type_action == 'CREATION_PROJET' or log.type_action == 'CREATION_UTILISATEUR' %}bg-primary-100 text-primary-800
@@ -210,22 +268,23 @@
                                         {% elif log.type_action == 'DESACTIVATION_UTILISATEUR' %}fas fa-user-slash
                                         {% elif log.type_action == 'REACTIVATION_UTILISATEUR' %}fas fa-user-check
                                         {% elif log.type_action == 'REINITIALISATION_MOT_PASSE' %}fas fa-key
-                                        {% else %}fas fa-eye{% endif %} mr-1"></i>
-                                {{ log.get_type_action_display }}
+                                        {% else %}fas fa-eye{% endif %} text-xs mr-1"></i>
+                                {{ log.get_type_action_display|truncatewords:2 }}
                             </span>
                         </td>
-                        <td class="px-6 py-4 text-sm text-gray-900">
+                        <td class="px-2 py-2 text-xs text-gray-900 hidden lg:table-cell">
                             <div class="max-w-xs truncate">{{ log.description }}</div>
                             {% if log.projet %}
-                                <div class="text-xs text-gray-500 mt-1">Projet: {{ log.projet.nom }}</div>
+                                <div class="text-xs text-gray-500 mt-0.5">{{ log.projet.nom|truncatewords:3 }}</div>
                             {% endif %}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
+                        <td class="px-2 py-2 text-xs text-gray-500 font-mono hidden xl:table-cell">
                             {{ log.adresse_ip|default:"-" }}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <td class="px-2 py-2">
                             <button onclick="showLogDetails('{{ log.id }}')" 
-                                    class="text-primary-600 hover:text-primary-900 transition-colors">
+                                    title="Voir les détails"
+                                    class="w-6 h-6 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-xs transition-colors flex items-center justify-center">
                                 <i class="fas fa-eye"></i>
                             </button>
                         </td>
@@ -235,49 +294,49 @@
             </table>
         </div>
 
-        <!-- Pagination -->
+        <!-- Pagination ultra-compacte -->
         {% if page_obj.has_other_pages %}
-        <div class="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
+        <div class="bg-white px-2 py-2 border-t border-gray-200">
             <div class="flex items-center justify-between">
-                <div class="flex-1 flex justify-between sm:hidden">
+                <div class="flex-1 flex justify-between md:hidden">
                     {% if page_obj.has_previous %}
                         <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}" 
-                           class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                            Précédent
+                           class="relative inline-flex items-center px-2 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                            Préc.
                         </a>
                     {% endif %}
                     {% if page_obj.has_next %}
                         <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}" 
-                           class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                            Suivant
+                           class="ml-2 relative inline-flex items-center px-2 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                            Suiv.
                         </a>
                     {% endif %}
                 </div>
-                <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                <div class="hidden md:flex-1 md:flex md:items-center md:justify-between">
                     <div>
-                        <p class="text-sm text-gray-700">
-                            Affichage de <span class="font-medium">{{ page_obj.start_index }}</span> à 
+                        <p class="text-xs text-gray-700">
+                            <span class="font-medium">{{ page_obj.start_index }}</span> à 
                             <span class="font-medium">{{ page_obj.end_index }}</span> sur 
-                            <span class="font-medium">{{ page_obj.paginator.count }}</span> résultats
+                            <span class="font-medium">{{ page_obj.paginator.count }}</span>
                         </p>
                     </div>
                     <div>
                         <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
                             {% if page_obj.has_previous %}
                                 <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}" 
-                                   class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
-                                    <i class="fas fa-chevron-left"></i>
+                                   class="relative inline-flex items-center px-2 py-1 rounded-l-md border border-gray-300 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50">
+                                    <i class="fas fa-chevron-left text-xs"></i>
                                 </a>
                             {% endif %}
                             
                             {% for num in page_obj.paginator.page_range %}
                                 {% if page_obj.number == num %}
-                                    <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-primary-50 text-sm font-medium text-primary-600">
+                                    <span class="relative inline-flex items-center px-2 py-1 border border-gray-300 bg-primary-50 text-xs font-medium text-primary-600">
                                         {{ num }}
                                     </span>
                                 {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
                                     <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ num }}" 
-                                       class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                       class="relative inline-flex items-center px-2 py-1 border border-gray-300 bg-white text-xs font-medium text-gray-700 hover:bg-gray-50">
                                         {{ num }}
                                     </a>
                                 {% endif %}
@@ -285,8 +344,8 @@
                             
                             {% if page_obj.has_next %}
                                 <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}" 
-                                   class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
-                                    <i class="fas fa-chevron-right"></i>
+                                   class="relative inline-flex items-center px-2 py-1 rounded-r-md border border-gray-300 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50">
+                                    <i class="fas fa-chevron-right text-xs"></i>
                                 </a>
                             {% endif %}
                         </nav>
@@ -298,57 +357,59 @@
 
         {% else %}
         <!-- État vide -->
-        <div class="text-center py-12">
-            <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <i class="fas fa-search text-4xl text-gray-400"></i>
+        <div class="text-center py-8">
+            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <i class="fas fa-search text-2xl text-gray-400"></i>
             </div>
-            <h3 class="text-lg font-medium text-gray-900 mb-2">Aucun log trouvé</h3>
-            <p class="text-gray-500">Aucune activité ne correspond à vos critères de recherche.</p>
+            <h3 class="text-sm font-medium text-gray-900 mb-1">Aucun log trouvé</h3>
+            <p class="text-xs text-gray-500">Aucune activité ne correspond à vos critères.</p>
         </div>
         {% endif %}
     </div>
 
-    <!-- Alertes de sécurité -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold text-gray-900">Alertes de Sécurité</h3>
+    <!-- Alertes de sécurité ultra-compactes -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-2">
+        <div class="flex items-center justify-between mb-2">
+            <h3 class="text-xs md:text-sm font-semibold text-gray-900">Alertes de Sécurité</h3>
         </div>
         
-        <div class="space-y-4">
+        <div class="space-y-2">
             {% if security_alerts %}
                 {% for alert in security_alerts %}
-                <div class="flex items-start p-4 bg-{{ alert.severity }}-50 border border-{{ alert.severity }}-200 rounded-lg">
+                <div class="flex items-start p-2 bg-{{ alert.severity }}-50 border border-{{ alert.severity }}-200 rounded-lg gap-2">
                     <div class="flex-shrink-0">
-                        <i class="fas fa-exclamation-triangle text-{{ alert.severity }}-500 text-lg"></i>
+                        <i class="fas fa-exclamation-triangle text-{{ alert.severity }}-500 text-sm"></i>
                     </div>
-                    <div class="ml-3 flex-1">
-                        <h4 class="text-sm font-medium text-{{ alert.severity }}-800">{{ alert.title }}</h4>
-                        <p class="text-sm text-{{ alert.severity }}-700 mt-1">{{ alert.description }}</p>
-                        <p class="text-xs text-{{ alert.severity }}-600 mt-2">{{ alert.timestamp|timesince }} ago</p>
+                    <div class="flex-1 min-w-0">
+                        <h4 class="text-xs font-medium text-{{ alert.severity }}-800">{{ alert.title }}</h4>
+                        <p class="text-xs text-{{ alert.severity }}-700 mt-0.5">{{ alert.description }}</p>
+                        <p class="text-xs text-{{ alert.severity }}-600 mt-1">{{ alert.timestamp|timesince }}</p>
                     </div>
                 </div>
                 {% endfor %}
             {% else %}
-                <div class="text-center py-8">
-                    <i class="fas fa-shield-alt text-4xl text-green-400 mb-4"></i>
-                    <h4 class="text-lg font-medium text-gray-900 mb-2">Système Sécurisé</h4>
-                    <p class="text-gray-500">Aucune alerte de sécurité détectée.</p>
+                <div class="text-center py-4">
+                    <i class="fas fa-shield-alt text-2xl text-green-400 mb-2"></i>
+                    <h4 class="text-sm font-medium text-gray-900 mb-1">Système Sécurisé</h4>
+                    <p class="text-xs text-gray-500">Aucune alerte de sécurité détectée.</p>
                 </div>
             {% endif %}
         </div>
     </div>
 </div>
 
-<!-- Modal pour les détails du log -->
+<!-- Modal pour les détails du log - Version compacte -->
 <div id="logDetailsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 hidden">
-    <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold text-gray-900">Détails du Log</h3>
-            <button onclick="closeLogDetails()" class="text-gray-400 hover:text-gray-600">
-                <i class="fas fa-times text-xl"></i>
+    <div class="relative top-10 mx-auto p-2 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-2 p-2 border-b border-gray-200 sticky top-0 bg-white z-10">
+            <h3 class="text-sm font-semibold text-gray-900">Détails du Log</h3>
+            <button onclick="closeLogDetails()" 
+                    title="Fermer"
+                    class="w-6 h-6 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors flex items-center justify-center">
+                <i class="fas fa-times text-xs"></i>
             </button>
         </div>
-        <div id="logDetailsContent" class="space-y-4">
+        <div id="logDetailsContent" class="space-y-2 p-2">
             <!-- Le contenu sera chargé dynamiquement -->
         </div>
     </div>
@@ -361,11 +422,11 @@ function showLogDetails(logId) {
     const modal = document.getElementById('logDetailsModal');
     const content = document.getElementById('logDetailsContent');
     
-    // Afficher un loader
+    // Afficher un loader compact
     content.innerHTML = `
-        <div class="flex items-center justify-center py-8">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-            <span class="ml-3 text-gray-600">Chargement des détails...</span>
+        <div class="flex items-center justify-center py-4">
+            <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
+            <span class="ml-2 text-xs text-gray-600">Chargement...</span>
         </div>
     `;
     
@@ -379,18 +440,18 @@ function showLogDetails(logId) {
                 displayLogDetails(data.data);
             } else {
                 content.innerHTML = `
-                    <div class="text-center py-8">
-                        <i class="fas fa-exclamation-triangle text-4xl text-red-400 mb-4"></i>
-                        <p class="text-red-600">Erreur lors du chargement: ${data.error}</p>
+                    <div class="text-center py-4">
+                        <i class="fas fa-exclamation-triangle text-2xl text-red-400 mb-2"></i>
+                        <p class="text-xs text-red-600">Erreur: ${data.error}</p>
                     </div>
                 `;
             }
         })
         .catch(error => {
             content.innerHTML = `
-                <div class="text-center py-8">
-                    <i class="fas fa-exclamation-triangle text-4xl text-red-400 mb-4"></i>
-                    <p class="text-red-600">Erreur de connexion: ${error.message}</p>
+                <div class="text-center py-4">
+                    <i class="fas fa-exclamation-triangle text-2xl text-red-400 mb-2"></i>
+                    <p class="text-xs text-red-600">Erreur: ${error.message}</p>
                 </div>
             `;
         });
@@ -399,83 +460,67 @@ function showLogDetails(logId) {
 function displayLogDetails(log) {
     const content = document.getElementById('logDetailsContent');
     
-    // Construire le HTML avec les informations spécifiques à l'action
+    // Construire le HTML compact
     let html = `
-        <div class="space-y-6">
+        <div class="space-y-2">
             <!-- Informations utilisateur -->
-            <div class="bg-blue-50 rounded-lg p-4">
-                <h4 class="text-lg font-semibold text-gray-900 mb-3">
-                    <i class="fas fa-user mr-2 text-blue-500"></i>Utilisateur
+            <div class="bg-blue-50 rounded-lg p-2">
+                <h4 class="text-xs font-semibold text-gray-900 mb-2 flex items-center">
+                    <i class="fas fa-user text-blue-500 text-xs mr-1"></i>Utilisateur
                 </h4>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Nom Complet</label>
-                        <p class="text-sm text-gray-900 bg-white p-2 rounded border">${log.utilisateur.nom_complet}</p>
+                        <label class="block text-xs font-medium text-gray-700 mb-0.5">Nom</label>
+                        <p class="text-xs text-gray-900 bg-white p-1.5 rounded border">${log.utilisateur.nom_complet}</p>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Nom d'utilisateur</label>
-                        <p class="text-sm text-gray-900 bg-white p-2 rounded border">${log.utilisateur.username}</p>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                        <p class="text-sm text-gray-900 bg-white p-2 rounded border">${log.utilisateur.email}</p>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Rôle</label>
-                        <p class="text-sm text-gray-900 bg-white p-2 rounded border">${log.utilisateur.role}</p>
+                        <label class="block text-xs font-medium text-gray-700 mb-0.5">Email</label>
+                        <p class="text-xs text-gray-900 bg-white p-1.5 rounded border">${log.utilisateur.email}</p>
                     </div>
                 </div>
             </div>
 
-            <!-- Description de l'action -->
-            <div class="bg-yellow-50 rounded-lg p-4">
-                <h4 class="text-lg font-semibold text-gray-900 mb-3">
-                    <i class="fas fa-file-alt mr-2 text-yellow-500"></i>Description de l'Action
+            <!-- Description -->
+            <div class="bg-yellow-50 rounded-lg p-2">
+                <h4 class="text-xs font-semibold text-gray-900 mb-2 flex items-center">
+                    <i class="fas fa-file-alt text-yellow-500 text-xs mr-1"></i>Description
                 </h4>
-                <p class="text-sm text-gray-900 bg-white p-3 rounded border whitespace-pre-wrap">${log.description}</p>
+                <p class="text-xs text-gray-900 bg-white p-2 rounded border whitespace-pre-wrap">${log.description}</p>
             </div>
 
             <!-- Informations techniques -->
-            <div class="bg-purple-50 rounded-lg p-4">
-                <h4 class="text-lg font-semibold text-gray-900 mb-3">
-                    <i class="fas fa-desktop mr-2 text-purple-500"></i>Informations Techniques
+            <div class="bg-purple-50 rounded-lg p-2">
+                <h4 class="text-xs font-semibold text-gray-900 mb-2 flex items-center">
+                    <i class="fas fa-desktop text-purple-500 text-xs mr-1"></i>Infos Techniques
                 </h4>
-                <div class="space-y-3">
+                <div class="space-y-2">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Adresse IP</label>
-                        <p class="text-sm text-gray-900 font-mono bg-white p-2 rounded border">${log.adresse_ip}</p>
+                        <label class="block text-xs font-medium text-gray-700 mb-0.5">IP</label>
+                        <p class="text-xs text-gray-900 font-mono bg-white p-1.5 rounded border">${log.adresse_ip}</p>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">User Agent</label>
-                        <p class="text-sm text-gray-900 bg-white p-3 rounded border break-all">${log.user_agent}</p>
+                        <label class="block text-xs font-medium text-gray-700 mb-0.5">User Agent</label>
+                        <p class="text-xs text-gray-900 bg-white p-2 rounded border break-all">${log.user_agent}</p>
                     </div>
                 </div>
             </div>
     `;
 
-    // Ajouter les informations du projet si disponible
+    // Ajouter le projet si disponible
     if (log.projet) {
         html += `
-            <div class="bg-green-50 rounded-lg p-4">
-                <h4 class="text-lg font-semibold text-gray-900 mb-3">
-                    <i class="fas fa-project-diagram mr-2 text-green-500"></i>Projet Concerné
+            <div class="bg-green-50 rounded-lg p-2">
+                <h4 class="text-xs font-semibold text-gray-900 mb-2 flex items-center">
+                    <i class="fas fa-project-diagram text-green-500 text-xs mr-1"></i>Projet
                 </h4>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Nom du Projet</label>
-                        <p class="text-sm text-gray-900 bg-white p-2 rounded border">${log.projet.nom}</p>
+                        <label class="block text-xs font-medium text-gray-700 mb-0.5">Nom</label>
+                        <p class="text-xs text-gray-900 bg-white p-1.5 rounded border">${log.projet.nom}</p>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Client</label>
-                        <p class="text-sm text-gray-900 bg-white p-2 rounded border">${log.projet.client}</p>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Statut</label>
-                        <p class="text-sm text-gray-900 bg-white p-2 rounded border">${log.projet.statut}</p>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Budget</label>
-                        <p class="text-sm text-gray-900 bg-white p-2 rounded border">${log.projet.budget}</p>
+                        <label class="block text-xs font-medium text-gray-700 mb-0.5">Client</label>
+                        <p class="text-xs text-gray-900 bg-white p-1.5 rounded border">${log.projet.client}</p>
                     </div>
                 </div>
             </div>
@@ -485,18 +530,18 @@ function displayLogDetails(log) {
     // Ajouter les données avant/après si disponibles
     if (log.donnees_avant || log.donnees_apres) {
         html += `
-            <div class="bg-orange-50 rounded-lg p-4">
-                <h4 class="text-lg font-semibold text-gray-900 mb-3">
-                    <i class="fas fa-exchange-alt mr-2 text-orange-500"></i>Données de Modification
+            <div class="bg-orange-50 rounded-lg p-2">
+                <h4 class="text-xs font-semibold text-gray-900 mb-2 flex items-center">
+                    <i class="fas fa-exchange-alt text-orange-500 text-xs mr-1"></i>Modifications
                 </h4>
-                <div class="grid grid-cols-1 ${log.donnees_avant && log.donnees_apres ? 'md:grid-cols-2' : ''} gap-4">
+                <div class="grid grid-cols-1 ${log.donnees_avant && log.donnees_apres ? 'md:grid-cols-2' : ''} gap-2">
         `;
         
         if (log.donnees_avant) {
             html += `
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">État Avant</label>
-                    <pre class="text-sm text-gray-900 bg-white p-3 rounded border overflow-x-auto">${JSON.stringify(log.donnees_avant, null, 2)}</pre>
+                    <label class="block text-xs font-medium text-gray-700 mb-0.5">Avant</label>
+                    <pre class="text-xs text-gray-900 bg-white p-2 rounded border overflow-x-auto">${JSON.stringify(log.donnees_avant, null, 2)}</pre>
                 </div>
             `;
         }
@@ -504,8 +549,8 @@ function displayLogDetails(log) {
         if (log.donnees_apres) {
             html += `
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">État Après</label>
-                    <pre class="text-sm text-gray-900 bg-white p-3 rounded border overflow-x-auto">${JSON.stringify(log.donnees_apres, null, 2)}</pre>
+                    <label class="block text-xs font-medium text-gray-700 mb-0.5">Après</label>
+                    <pre class="text-xs text-gray-900 bg-white p-2 rounded border overflow-x-auto">${JSON.stringify(log.donnees_apres, null, 2)}</pre>
                 </div>
             `;
         }

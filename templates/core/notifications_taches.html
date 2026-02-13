@@ -7,50 +7,51 @@
 {% block content %}
 <div class="min-h-screen bg-gray-50">
     <div class="w-full max-w-4xl mx-auto">
-        <!-- En-tête moderne compact -->
-        <div class="bg-white border-b border-gray-200 px-4 py-3">
-            <div class="flex items-center justify-between gap-3">
+        <!-- Header ultra-compact -->
+        <div class="bg-white border-b border-gray-200 px-2 py-2">
+            <div class="flex items-center justify-between gap-2">
                 <!-- Titre -->
                 <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <i class="fas fa-bell text-white text-sm"></i>
+                    <div class="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-bell text-white text-xs"></i>
                     </div>
-                    <h1 class="text-lg font-bold text-gray-900">Notifications</h1>
+                    <h1 class="text-sm md:text-base font-bold text-gray-900">Notifications</h1>
                 </div>
                 
                 <!-- Actions -->
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-1">
                     <!-- Badge non lues -->
-                    <span id="badgeNonLues" class="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium hidden">
+                    <span id="badgeNonLues" class="px-1.5 py-0.5 bg-red-100 text-red-800 rounded-full text-xs font-medium hidden">
                         <span id="countNonLues">0</span>
                     </span>
                     
                     <!-- Bouton marquer tout comme lu -->
                     <button onclick="markAllAsRead()" 
                             id="btnMarkAll" 
-                            class="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors hidden">
-                        <i class="fas fa-check-double mr-1"></i>
-                        <span class="hidden sm:inline">Tout marquer</span>
+                            title="Tout marquer comme lu"
+                            class="w-7 h-7 md:w-auto md:h-auto md:px-2 md:py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors hidden flex items-center justify-center">
+                        <i class="fas fa-check-double"></i>
+                        <span class="hidden md:inline ml-1">Marquer</span>
                     </button>
                     
                     <!-- Bouton retour -->
                     <a href="{% url 'dashboard' %}" 
-                       class="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                       title="Retour au tableau de bord"
+                       class="w-7 h-7 md:w-auto md:h-auto md:px-2 md:py-1.5 text-xs bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center">
                         <i class="fas fa-arrow-left"></i>
-                        <span class="hidden sm:inline ml-1">Retour</span>
+                        <span class="hidden md:inline ml-1">Retour</span>
                     </a>
                 </div>
             </div>
         </div>
 
-        <!-- Onglets modernes -->
+        <!-- Contenu des notifications -->
         <div class="bg-white shadow-sm">
-            <!-- Contenu des notifications -->
             <div class="min-h-96">
                 <div id="listUnread" class="space-y-0">
-                    <div class="flex items-center justify-center py-12">
-                        <i class="fas fa-spinner fa-spin text-3xl text-gray-400 mr-4"></i>
-                        <p class="text-gray-500 text-lg">Chargement des notifications...</p>
+                    <div class="flex items-center justify-center py-8">
+                        <i class="fas fa-spinner fa-spin text-xl text-gray-400 mr-2"></i>
+                        <p class="text-gray-500 text-sm">Chargement...</p>
                     </div>
                 </div>
             </div>
@@ -116,12 +117,12 @@ function showAllNotifications() {
     
     if (allNotifications.length === 0) {
         container.innerHTML = `
-            <div class="text-center py-16">
-                <div class="w-20 h-20 mx-auto mb-6 bg-gray-100 rounded-full flex items-center justify-center">
-                    <i class="fas fa-bell-slash text-3xl text-gray-400"></i>
+            <div class="text-center py-8">
+                <div class="w-12 h-12 mx-auto mb-3 bg-gray-100 rounded-full flex items-center justify-center">
+                    <i class="fas fa-bell-slash text-xl text-gray-400"></i>
                 </div>
-                <h3 class="text-xl font-semibold text-gray-900 mb-2">Aucune notification</h3>
-                <p class="text-gray-500">Vous n'avez pas encore de notifications.</p>
+                <h3 class="text-sm font-semibold text-gray-900 mb-1">Aucune notification</h3>
+                <p class="text-xs text-gray-500">Vous n'avez pas encore de notifications.</p>
             </div>
         `;
         return;
@@ -151,8 +152,8 @@ function showAllNotifications() {
     // Section "Aujourd'hui"
     if (todayNotifs.length > 0) {
         html += `
-            <div class="mb-4">
-                <h3 class="text-sm font-semibold text-gray-700 px-4 py-2 bg-gray-50">Aujourd'hui</h3>
+            <div class="mb-2">
+                <h3 class="text-xs font-semibold text-gray-700 px-2 py-1.5 bg-gray-50">Aujourd'hui</h3>
                 <div class="divide-y divide-gray-100">
         `;
         
@@ -169,8 +170,8 @@ function showAllNotifications() {
     // Section "Anciennes"
     if (olderNotifs.length > 0) {
         html += `
-            <div class="mb-4">
-                <h3 class="text-sm font-semibold text-gray-700 px-4 py-2 bg-gray-50">Anciennes</h3>
+            <div class="mb-2">
+                <h3 class="text-xs font-semibold text-gray-700 px-2 py-1.5 bg-gray-50">Anciennes</h3>
                 <div class="divide-y divide-gray-100">
         `;
         
@@ -194,21 +195,21 @@ function renderNotification(notif) {
     
     // Couleur de fond selon le statut
     const bgColor = isUnread ? 'bg-blue-50 hover:bg-blue-100' : 'bg-white hover:bg-gray-50';
-    const borderColor = isUnread ? 'border-l-4 border-blue-500' : '';
+    const borderColor = isUnread ? 'border-l-2 border-blue-500' : '';
     
     return `
         <a href="/notifications/${notif.id}/redirect/" 
-           class="block ${bgColor} ${borderColor} px-4 py-3 transition-colors duration-150">
-            <div class="flex items-start gap-3">
-                <div class="flex-shrink-0 mt-1">
-                    ${isUnread ? '<div class="w-2 h-2 bg-blue-600 rounded-full"></div>' : '<div class="w-2 h-2"></div>'}
+           class="block ${bgColor} ${borderColor} px-2 py-2 transition-colors duration-150">
+            <div class="flex items-start gap-2">
+                <div class="flex-shrink-0 mt-0.5">
+                    ${isUnread ? '<div class="w-1.5 h-1.5 bg-blue-600 rounded-full"></div>' : '<div class="w-1.5 h-1.5"></div>'}
                 </div>
                 <div class="flex-1 min-w-0">
-                    <p class="text-sm text-gray-900 leading-snug">
+                    <p class="text-xs text-gray-900 leading-snug">
                         ${notif.message}
                     </p>
-                    <p class="text-xs text-gray-500 mt-1">
-                        <i class="fas fa-clock mr-1"></i>${timeAgo}
+                    <p class="text-xs text-gray-500 mt-0.5">
+                        <i class="fas fa-clock text-xs"></i> ${timeAgo}
                     </p>
                 </div>
             </div>

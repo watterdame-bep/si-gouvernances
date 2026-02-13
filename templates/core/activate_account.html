@@ -1,0 +1,255 @@
+{% extends 'base_standalone.html' %}
+{% load static %}
+
+{% block title %}Activer votre compte - SI-Gouvernance{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-2xl">
+        <!-- En-tête -->
+        <div class="text-center">
+            <div class="mx-auto h-16 w-16 bg-blue-600 rounded-full flex items-center justify-center">
+                <i class="fas fa-key text-white text-2xl"></i>
+            </div>
+            <h2 class="mt-6 text-3xl font-extrabold text-gray-900">
+                Activez votre compte
+            </h2>
+            <p class="mt-2 text-sm text-gray-600">
+                Bienvenue <span class="font-semibold text-blue-600">{{ user.get_full_name }}</span>
+            </p>
+            <p class="mt-1 text-xs text-gray-500">
+                Définissez votre mot de passe pour activer votre compte
+            </p>
+        </div>
+
+        <!-- Informations du compte -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div class="flex items-start">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-info-circle text-blue-600 text-lg"></i>
+                </div>
+                <div class="ml-3 flex-1">
+                    <p class="text-sm text-blue-800">
+                        <span class="font-semibold">Nom d'utilisateur :</span> {{ user.username }}
+                    </p>
+                    <p class="text-sm text-blue-800 mt-1">
+                        <span class="font-semibold">Email :</span> {{ user.email }}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Formulaire -->
+        <form id="activationForm" class="mt-8 space-y-6">
+            {% csrf_token %}
+            
+            <!-- Messages d'erreur -->
+            <div id="errorMessage" class="hidden bg-red-50 border border-red-200 rounded-lg p-4">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-exclamation-circle text-red-600"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-red-800" id="errorText"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Champ mot de passe -->
+            <div>
+                <label for="password1" class="block text-sm font-medium text-gray-700 mb-2">
+                    <i class="fas fa-lock text-gray-400 mr-2"></i>Mot de passe
+                </label>
+                <input 
+                    type="password" 
+                    id="password1" 
+                    name="password1" 
+                    required
+                    class="appearance-none relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                    placeholder="Entrez votre mot de passe"
+                >
+                <p class="mt-2 text-xs text-gray-500">
+                    <i class="fas fa-shield-alt text-gray-400 mr-1"></i>
+                    Minimum 8 caractères, incluant majuscules, minuscules et chiffres
+                </p>
+            </div>
+
+            <!-- Champ confirmation -->
+            <div>
+                <label for="password2" class="block text-sm font-medium text-gray-700 mb-2">
+                    <i class="fas fa-lock text-gray-400 mr-2"></i>Confirmer le mot de passe
+                </label>
+                <input 
+                    type="password" 
+                    id="password2" 
+                    name="password2" 
+                    required
+                    class="appearance-none relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                    placeholder="Confirmez votre mot de passe"
+                >
+            </div>
+
+            <!-- Indicateur de force du mot de passe -->
+            <div id="passwordStrength" class="hidden">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="text-xs font-medium text-gray-700">Force du mot de passe</span>
+                    <span id="strengthText" class="text-xs font-medium"></span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div id="strengthBar" class="h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- Bouton de soumission -->
+            <div>
+                <button 
+                    type="submit" 
+                    id="submitBtn"
+                    class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+                >
+                    <span class="absolute left-0 inset-y-0 flex items-center pl-3">
+                        <i class="fas fa-check-circle text-blue-500 group-hover:text-blue-400"></i>
+                    </span>
+                    <span id="submitText">Activer mon compte</span>
+                    <span id="submitLoader" class="hidden">
+                        <i class="fas fa-spinner fa-spin mr-2"></i>Activation en cours...
+                    </span>
+                </button>
+            </div>
+
+            <!-- Expiration du lien -->
+            <div class="text-center">
+                <p class="text-xs text-gray-500">
+                    <i class="fas fa-clock text-gray-400 mr-1"></i>
+                    Ce lien expire le {{ expires_at|date:"d/m/Y à H:i" }}
+                </p>
+            </div>
+        </form>
+
+        <!-- Aide -->
+        <div class="mt-6 text-center">
+            <p class="text-xs text-gray-500">
+                Besoin d'aide ? Contactez votre administrateur système
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('activationForm');
+    const password1 = document.getElementById('password1');
+    const password2 = document.getElementById('password2');
+    const submitBtn = document.getElementById('submitBtn');
+    const submitText = document.getElementById('submitText');
+    const submitLoader = document.getElementById('submitLoader');
+    const errorMessage = document.getElementById('errorMessage');
+    const errorText = document.getElementById('errorText');
+    const strengthDiv = document.getElementById('passwordStrength');
+    const strengthBar = document.getElementById('strengthBar');
+    const strengthText = document.getElementById('strengthText');
+
+    // Vérifier la force du mot de passe
+    password1.addEventListener('input', function() {
+        const password = this.value;
+        
+        if (password.length === 0) {
+            strengthDiv.classList.add('hidden');
+            return;
+        }
+
+        strengthDiv.classList.remove('hidden');
+        
+        let strength = 0;
+        let feedback = '';
+        let color = '';
+
+        // Critères de force
+        if (password.length >= 8) strength += 25;
+        if (password.length >= 12) strength += 15;
+        if (/[a-z]/.test(password)) strength += 15;
+        if (/[A-Z]/.test(password)) strength += 15;
+        if (/[0-9]/.test(password)) strength += 15;
+        if (/[^a-zA-Z0-9]/.test(password)) strength += 15;
+
+        // Déterminer le niveau
+        if (strength < 40) {
+            feedback = 'Faible';
+            color = 'bg-red-500';
+        } else if (strength < 60) {
+            feedback = 'Moyen';
+            color = 'bg-yellow-500';
+        } else if (strength < 80) {
+            feedback = 'Bon';
+            color = 'bg-blue-500';
+        } else {
+            feedback = 'Excellent';
+            color = 'bg-green-500';
+        }
+
+        strengthBar.style.width = strength + '%';
+        strengthBar.className = 'h-2 rounded-full transition-all duration-300 ' + color;
+        strengthText.textContent = feedback;
+        strengthText.className = 'text-xs font-medium ' + (strength < 40 ? 'text-red-600' : strength < 60 ? 'text-yellow-600' : strength < 80 ? 'text-blue-600' : 'text-green-600');
+    });
+
+    // Soumission du formulaire
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        // Cacher les erreurs précédentes
+        errorMessage.classList.add('hidden');
+
+        // Vérifier que les mots de passe correspondent
+        if (password1.value !== password2.value) {
+            errorText.textContent = 'Les mots de passe ne correspondent pas.';
+            errorMessage.classList.remove('hidden');
+            return;
+        }
+
+        // Désactiver le bouton
+        submitBtn.disabled = true;
+        submitText.classList.add('hidden');
+        submitLoader.classList.remove('hidden');
+
+        // Envoyer la requête
+        fetch('{% url "activate_account_submit" uidb64=uidb64 token=token %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: new URLSearchParams({
+                'password1': password1.value,
+                'password2': password2.value
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Succès - rediriger vers la page de connexion
+                window.location.href = data.redirect_url;
+            } else {
+                // Erreur
+                errorText.textContent = data.error;
+                errorMessage.classList.remove('hidden');
+                
+                // Réactiver le bouton
+                submitBtn.disabled = false;
+                submitText.classList.remove('hidden');
+                submitLoader.classList.add('hidden');
+            }
+        })
+        .catch(error => {
+            errorText.textContent = 'Une erreur est survenue. Veuillez réessayer.';
+            errorMessage.classList.remove('hidden');
+            
+            // Réactiver le bouton
+            submitBtn.disabled = false;
+            submitText.classList.remove('hidden');
+            submitLoader.classList.add('hidden');
+        });
+    });
+});
+</script>
+{% endblock %}

@@ -4,133 +4,147 @@
 {% block page_title %}Mes Tâches - {{ projet.nom }}{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+<div class="max-w-7xl mx-auto px-2 sm:px-4 py-3 sm:py-4">
     
-    <!-- Header -->
-    <div class="mb-6 flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-900">Mes Tâches</h1>
-            <p class="text-gray-600">{{ projet.nom }}</p>
+    <!-- Header Compact -->
+    <div class="bg-white rounded-lg p-2 sm:p-3 shadow-sm border border-gray-200 mb-3 sm:mb-4">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2 sm:space-x-3">
+                <div class="w-8 h-8 sm:w-10 sm:h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-tasks text-white text-xs sm:text-sm"></i>
+                </div>
+                <div>
+                    <h1 class="text-base sm:text-lg font-bold text-gray-900">Mes Tâches</h1>
+                    <p class="text-xs text-gray-600">{{ projet.nom }}</p>
+                </div>
+            </div>
+            <a href="{% url 'projet_detail' projet.id %}" 
+               class="inline-flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 bg-gray-600 hover:bg-gray-700 text-white rounded transition-colors"
+               title="Retour au projet">
+                <i class="fas fa-arrow-left text-xs sm:text-sm"></i>
+            </a>
         </div>
-        <a href="{% url 'projet_detail' projet.id %}" 
-           class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors">
-            <i class="fas fa-arrow-left mr-2"></i>Retour
-        </a>
     </div>
 
-    <!-- Statistiques -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-white rounded-lg shadow p-4 border-l-4 border-blue-500">
-            <div class="text-sm text-gray-600">Total</div>
-            <div class="text-2xl font-bold text-gray-900">{{ stats.total }}</div>
+    <!-- Statistiques Compactes -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mb-3 sm:mb-4">
+        <div class="bg-white rounded-lg shadow-sm p-2 border-l-4 border-blue-500">
+            <div class="text-xs text-gray-600">Total</div>
+            <div class="text-base sm:text-lg font-bold text-gray-900">{{ stats.total }}</div>
         </div>
-        <div class="bg-white rounded-lg shadow p-4 border-l-4 border-orange-500">
-            <div class="text-sm text-gray-600">En cours</div>
-            <div class="text-2xl font-bold text-gray-900">{{ stats.en_cours }}</div>
+        <div class="bg-white rounded-lg shadow-sm p-2 border-l-4 border-orange-500">
+            <div class="text-xs text-gray-600">En cours</div>
+            <div class="text-base sm:text-lg font-bold text-gray-900">{{ stats.en_cours }}</div>
         </div>
-        <div class="bg-white rounded-lg shadow p-4 border-l-4 border-green-500">
-            <div class="text-sm text-gray-600">Terminées</div>
-            <div class="text-2xl font-bold text-gray-900">{{ stats.terminees }}</div>
+        <div class="bg-white rounded-lg shadow-sm p-2 border-l-4 border-green-500">
+            <div class="text-xs text-gray-600">Terminées</div>
+            <div class="text-base sm:text-lg font-bold text-gray-900">{{ stats.terminees }}</div>
         </div>
-        <div class="bg-white rounded-lg shadow p-4 border-l-4 border-yellow-500">
-            <div class="text-sm text-gray-600">En pause</div>
-            <div class="text-2xl font-bold text-gray-900">{{ stats.en_pause|default:0 }}</div>
+        <div class="bg-white rounded-lg shadow-sm p-2 border-l-4 border-yellow-500">
+            <div class="text-xs text-gray-600">En pause</div>
+            <div class="text-base sm:text-lg font-bold text-gray-900">{{ stats.en_pause|default:0 }}</div>
         </div>
     </div>
 
     <!-- Tableau des tâches -->
-    <div class="bg-white rounded-lg shadow overflow-x-auto">
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tâche</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contexte</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Statut</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Progression</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden md:table-cell">Priorité</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden lg:table-cell">Échéance</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tâche</th>
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Contexte</th>
+                    <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Statut</th>
+                    <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Progression</th>
+                    <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase hidden md:table-cell">Priorité</th>
+                    <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase hidden lg:table-cell">Échéance</th>
+                    <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Actions</th>
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
                 <!-- Tâches d'étapes -->
                 {% for tache in mes_taches_etape %}
                 <tr class="hover:bg-gray-50">
-                    <td class="px-4 py-3">
-                        <div class="text-sm font-medium text-gray-900">{{ tache.nom }}</div>
+                    <td class="px-3 py-2">
+                        <div class="text-xs sm:text-sm font-medium text-gray-900">{{ tache.nom }}</div>
                     </td>
-                    <td class="px-4 py-3">
-                        <div class="text-sm text-gray-600">
+                    <td class="px-3 py-2">
+                        <div class="text-xs text-gray-600">
                             <i class="fas fa-layer-group mr-1"></i>{{ tache.etape.type_etape.get_nom_display }}
                         </div>
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-3 py-2 text-center">
                         {% if tache.statut == 'A_FAIRE' %}
-                            <span class="text-gray-500" title="À faire"><i class="fas fa-play-circle text-lg"></i></span>
+                            <span class="text-gray-500" title="À faire"><i class="fas fa-circle text-sm"></i></span>
                         {% elif tache.statut == 'EN_COURS' %}
-                            <span class="text-orange-500" title="En cours"><i class="fas fa-play-circle text-lg"></i></span>
+                            <span class="text-orange-500" title="En cours"><i class="fas fa-spinner text-sm"></i></span>
                         {% elif tache.statut == 'EN_PAUSE' %}
-                            <span class="text-yellow-500" title="En pause"><i class="fas fa-pause-circle text-lg"></i></span>
+                            <span class="text-yellow-500" title="En pause"><i class="fas fa-pause-circle text-sm"></i></span>
                         {% elif tache.statut == 'TERMINEE' %}
-                            <span class="text-green-500" title="Terminée"><i class="fas fa-check-circle text-lg"></i></span>
+                            <span class="text-green-500" title="Terminée"><i class="fas fa-check-circle text-sm"></i></span>
                         {% endif %}
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-3 py-2 text-center">
                         {% if tache.statut == 'EN_COURS' %}
                             <button onclick="ouvrirModalProgression('{{ tache.id }}', 'etape', {{ tache.pourcentage_completion }})" 
-                                    class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                                    class="text-blue-600 hover:text-blue-800 text-xs font-medium"
+                                    title="Mettre à jour la progression">
                                 <i class="fas fa-chart-line mr-1"></i>{{ tache.pourcentage_completion }}%
                             </button>
                         {% elif tache.statut == 'TERMINEE' %}
-                            <span class="text-green-600 font-medium text-sm">
+                            <span class="text-green-600 font-medium text-xs">
                                 <i class="fas fa-check mr-1"></i>100%
                             </span>
                         {% else %}
-                            <span class="text-gray-400 text-sm">
-                                <i class="fas fa-lock mr-1"></i>{{ tache.pourcentage_completion }}%
-                            </span>
+                            <span class="text-gray-400 text-xs">{{ tache.pourcentage_completion }}%</span>
                         {% endif %}
                     </td>
-                    <td class="px-4 py-3 hidden md:table-cell">
+                    <td class="px-3 py-2 text-center hidden md:table-cell">
                         {% if tache.priorite == 'HAUTE' %}
-                            <span class="text-orange-500" title="Haute"><i class="fas fa-arrow-up text-lg"></i></span>
+                            <span class="text-orange-500" title="Haute"><i class="fas fa-arrow-up text-sm"></i></span>
                         {% else %}
-                            <span class="text-gray-400" title="Basse"><i class="fas fa-arrow-down text-lg"></i></span>
+                            <span class="text-gray-400" title="Basse"><i class="fas fa-arrow-down text-sm"></i></span>
                         {% endif %}
                     </td>
-                    <td class="px-4 py-3 text-sm text-gray-500 hidden lg:table-cell">
+                    <td class="px-3 py-2 text-xs text-gray-500 text-center hidden lg:table-cell">
                         {% if tache.date_fin %}{{ tache.date_fin|date:"d/m/Y" }}{% else %}-{% endif %}
                     </td>
-                    <td class="px-4 py-3 text-right">
-                        <div class="flex items-center justify-end space-x-2">
+                    <td class="px-3 py-2 text-center">
+                        <div class="flex items-center justify-center space-x-1">
                             {% if tache.etape.type_etape.nom == 'TESTS' %}
                                 <a href="{% url 'gestion_cas_tests_tache' projet.id tache.etape.id tache.id %}?from=mes_taches" 
-                                   class="text-purple-600 hover:text-purple-800" title="Cas de Test">
-                                    <i class="fas fa-vial text-lg"></i>
+                                   class="inline-flex items-center justify-center w-6 h-6 text-purple-600 hover:text-purple-800 rounded transition-colors" 
+                                   title="Cas de Test">
+                                    <i class="fas fa-vial text-xs"></i>
                                 </a>
                             {% endif %}
                             
                             {% if tache.statut == 'A_FAIRE' %}
                                 <button onclick="demarrerTache('{{ tache.id }}', 'etape')" 
-                                        class="text-green-600 hover:text-green-800" title="Démarrer">
-                                    <i class="fas fa-play-circle text-lg"></i>
+                                        class="inline-flex items-center justify-center w-6 h-6 text-green-600 hover:text-green-800 rounded transition-colors" 
+                                        title="Démarrer">
+                                    <i class="fas fa-play text-xs"></i>
                                 </button>
                             {% elif tache.statut == 'EN_COURS' %}
                                 <button onclick="mettreEnPauseTache('{{ tache.id }}', 'etape')" 
-                                        class="text-yellow-600 hover:text-yellow-800" title="Mettre en pause">
-                                    <i class="fas fa-pause-circle text-lg"></i>
+                                        class="inline-flex items-center justify-center w-6 h-6 text-yellow-600 hover:text-yellow-800 rounded transition-colors" 
+                                        title="Mettre en pause">
+                                    <i class="fas fa-pause text-xs"></i>
                                 </button>
                                 <button onclick="terminerTache('{{ tache.id }}', 'etape')" 
-                                        class="text-green-600 hover:text-green-800" title="Terminer">
-                                    <i class="fas fa-check-circle text-lg"></i>
+                                        class="inline-flex items-center justify-center w-6 h-6 text-green-600 hover:text-green-800 rounded transition-colors" 
+                                        title="Terminer">
+                                    <i class="fas fa-check text-xs"></i>
                                 </button>
                             {% elif tache.statut == 'EN_PAUSE' %}
                                 <button onclick="reprendreTache('{{ tache.id }}', 'etape')" 
-                                        class="text-green-600 hover:text-green-800" title="Reprendre">
-                                    <i class="fas fa-play-circle text-lg"></i>
+                                        class="inline-flex items-center justify-center w-6 h-6 text-green-600 hover:text-green-800 rounded transition-colors" 
+                                        title="Reprendre">
+                                    <i class="fas fa-play text-xs"></i>
                                 </button>
                             {% elif tache.statut == 'TERMINEE' %}
-                                <span class="text-gray-400"><i class="fas fa-check-circle text-lg"></i></span>
+                                <span class="inline-flex items-center justify-center w-6 h-6 text-gray-400">
+                                    <i class="fas fa-check-circle text-xs"></i>
+                                </span>
                             {% endif %}
                         </div>
                     </td>
@@ -140,74 +154,81 @@
                 <!-- Tâches de modules -->
                 {% for tache in mes_taches_module %}
                 <tr class="hover:bg-gray-50">
-                    <td class="px-4 py-3">
-                        <div class="text-sm font-medium text-gray-900">{{ tache.nom }}</div>
+                    <td class="px-3 py-2">
+                        <div class="text-xs sm:text-sm font-medium text-gray-900">{{ tache.nom }}</div>
                     </td>
-                    <td class="px-4 py-3">
-                        <div class="text-sm text-gray-600">
+                    <td class="px-3 py-2">
+                        <div class="text-xs text-gray-600">
                             <i class="fas fa-puzzle-piece mr-1"></i>{{ tache.module.nom }}
                         </div>
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-3 py-2 text-center">
                         {% if tache.statut == 'A_FAIRE' %}
-                            <span class="text-gray-500" title="À faire"><i class="fas fa-play-circle text-lg"></i></span>
+                            <span class="text-gray-500" title="À faire"><i class="fas fa-circle text-sm"></i></span>
                         {% elif tache.statut == 'EN_COURS' %}
-                            <span class="text-orange-500" title="En cours"><i class="fas fa-play-circle text-lg"></i></span>
+                            <span class="text-orange-500" title="En cours"><i class="fas fa-spinner text-sm"></i></span>
                         {% elif tache.statut == 'EN_PAUSE' %}
-                            <span class="text-yellow-500" title="En pause"><i class="fas fa-pause-circle text-lg"></i></span>
+                            <span class="text-yellow-500" title="En pause"><i class="fas fa-pause-circle text-sm"></i></span>
                         {% elif tache.statut == 'TERMINEE' %}
-                            <span class="text-green-500" title="Terminée"><i class="fas fa-check-circle text-lg"></i></span>
+                            <span class="text-green-500" title="Terminée"><i class="fas fa-check-circle text-sm"></i></span>
                         {% endif %}
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-3 py-2 text-center">
                         {% if tache.statut == 'EN_COURS' %}
                             <button onclick="ouvrirModalProgression('{{ tache.id }}', 'module', {{ tache.pourcentage_completion }})" 
-                                    class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                                    class="text-blue-600 hover:text-blue-800 text-xs font-medium"
+                                    title="Mettre à jour la progression">
                                 <i class="fas fa-chart-line mr-1"></i>{{ tache.pourcentage_completion }}%
                             </button>
                         {% elif tache.statut == 'TERMINEE' %}
-                            <span class="text-green-600 font-medium text-sm">
+                            <span class="text-green-600 font-medium text-xs">
                                 <i class="fas fa-check mr-1"></i>100%
                             </span>
                         {% else %}
-                            <span class="text-gray-400 text-sm">
-                                <i class="fas fa-lock mr-1"></i>{{ tache.pourcentage_completion }}%
-                            </span>
+                            <span class="text-gray-400 text-xs">{{ tache.pourcentage_completion }}%</span>
                         {% endif %}
                     </td>
-                    <td class="px-4 py-3 hidden md:table-cell">
+                    <td class="px-3 py-2 text-center hidden md:table-cell">
                         {% if tache.priorite == 'HAUTE' %}
-                            <span class="text-orange-500" title="Haute"><i class="fas fa-arrow-up text-lg"></i></span>
+                            <span class="text-orange-500" title="Haute"><i class="fas fa-arrow-up text-sm"></i></span>
                         {% else %}
-                            <span class="text-gray-400" title="Basse"><i class="fas fa-arrow-down text-lg"></i></span>
+                            <span class="text-gray-400" title="Basse"><i class="fas fa-arrow-down text-sm"></i></span>
                         {% endif %}
                     </td>
-                    <td class="px-4 py-3 text-sm text-gray-500 hidden lg:table-cell">
+                    <td class="px-3 py-2 text-xs text-gray-500 text-center hidden lg:table-cell">
                         {% if tache.date_fin %}{{ tache.date_fin|date:"d/m/Y" }}{% else %}-{% endif %}
                     </td>
-                    <td class="px-4 py-3 text-right">
-                        {% if tache.statut == 'A_FAIRE' %}
-                            <button onclick="demarrerTache('{{ tache.id }}', 'module')" 
-                                    class="text-green-600 hover:text-green-800" title="Démarrer">
-                                <i class="fas fa-play-circle text-lg"></i>
-                            </button>
-                        {% elif tache.statut == 'EN_COURS' %}
-                            <button onclick="mettreEnPauseTache('{{ tache.id }}', 'module')" 
-                                    class="text-yellow-600 hover:text-yellow-800 mr-2" title="Mettre en pause">
-                                <i class="fas fa-pause-circle text-lg"></i>
-                            </button>
-                            <button onclick="terminerTache('{{ tache.id }}', 'module')" 
-                                    class="text-green-600 hover:text-green-800" title="Terminer">
-                                <i class="fas fa-check-circle text-lg"></i>
-                            </button>
-                        {% elif tache.statut == 'EN_PAUSE' %}
-                            <button onclick="reprendreTache('{{ tache.id }}', 'module')" 
-                                    class="text-green-600 hover:text-green-800" title="Reprendre">
-                                <i class="fas fa-play-circle text-lg"></i>
-                            </button>
-                        {% elif tache.statut == 'TERMINEE' %}
-                            <span class="text-gray-400"><i class="fas fa-check-circle text-lg"></i></span>
-                        {% endif %}
+                    <td class="px-3 py-2 text-center">
+                        <div class="flex items-center justify-center space-x-1">
+                            {% if tache.statut == 'A_FAIRE' %}
+                                <button onclick="demarrerTache('{{ tache.id }}', 'module')" 
+                                        class="inline-flex items-center justify-center w-6 h-6 text-green-600 hover:text-green-800 rounded transition-colors" 
+                                        title="Démarrer">
+                                    <i class="fas fa-play text-xs"></i>
+                                </button>
+                            {% elif tache.statut == 'EN_COURS' %}
+                                <button onclick="mettreEnPauseTache('{{ tache.id }}', 'module')" 
+                                        class="inline-flex items-center justify-center w-6 h-6 text-yellow-600 hover:text-yellow-800 rounded transition-colors" 
+                                        title="Mettre en pause">
+                                    <i class="fas fa-pause text-xs"></i>
+                                </button>
+                                <button onclick="terminerTache('{{ tache.id }}', 'module')" 
+                                        class="inline-flex items-center justify-center w-6 h-6 text-green-600 hover:text-green-800 rounded transition-colors" 
+                                        title="Terminer">
+                                    <i class="fas fa-check text-xs"></i>
+                                </button>
+                            {% elif tache.statut == 'EN_PAUSE' %}
+                                <button onclick="reprendreTache('{{ tache.id }}', 'module')" 
+                                        class="inline-flex items-center justify-center w-6 h-6 text-green-600 hover:text-green-800 rounded transition-colors" 
+                                        title="Reprendre">
+                                    <i class="fas fa-play text-xs"></i>
+                                </button>
+                            {% elif tache.statut == 'TERMINEE' %}
+                                <span class="inline-flex items-center justify-center w-6 h-6 text-gray-400">
+                                    <i class="fas fa-check-circle text-xs"></i>
+                                </span>
+                            {% endif %}
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}
@@ -215,11 +236,11 @@
                 <!-- Message si aucune tâche -->
                 {% if not mes_taches_etape and not mes_taches_module %}
                 <tr>
-                    <td colspan="7" class="px-6 py-12 text-center">
+                    <td colspan="7" class="px-4 py-8 sm:py-12 text-center">
                         <div class="text-gray-400">
-                            <i class="fas fa-tasks text-4xl mb-3"></i>
-                            <p class="text-lg font-medium text-gray-900">Aucune tâche assignée</p>
-                            <p class="text-gray-500">Vous n'avez aucune tâche dans ce projet.</p>
+                            <i class="fas fa-tasks text-2xl sm:text-4xl mb-2 sm:mb-3"></i>
+                            <p class="text-sm sm:text-base font-medium text-gray-900">Aucune tâche assignée</p>
+                            <p class="text-xs sm:text-sm text-gray-500">Vous n'avez aucune tâche dans ce projet.</p>
                         </div>
                     </td>
                 </tr>

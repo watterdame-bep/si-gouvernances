@@ -7,72 +7,97 @@
 <div class="bg-gray-50 min-h-screen p-2 md:p-4">
     <div class="max-w-7xl mx-auto space-y-4">
         
-        <!-- Header -->
-        <div class="bg-white rounded-lg p-4 shadow-md border border-white/20">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 rounded-lg flex items-center justify-center shadow-md" style="background-color: {{ module.couleur }};">
-                        <span class="text-white font-bold text-lg">{{ module.icone_emoji }}</span>
+        <!-- Header Compact -->
+        <div class="bg-white rounded-lg p-2 sm:p-3 shadow-sm border border-gray-200">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-2 sm:space-x-3">
+                    <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center" style="background-color: {{ module.couleur }};">
+                        <i class="fas fa-cube text-white text-xs sm:text-sm"></i>
                     </div>
                     <div>
-                        <h1 class="text-xl font-bold text-gray-900">Gestion des Tâches</h1>
-                        <p class="text-sm text-gray-600">{{ module.nom }} - {{ projet.nom }}</p>
+                        <h1 class="text-base sm:text-lg font-bold text-gray-900">Gestion des Tâches</h1>
+                        <p class="text-xs text-gray-600">{{ module.nom }}</p>
                     </div>
                 </div>
-                <div class="flex items-center space-x-3">
+                <div class="flex items-center space-x-1">
                     {% if can_manage %}
-                    <a href="{% url 'creer_tache' module.id %}" class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-lg font-medium shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300 text-sm">
-                        <span class="mr-2">➕</span>Nouvelle tâche
+                    <a href="{% url 'creer_tache' module.id %}" 
+                       class="inline-flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+                       title="Nouvelle tâche">
+                        <i class="fas fa-plus text-xs sm:text-sm"></i>
                     </a>
                     {% endif %}
-                    <a href="{% url 'detail_module' projet.id module.id %}" class="inline-flex items-center px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium shadow-md transition-all duration-300 text-sm">
-                        <span class="mr-2">←</span>Retour au module
+                    <a href="{% url 'detail_module' projet.id module.id %}" 
+                       class="inline-flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 bg-gray-600 hover:bg-gray-700 text-white rounded transition-colors"
+                       title="Retour au module">
+                        <i class="fas fa-arrow-left text-xs sm:text-sm"></i>
                     </a>
                 </div>
             </div>
         </div>
 
-        <!-- Filtres et statistiques -->
-        <div class="bg-white rounded-lg p-4 shadow-md border border-white/20">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <!-- Statistiques rapides -->
-                <div class="text-center p-3 bg-blue-50 rounded-lg">
-                    <div class="text-2xl font-bold text-blue-600">{{ taches.count }}</div>
-                    <div class="text-sm text-blue-800">Total</div>
+        <!-- Statistiques Compactes -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-2">
+                <div class="flex items-center">
+                    <div class="w-7 h-7 sm:w-8 sm:h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-2">
+                        <i class="fas fa-tasks text-blue-600 text-xs"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-medium text-gray-500">Total</p>
+                        <p class="text-base sm:text-lg font-bold text-gray-900">{{ taches.count }}</p>
+                    </div>
                 </div>
-                <div class="text-center p-3 bg-green-50 rounded-lg">
-                    <div class="text-2xl font-bold text-green-600">{{ taches|length|default:0 }}</div>
-                    <div class="text-sm text-green-800">Terminées</div>
+            </div>
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-2">
+                <div class="flex items-center">
+                    <div class="w-7 h-7 sm:w-8 sm:h-8 bg-green-100 rounded-lg flex items-center justify-center mr-2">
+                        <i class="fas fa-check-circle text-green-600 text-xs"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-medium text-gray-500">Terminées</p>
+                        <p class="text-base sm:text-lg font-bold text-gray-900">{{ taches|length|default:0 }}</p>
+                    </div>
                 </div>
-                <div class="text-center p-3 bg-orange-50 rounded-lg">
-                    <div class="text-2xl font-bold text-orange-600">{{ taches|length|default:0 }}</div>
-                    <div class="text-sm text-orange-800">En cours</div>
+            </div>
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-2">
+                <div class="flex items-center">
+                    <div class="w-7 h-7 sm:w-8 sm:h-8 bg-orange-100 rounded-lg flex items-center justify-center mr-2">
+                        <i class="fas fa-spinner text-orange-600 text-xs"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-medium text-gray-500">En cours</p>
+                        <p class="text-base sm:text-lg font-bold text-gray-900">{{ taches|length|default:0 }}</p>
+                    </div>
                 </div>
-                <div class="text-center p-3 bg-red-50 rounded-lg">
-                    <div class="text-2xl font-bold text-red-600">{{ taches|length|default:0 }}</div>
-                    <div class="text-sm text-red-800">Bloquées</div>
+            </div>
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-2">
+                <div class="flex items-center">
+                    <div class="w-7 h-7 sm:w-8 sm:h-8 bg-red-100 rounded-lg flex items-center justify-center mr-2">
+                        <i class="fas fa-ban text-red-600 text-xs"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-medium text-gray-500">Bloquées</p>
+                        <p class="text-base sm:text-lg font-bold text-gray-900">{{ taches|length|default:0 }}</p>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Liste des tâches -->
-        <div class="bg-white rounded-lg shadow-md border border-white/20 overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+        <!-- Tableau des tâches -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-3 py-2 border-b border-gray-200 bg-gray-50">
                 <div class="flex items-center justify-between">
-                    <div>
-                        <h2 class="text-lg font-bold text-gray-900">Tâches du module</h2>
-                        <p class="text-sm text-gray-600">Organisation et suivi des tâches</p>
-                    </div>
+                    <h2 class="text-sm sm:text-base font-bold text-gray-900">Tâches du module</h2>
                     <div class="flex items-center space-x-2">
-                        <!-- Filtres rapides -->
-                        <select id="filtreStatut" class="px-3 py-1 border border-gray-300 rounded-lg text-sm">
-                            <option value="">Tous les statuts</option>
+                        <select id="filtreStatut" class="px-2 py-1 border border-gray-300 rounded text-xs">
+                            <option value="">Tous statuts</option>
                             <option value="A_FAIRE">À faire</option>
                             <option value="EN_COURS">En cours</option>
                             <option value="TERMINEE">Terminée</option>
                             <option value="BLOQUEE">Bloquée</option>
                         </select>
-                        <select id="filtrePriorite" class="px-3 py-1 border border-gray-300 rounded-lg text-sm">
+                        <select id="filtrePriorite" class="px-2 py-1 border border-gray-300 rounded text-xs">
                             <option value="">Toutes priorités</option>
                             <option value="CRITIQUE">Critique</option>
                             <option value="HAUTE">Haute</option>

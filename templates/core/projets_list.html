@@ -7,34 +7,29 @@
 <div class="max-w-7xl mx-auto p-3 md:p-6 space-y-4 md:space-y-6 bg-gray-50 min-h-screen">
     
     <!-- Header Section -->
-    <div class="bg-white rounded-lg shadow-sm border border-slate-200 p-4 md:p-6">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
-            <div class="flex items-center space-x-3 md:space-x-4">
-                <div class="w-10 h-10 md:w-12 md:h-12 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <i class="fas fa-folder-open text-white text-sm md:text-lg"></i>
-                </div>
-                <div class="min-w-0">
-                    <h1 class="text-lg md:text-2xl font-semibold text-slate-900 truncate">{% if user.est_super_admin %}Gestion des Projets{% else %}Mes Projets{% endif %}</h1>
-                    <p class="text-xs md:text-sm text-slate-600 truncate">{% if user.est_super_admin %}Gérez et suivez tous vos projets{% else %}Projets auxquels vous êtes affecté{% endif %}</p>
-                </div>
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">{% if user.est_super_admin %}Gestion des Projets{% else %}Mes Projets{% endif %}</h1>
+                <p class="text-sm text-gray-600 mt-1">{% if user.est_super_admin %}Gérez et suivez tous vos projets{% else %}Projets auxquels vous êtes affecté{% endif %}</p>
             </div>
             
             {% if user.est_super_admin and can_create %}
-            <a href="{% url 'creer_projet' %}" class="flex items-center justify-center px-3 py-2 md:px-4 md:py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm whitespace-nowrap">
-                <i class="fas fa-plus mr-2"></i>
-                <span class="hidden sm:inline">Nouveau Projet</span>
-                <span class="sm:hidden">Nouveau</span>
+            <a href="{% url 'creer_projet' %}" 
+               class="inline-flex items-center justify-center w-9 h-9 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+               title="Créer un nouveau projet">
+                <i class="fas fa-plus"></i>
             </a>
             {% endif %}
         </div>
     </div>
 
     <!-- Filters Section -->
-    <div class="bg-white rounded-lg shadow-sm border border-slate-200 p-4 md:p-6">
-        <form method="get" class="space-y-3 md:space-y-0 md:grid md:grid-cols-4 md:gap-4">
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-3">
             <!-- Search -->
             <div class="md:col-span-2">
-                <label for="search" class="block text-sm font-medium text-slate-700 mb-2">Rechercher</label>
+                <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Rechercher</label>
                 <div class="relative">
                     <input 
                         type="text" 
@@ -42,19 +37,19 @@
                         name="search" 
                         value="{{ search }}"
                         placeholder="Nom du projet, client..."
-                        class="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
+                        class="w-full pl-9 pr-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                     >
-                    <i class="fas fa-search absolute left-3 top-3 text-slate-400 text-xs"></i>
+                    <i class="fas fa-search absolute left-3 top-2.5 text-gray-400 text-sm"></i>
                 </div>
             </div>
 
             <!-- Status Filter -->
             <div>
-                <label for="statut" class="block text-sm font-medium text-slate-700 mb-2">Statut</label>
+                <label for="statut" class="block text-sm font-medium text-gray-700 mb-1">Statut</label>
                 <select 
                     id="statut" 
                     name="statut"
-                    class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
+                    class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                 >
                     <option value="">Tous les statuts</option>
                     {% for statut in statuts %}
@@ -69,9 +64,9 @@
             <div class="flex items-end">
                 <button 
                     type="submit"
-                    class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm"
-                >
-                    <i class="fas fa-search mr-2"></i>Filtrer
+                    class="w-full inline-flex items-center justify-center w-9 h-9 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+                    title="Appliquer les filtres">
+                    <i class="fas fa-search"></i>
                 </button>
             </div>
         </form>
@@ -79,51 +74,45 @@
 
     <!-- Projects Table -->
     {% if page_obj.object_list %}
-    <div class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <!-- Header -->
-        <div class="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
+        <div class="bg-gray-50 px-4 py-3 border-b border-gray-200">
             <div class="flex items-center justify-between">
-                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                    <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
-                        <i class="fas fa-list text-white text-sm"></i>
-                    </div>
-                    Liste des Projets
-                </h2>
+                <h2 class="text-lg font-semibold text-gray-900">Liste des Projets</h2>
                 <span class="text-sm text-gray-600">{{ page_obj.paginator.count }} projet{{ page_obj.paginator.count|pluralize }}</span>
             </div>
         </div>
 
         <!-- Table -->
         <div class="overflow-x-auto">
-            <table class="min-w-full">
-                <thead>
-                    <tr class="bg-gray-50 border-b border-gray-200">
-                        <th class="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase">Projet</th>
-                        <th class="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase">Statut</th>
-                        <th class="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase">Client</th>
-                        <th class="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase">Budget</th>
-                        <th class="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase">Responsable</th>
-                        <th class="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase">Date création</th>
-                        <th class="px-3 py-2 text-center text-xs font-semibold text-gray-700 uppercase">Actions</th>
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Projet</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Date création</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Statut</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Client</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Responsable</th>
+                        <th class="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-100">
                     {% for projet in page_obj.object_list %}
-                    <tr class="hover:bg-blue-50 transition-colors">
+                    <tr class="hover:bg-gray-50 transition-colors">
                         <!-- Projet -->
-                        <td class="px-3 py-2">
-                            <div class="flex items-center gap-2">
-                                <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm">
-                                    <span class="text-white font-bold text-xs">{{ projet.nom.0|upper }}</span>
-                                </div>
-                                <span class="text-sm font-medium text-gray-900">{{ projet.nom|truncatewords:5 }}</span>
-                            </div>
+                        <td class="px-4 py-3">
+                            <span class="text-sm font-medium text-gray-900">{{ projet.nom }}</span>
+                        </td>
+
+                        <!-- Date création -->
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <span class="text-sm text-gray-700">{{ projet.date_creation|date:"d/m/Y" }}</span>
                         </td>
 
                         <!-- Statut -->
-                        <td class="px-3 py-2 whitespace-nowrap">
-                            <span class="inline-flex items-center px-2 py-1 text-xs font-semibold rounded
-                                {% if projet.statut.nom == 'IDEE' %}bg-slate-100 text-slate-800
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <span class="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded
+                                {% if projet.statut.nom == 'IDEE' %}bg-gray-100 text-gray-800
                                 {% elif projet.statut.nom == 'AFFECTE' %}bg-blue-100 text-blue-800
                                 {% elif projet.statut.nom == 'PLANIFIE' %}bg-purple-100 text-purple-800
                                 {% elif projet.statut.nom == 'EN_COURS' %}bg-yellow-100 text-yellow-800
@@ -135,28 +124,23 @@
                         </td>
 
                         <!-- Client -->
-                        <td class="px-3 py-2 whitespace-nowrap">
+                        <td class="px-4 py-3 whitespace-nowrap">
                             {% if projet.client %}
-                            <span class="text-sm text-gray-900">{{ projet.client|truncatewords:3 }}</span>
+                            <span class="text-sm text-gray-700">{{ projet.client }}</span>
                             {% else %}
                             <span class="text-sm text-gray-400">-</span>
                             {% endif %}
                         </td>
 
-                        <!-- Budget -->
-                        <td class="px-3 py-2 whitespace-nowrap">
-                            <span class="text-sm font-medium text-gray-900">{{ projet.budget_previsionnel|floatformat:0 }}€</span>
-                        </td>
-
                         <!-- Responsable -->
-                        <td class="px-3 py-2 whitespace-nowrap">
+                        <td class="px-4 py-3 whitespace-nowrap">
                             {% with responsable=projet.get_responsable_principal %}
                             {% if responsable %}
-                            <div class="flex items-center gap-2">
-                                <div class="w-6 h-6 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm">
+                            <div class="flex items-center space-x-2">
+                                <div class="w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
                                     <span class="text-xs font-bold text-white">{{ responsable.first_name.0|upper }}{{ responsable.last_name.0|upper }}</span>
                                 </div>
-                                <span class="text-sm text-gray-900">{{ responsable.get_full_name|truncatewords:2 }}</span>
+                                <span class="text-sm text-gray-700">{{ responsable.get_full_name }}</span>
                             </div>
                             {% else %}
                             <span class="text-sm text-gray-400">Non assigné</span>
@@ -164,25 +148,25 @@
                             {% endwith %}
                         </td>
 
-                        <!-- Date création -->
-                        <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-                            {{ projet.date_creation|date:"d/m/Y" }}
-                        </td>
-
                         <!-- Actions -->
-                        <td class="px-3 py-2 whitespace-nowrap text-center">
-                            <div class="flex items-center justify-center gap-2">
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <div class="flex items-center justify-center space-x-1">
                                 <a href="{% url 'projet_detail' projet.id %}" 
-                                   class="inline-flex items-center justify-center w-8 h-8 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded transition-colors"
+                                   class="inline-flex items-center justify-center w-8 h-8 text-blue-600 hover:bg-blue-50 rounded transition-colors"
                                    title="Voir le projet">
                                     <i class="fas fa-eye text-sm"></i>
                                 </a>
                                 {% if can_create %}
                                 <a href="{% url 'modifier_projet' projet.id %}" 
-                                   class="inline-flex items-center justify-center w-8 h-8 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded transition-colors"
+                                   class="inline-flex items-center justify-center w-8 h-8 text-gray-600 hover:bg-gray-50 rounded transition-colors"
                                    title="Modifier le projet">
                                     <i class="fas fa-edit text-sm"></i>
                                 </a>
+                                <button onclick="confirmerSuppression('{{ projet.id }}', '{{ projet.nom|escapejs }}')"
+                                   class="inline-flex items-center justify-center w-8 h-8 text-red-600 hover:bg-red-50 rounded transition-colors"
+                                   title="Supprimer le projet">
+                                    <i class="fas fa-trash text-sm"></i>
+                                </button>
                                 {% endif %}
                             </div>
                         </td>
@@ -281,4 +265,56 @@
     </div>
     {% endif %}
 </div>
+
+<!-- Modale de confirmation de suppression -->
+<div id="modaleSuppression" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-lg bg-white">
+        <div class="mt-3">
+            <div class="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full">
+                <i class="fas fa-exclamation-triangle text-red-600 text-2xl"></i>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 text-center mt-4">Confirmer la suppression</h3>
+            <div class="mt-2 px-7 py-3">
+                <p class="text-sm text-gray-500 text-center">
+                    Êtes-vous sûr de vouloir supprimer le projet <span id="nomProjetSuppression" class="font-semibold text-gray-900"></span> ?
+                </p>
+                <p class="text-sm text-red-600 text-center mt-2">
+                    Cette action est irréversible et supprimera toutes les données associées.
+                </p>
+            </div>
+            <div class="flex gap-3 px-4 py-3">
+                <button onclick="fermerModaleSuppression()" 
+                        class="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors">
+                    Annuler
+                </button>
+                <form id="formSuppression" method="post" class="flex-1">
+                    {% csrf_token %}
+                    <button type="submit" 
+                            class="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+                        Supprimer
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmerSuppression(projetId, nomProjet) {
+    document.getElementById('nomProjetSuppression').textContent = nomProjet;
+    document.getElementById('formSuppression').action = `/projets/${projetId}/supprimer/`;
+    document.getElementById('modaleSuppression').classList.remove('hidden');
+}
+
+function fermerModaleSuppression() {
+    document.getElementById('modaleSuppression').classList.add('hidden');
+}
+
+// Fermer la modale en cliquant en dehors
+document.getElementById('modaleSuppression').addEventListener('click', function(e) {
+    if (e.target === this) {
+        fermerModaleSuppression();
+    }
+});
+</script>
 {% endblock %}

@@ -6,26 +6,26 @@
 {% block content %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-<div class="container mx-auto px-4 py-8">
+<div class="container mx-auto px-2 py-2 md:px-4 md:py-4">
     <!-- En-tête -->
-    <div class="mb-8">
+    <div class="mb-2 md:mb-4">
         <div class="flex items-center justify-between">
-            <div>
-                <h1 class="text-2xl font-bold text-gray-900 flex items-center">
-                    <i class="fas fa-ticket-alt text-blue-600 mr-3"></i>
-                    Tickets de Maintenance
+            <div class="flex-1 min-w-0">
+                <h1 class="text-base md:text-lg font-bold text-gray-900 flex items-center">
+                    <i class="fas fa-ticket-alt text-blue-600 mr-2 text-sm md:text-base"></i>
+                    <span class="truncate">Tickets de Maintenance</span>
                 </h1>
-                <p class="text-gray-600 mt-1 text-sm">{{ projet.nom }}</p>
+                <p class="text-gray-600 mt-1 text-xs truncate">{{ projet.nom }}</p>
             </div>
-            <div class="flex space-x-3">
+            <div class="flex space-x-1 ml-2">
                 <a href="{% url 'projet_detail' projet.id %}" 
-                   class="px-4 py-2 text-gray-600 hover:text-gray-900 transition flex items-center">
-                    <i class="fas fa-arrow-left mr-2"></i> Retour
+                   class="px-2 py-1.5 md:px-3 md:py-2 text-gray-600 hover:text-gray-900 transition flex items-center text-xs md:text-sm">
+                    <i class="fas fa-arrow-left mr-1"></i> <span class="hidden sm:inline">Retour</span>
                 </a>
                 {% if peut_creer and a_contrat_actif %}
                 <a href="{% url 'creer_ticket' projet.id %}" 
-                   class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center">
-                    <i class="fas fa-plus mr-2"></i> Nouveau Ticket
+                   class="px-2 py-1.5 md:px-3 md:py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition flex items-center text-xs md:text-sm">
+                    <i class="fas fa-plus mr-1"></i> <span class="hidden sm:inline">Nouveau</span>
                 </a>
                 {% endif %}
             </div>
@@ -34,77 +34,77 @@
 
     <!-- Alerte si pas de contrat actif -->
     {% if not a_contrat_actif %}
-    <div class="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-start">
-        <i class="fas fa-exclamation-triangle text-yellow-600 mr-3 mt-0.5"></i>
-        <p class="text-yellow-800 text-sm">
+    <div class="mb-2 md:mb-4 bg-yellow-50 border border-yellow-200 rounded p-2 md:p-3 flex items-start">
+        <i class="fas fa-exclamation-triangle text-yellow-600 mr-2 mt-0.5 text-xs"></i>
+        <p class="text-yellow-800 text-xs">
             Aucun contrat de maintenance actif. Impossible de créer de nouveaux tickets.
         </p>
     </div>
     {% endif %}
 
     <!-- Statistiques simplifiées -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2 md:mb-4">
         <!-- Total -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-2">
             <div class="flex items-center justify-between">
                 <div>
-                    <div class="text-2xl font-bold text-gray-900">{{ stats.total }}</div>
-                    <div class="text-sm text-gray-600 mt-1">Total</div>
+                    <div class="text-base sm:text-lg font-bold text-gray-900">{{ stats.total }}</div>
+                    <div class="text-xs text-gray-600 mt-0.5">Total</div>
                 </div>
-                <div class="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-ticket-alt text-gray-600 text-xl"></i>
+                <div class="w-8 h-8 bg-gray-100 rounded flex items-center justify-center">
+                    <i class="fas fa-ticket-alt text-gray-600 text-sm"></i>
                 </div>
             </div>
         </div>
 
         <!-- Ouverts -->
-        <div class="bg-white rounded-lg shadow-sm border border-blue-200 p-5">
+        <div class="bg-white rounded-lg shadow-sm border border-blue-200 p-2">
             <div class="flex items-center justify-between">
                 <div>
-                    <div class="text-2xl font-bold text-blue-600">{{ stats.ouverts }}</div>
-                    <div class="text-sm text-blue-800 mt-1">Ouverts</div>
+                    <div class="text-base sm:text-lg font-bold text-blue-600">{{ stats.ouverts }}</div>
+                    <div class="text-xs text-blue-800 mt-0.5">Ouverts</div>
                 </div>
-                <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-folder-open text-blue-600 text-xl"></i>
+                <div class="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
+                    <i class="fas fa-folder-open text-blue-600 text-sm"></i>
                 </div>
             </div>
         </div>
 
         <!-- Résolus -->
-        <div class="bg-white rounded-lg shadow-sm border border-green-200 p-5">
+        <div class="bg-white rounded-lg shadow-sm border border-green-200 p-2">
             <div class="flex items-center justify-between">
                 <div>
-                    <div class="text-2xl font-bold text-green-600">{{ stats.resolus }}</div>
-                    <div class="text-sm text-green-800 mt-1">Résolus</div>
+                    <div class="text-base sm:text-lg font-bold text-green-600">{{ stats.resolus }}</div>
+                    <div class="text-xs text-green-800 mt-0.5">Résolus</div>
                 </div>
-                <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-check-circle text-green-600 text-xl"></i>
+                <div class="w-8 h-8 bg-green-100 rounded flex items-center justify-center">
+                    <i class="fas fa-check-circle text-green-600 text-sm"></i>
                 </div>
             </div>
         </div>
 
         <!-- SLA dépassés -->
-        <div class="bg-white rounded-lg shadow-sm border border-orange-200 p-5">
+        <div class="bg-white rounded-lg shadow-sm border border-orange-200 p-2">
             <div class="flex items-center justify-between">
                 <div>
-                    <div class="text-2xl font-bold text-orange-600">{{ stats.sla_depasses }}</div>
-                    <div class="text-sm text-orange-800 mt-1">SLA dépassé</div>
+                    <div class="text-base sm:text-lg font-bold text-orange-600">{{ stats.sla_depasses }}</div>
+                    <div class="text-xs text-orange-800 mt-0.5">SLA dépassé</div>
                 </div>
-                <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-clock text-orange-600 text-xl"></i>
+                <div class="w-8 h-8 bg-orange-100 rounded flex items-center justify-center">
+                    <i class="fas fa-clock text-orange-600 text-sm"></i>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Filtres -->
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-        <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-2 mb-2 md:mb-4">
+        <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-2">
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">
+                <label class="block text-xs font-medium text-gray-700 mb-1">
                     <i class="fas fa-filter text-gray-400 mr-1"></i> Statut
                 </label>
-                <select name="statut" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                <select name="statut" class="w-full px-2 py-1.5 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     <option value="">Tous</option>
                     <option value="OUVERT">Ouvert</option>
                     <option value="RESOLU">Résolu</option>
@@ -113,10 +113,10 @@
                 </select>
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">
+                <label class="block text-xs font-medium text-gray-700 mb-1">
                     <i class="fas fa-flag text-gray-400 mr-1"></i> Priorité
                 </label>
-                <select name="priorite" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                <select name="priorite" class="w-full px-2 py-1.5 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     <option value="">Toutes</option>
                     <option value="CRITIQUE">Critique</option>
                     <option value="HAUTE">Haute</option>
@@ -125,10 +125,10 @@
                 </select>
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">
+                <label class="block text-xs font-medium text-gray-700 mb-1">
                     <i class="fas fa-tag text-gray-400 mr-1"></i> Type
                 </label>
-                <select name="type" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                <select name="type" class="w-full px-2 py-1.5 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     <option value="">Tous</option>
                     <option value="BUG">Bug</option>
                     <option value="AMELIORATION">Amélioration</option>
@@ -137,8 +137,8 @@
                 </select>
             </div>
             <div class="flex items-end">
-                <button type="submit" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center justify-center">
-                    <i class="fas fa-search mr-2"></i> Filtrer
+                <button type="submit" class="w-full px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition flex items-center justify-center text-xs">
+                    <i class="fas fa-search mr-1"></i> Filtrer
                 </button>
             </div>
         </form>
@@ -150,19 +150,19 @@
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>
-                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                    <th class="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                         Ticket
                     </th>
-                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                    <th class="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden sm:table-cell">
                         Priorité
                     </th>
-                    <th class="px-6 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                    <th class="px-3 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
                         Statut
                     </th>
-                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                    <th class="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden md:table-cell">
                         Date
                     </th>
-                    <th class="px-6 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                    <th class="px-3 py-2 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
                         Actions
                     </th>
                 </tr>
@@ -171,24 +171,24 @@
                 {% for ticket in tickets %}
                 <tr class="hover:bg-gray-50 transition">
                     <!-- Ticket -->
-                    <td class="px-6 py-4">
+                    <td class="px-3 py-2">
                         <div class="flex items-start">
-                            <div class="flex-shrink-0 mr-3">
+                            <div class="flex-shrink-0 mr-2">
                                 {% if ticket.type_demande == 'BUG' %}
-                                    <i class="fas fa-bug text-red-500"></i>
+                                    <i class="fas fa-bug text-red-500 text-xs"></i>
                                 {% elif ticket.type_demande == 'AMELIORATION' %}
-                                    <i class="fas fa-star text-yellow-500"></i>
+                                    <i class="fas fa-star text-yellow-500 text-xs"></i>
                                 {% elif ticket.type_demande == 'QUESTION' %}
-                                    <i class="fas fa-question-circle text-blue-500"></i>
+                                    <i class="fas fa-question-circle text-blue-500 text-xs"></i>
                                 {% else %}
-                                    <i class="fas fa-file-alt text-gray-500"></i>
+                                    <i class="fas fa-file-alt text-gray-500 text-xs"></i>
                                 {% endif %}
                             </div>
                             <div class="min-w-0 flex-1">
-                                <div class="text-sm font-medium text-gray-900 truncate">
+                                <div class="text-xs font-medium text-gray-900 truncate">
                                     {{ ticket.titre }}
                                 </div>
-                                <div class="text-xs text-gray-500 font-mono mt-1">
+                                <div class="text-xs text-gray-500 font-mono mt-0.5">
                                     {{ ticket.numero_ticket }}
                                 </div>
                             </div>
@@ -196,8 +196,8 @@
                     </td>
 
                     <!-- Priorité -->
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                    <td class="px-3 py-2 whitespace-nowrap hidden sm:table-cell">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
                             {% if ticket.priorite == 'CRITIQUE' %}bg-red-100 text-red-800
                             {% elif ticket.priorite == 'HAUTE' %}bg-orange-100 text-orange-800
                             {% elif ticket.priorite == 'NORMALE' %}bg-blue-100 text-blue-800
@@ -207,38 +207,38 @@
                     </td>
 
                     <!-- Statut (icônes seulement) -->
-                    <td class="px-6 py-4 whitespace-nowrap text-center">
-                        <div class="flex items-center justify-center space-x-2">
+                    <td class="px-3 py-2 whitespace-nowrap text-center">
+                        <div class="flex items-center justify-center space-x-1">
                             {% if ticket.statut == 'OUVERT' %}
-                                <i class="fas fa-folder-open text-blue-600 text-lg" title="Ouvert"></i>
+                                <i class="fas fa-folder-open text-blue-600 text-sm" title="Ouvert"></i>
                             {% elif ticket.statut == 'EN_COURS' %}
-                                <i class="fas fa-spinner text-indigo-600 text-lg" title="En cours"></i>
+                                <i class="fas fa-spinner text-indigo-600 text-sm" title="En cours"></i>
                             {% elif ticket.statut == 'RESOLU' %}
-                                <i class="fas fa-check-circle text-green-600 text-lg" title="Résolu"></i>
+                                <i class="fas fa-check-circle text-green-600 text-sm" title="Résolu"></i>
                             {% elif ticket.statut == 'FERME' %}
-                                <i class="fas fa-lock text-gray-600 text-lg" title="Fermé"></i>
+                                <i class="fas fa-lock text-gray-600 text-sm" title="Fermé"></i>
                             {% else %}
-                                <i class="fas fa-times-circle text-red-600 text-lg" title="Rejeté"></i>
+                                <i class="fas fa-times-circle text-red-600 text-sm" title="Rejeté"></i>
                             {% endif %}
                             
                             {% if ticket.sla_depasse %}
-                                <i class="fas fa-clock text-orange-600 text-lg" title="SLA dépassé"></i>
+                                <i class="fas fa-clock text-orange-600 text-sm" title="SLA dépassé"></i>
                             {% endif %}
                         </div>
                     </td>
 
                     <!-- Date -->
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                    <td class="px-3 py-2 whitespace-nowrap text-xs text-gray-600 hidden md:table-cell">
                         <i class="fas fa-calendar-alt text-gray-400 mr-1"></i>
                         {{ ticket.date_creation|date:"d/m/Y" }}
                     </td>
 
                     <!-- Actions (icône seulement) -->
-                    <td class="px-6 py-4 whitespace-nowrap text-center">
+                    <td class="px-3 py-2 whitespace-nowrap text-center">
                         <a href="{% url 'detail_ticket' projet.id ticket.id %}" 
-                           class="inline-flex items-center justify-center w-8 h-8 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                           class="inline-flex items-center justify-center w-6 h-6 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
                            title="Voir les détails">
-                            <i class="fas fa-eye"></i>
+                            <i class="fas fa-eye text-xs"></i>
                         </a>
                     </td>
                 </tr>
@@ -247,12 +247,12 @@
         </table>
     </div>
     {% else %}
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
-        <i class="fas fa-inbox text-gray-300 text-6xl mb-4"></i>
-        <p class="text-gray-500 text-lg mb-4">Aucun ticket de maintenance</p>
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center">
+        <i class="fas fa-inbox text-gray-300 text-3xl mb-2"></i>
+        <p class="text-gray-500 text-sm mb-3">Aucun ticket de maintenance</p>
         {% if peut_creer and a_contrat_actif %}
         <a href="{% url 'creer_ticket' projet.id %}" 
-           class="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+           class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-sm">
             <i class="fas fa-plus mr-2"></i> Créer le premier ticket
         </a>
         {% endif %}

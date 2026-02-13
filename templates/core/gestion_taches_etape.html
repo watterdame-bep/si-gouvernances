@@ -8,22 +8,21 @@
     <div class="max-w-7xl mx-auto space-y-4">
         
         <!-- Header professionnel -->
-        <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+        <div class="bg-white rounded-lg p-3 sm:p-4 shadow-sm border border-gray-200">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 rounded-lg flex items-center justify-center shadow-sm
+                    <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center shadow-sm
                         {% if etape.statut == 'TERMINEE' %}bg-green-100 border border-green-200
                         {% elif etape.statut == 'EN_COURS' %}bg-blue-100 border border-blue-200
                         {% else %}bg-gray-100 border border-gray-200{% endif %}">
-                        <i class="fas fa-tasks text-lg
+                        <i class="fas fa-tasks text-sm sm:text-lg
                             {% if etape.statut == 'TERMINEE' %}text-green-600
                             {% elif etape.statut == 'EN_COURS' %}text-blue-600
                             {% else %}text-gray-600{% endif %}"></i>
                     </div>
                     <div>
-                        <h1 class="text-lg font-semibold text-gray-900">Tâches de l'Étape</h1>
-                        <p class="text-sm text-gray-600">
-                            <i class="fas fa-layer-group mr-1"></i>
+                        <h1 class="text-base sm:text-lg font-semibold text-gray-900">Tâches de l'Étape</h1>
+                        <p class="text-xs sm:text-sm text-gray-600">
                             {{ etape.type_etape.get_nom_display }} • {{ projet.nom }}
                         </p>
                     </div>
@@ -31,13 +30,15 @@
                 <div class="flex items-center space-x-2">
                     {% if can_create %}
                     <a href="{% url 'creer_tache_etape' projet.id etape.id %}" 
-                       class="inline-flex items-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md text-sm transition-colors">
-                        <i class="fas fa-plus mr-2"></i>Nouvelle Tâche
+                       class="inline-flex items-center justify-center w-9 h-9 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+                       title="Créer une nouvelle tâche">
+                        <i class="fas fa-plus"></i>
                     </a>
                     {% endif %}
                     <a href="{% url 'detail_etape' projet.id etape.id %}" 
-                       class="inline-flex items-center px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md font-medium text-sm transition-colors">
-                        <i class="fas fa-arrow-left mr-2"></i>Retour
+                       class="inline-flex items-center justify-center w-9 h-9 bg-gray-600 hover:bg-gray-700 text-white rounded transition-colors"
+                       title="Retour à l'étape">
+                        <i class="fas fa-arrow-left"></i>
                     </a>
                 </div>
             </div>
@@ -45,16 +46,16 @@
 
         <!-- Message informatif pour étapes terminées -->
         {% if etape_terminee and can_create %}
-        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div class="flex items-start space-x-3">
-                <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                    <i class="fas fa-info-circle text-blue-600"></i>
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4">
+            <div class="flex items-start space-x-2 sm:space-x-3">
+                <div class="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-info-circle text-blue-600 text-xs sm:text-sm"></i>
                 </div>
                 <div class="flex-1">
-                    <h3 class="text-sm font-medium text-blue-800 mb-1">
+                    <h3 class="text-xs sm:text-sm font-medium text-blue-800 mb-1">
                         Étape terminée - Ajout de tâches possible
                     </h3>
-                    <p class="text-sm text-blue-700">
+                    <p class="text-xs sm:text-sm text-blue-700">
                         Cette étape est terminée, mais vous pouvez encore ajouter des tâches si nécessaire (avec justification). 
                         Cela peut être utile si vous avez oublié quelque chose ou si de nouveaux besoins sont identifiés.
                     </p>
@@ -64,12 +65,12 @@
         {% endif %}
 
         <!-- Statistiques de l'étape -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
+            <div class="bg-white rounded-lg p-3 sm:p-4 shadow-sm border border-gray-200">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm font-medium text-gray-600">Statut Étape</p>
-                        <p class="text-lg font-bold
+                        <p class="text-xs sm:text-sm font-medium text-gray-600">Statut Étape</p>
+                        <p class="text-base sm:text-lg font-bold
                             {% if etape.statut == 'TERMINEE' %}text-green-600
                             {% elif etape.statut == 'EN_COURS' %}text-blue-600
                             {% else %}text-gray-600{% endif %}">
@@ -78,11 +79,11 @@
                             {% else %}À Venir{% endif %}
                         </p>
                     </div>
-                    <div class="w-10 h-10 rounded-lg flex items-center justify-center
+                    <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center
                         {% if etape.statut == 'TERMINEE' %}bg-green-100
                         {% elif etape.statut == 'EN_COURS' %}bg-blue-100
                         {% else %}bg-gray-100{% endif %}">
-                        <i class="fas 
+                        <i class="fas text-sm
                             {% if etape.statut == 'TERMINEE' %}fa-check text-green-600
                             {% elif etape.statut == 'EN_COURS' %}fa-play text-blue-600
                             {% else %}fa-clock text-gray-600{% endif %}"></i>
@@ -90,35 +91,35 @@
                 </div>
             </div>
             
-            <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+            <div class="bg-white rounded-lg p-3 sm:p-4 shadow-sm border border-gray-200">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm font-medium text-gray-600">Total Tâches</p>
-                        <p class="text-2xl font-bold text-gray-900">{{ taches.count }}</p>
+                        <p class="text-xs sm:text-sm font-medium text-gray-600">Total Tâches</p>
+                        <p class="text-xl sm:text-2xl font-bold text-gray-900">{{ taches.count }}</p>
                     </div>
-                    <div class="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-list text-gray-600"></i>
+                    <div class="w-8 h-8 sm:w-10 sm:h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-list text-gray-600 text-sm"></i>
                     </div>
                 </div>
             </div>
             
-            <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+            <div class="bg-white rounded-lg p-3 sm:p-4 shadow-sm border border-gray-200">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm font-medium text-gray-600">Terminées</p>
-                        <p class="text-2xl font-bold text-green-600">{{ taches_terminees.count }}</p>
+                        <p class="text-xs sm:text-sm font-medium text-gray-600">Terminées</p>
+                        <p class="text-xl sm:text-2xl font-bold text-green-600">{{ taches_terminees.count }}</p>
                     </div>
-                    <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-check text-green-600"></i>
+                    <div class="w-8 h-8 sm:w-10 sm:h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-check text-green-600 text-sm"></i>
                     </div>
                 </div>
             </div>
             
-            <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+            <div class="bg-white rounded-lg p-3 sm:p-4 shadow-sm border border-gray-200">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm font-medium text-gray-600">Progression</p>
-                        <p class="text-2xl font-bold text-purple-600">
+                        <p class="text-xs sm:text-sm font-medium text-gray-600">Progression</p>
+                        <p class="text-xl sm:text-2xl font-bold text-purple-600">
                             {% if taches.count > 0 %}
                                 {% widthratio taches_terminees.count taches.count 100 %}%
                             {% else %}
@@ -126,170 +127,159 @@
                             {% endif %}
                         </p>
                     </div>
-                    <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-chart-line text-purple-600"></i>
+                    <div class="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-chart-line text-purple-600 text-sm"></i>
                     </div>
                 </div>
             </div>
         </div>
         <!-- Liste des tâches - Tableau moderne -->
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-            <div class="p-4 border-b border-gray-200">
+            <div class="p-3 sm:p-4 border-b border-gray-200">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center">
-                        <i class="fas fa-table text-gray-600 mr-2"></i>
-                        <h2 class="text-lg font-semibold text-gray-900">Tâches de l'Étape</h2>
+                        <h2 class="text-base sm:text-lg font-semibold text-gray-900">Tâches de l'Étape</h2>
                     </div>
-                    <span class="text-sm text-gray-500">{{ taches.count }} tâche{{ taches.count|pluralize }}</span>
+                    <span class="text-xs sm:text-sm text-gray-500">{{ taches.count }} tâche{{ taches.count|pluralize }}</span>
                 </div>
             </div>
             
             {% if taches %}
-            <!-- Tableau moderne -->
+            <!-- Tableau moderne responsive -->
             <div class="overflow-x-auto">
                 <table class="w-full">
                     <thead class="bg-gray-50 border-b border-gray-200">
                         <tr>
-                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                                <i class="fas fa-tasks mr-1"></i>Tâche
-                            </th>
-                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                                <i class="fas fa-info-circle mr-1"></i>Statut
-                            </th>
-                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                                <i class="fas fa-user mr-1"></i>Responsable
-                            </th>
-                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                                <i class="fas fa-chart-line mr-1"></i>Progression
-                            </th>
-                            <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">
-                                <i class="fas fa-cog mr-1"></i>Actions
-                            </th>
+                            <th class="px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tâche</th>
+                            <th class="hidden sm:table-cell px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Responsable</th>
+                            <th class="px-3 sm:px-4 py-2 sm:py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
+                            <th class="px-3 sm:px-4 py-2 sm:py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-100" data-tache-id="{{ tache.id }}" data-responsable-id="{% if tache.responsable %}{{ tache.responsable.id }}{% endif %}">
+                    <tbody class="divide-y divide-gray-100">
                         {% for tache in taches %}
-                        <tr class="hover:bg-blue-50 transition-colors">
+                        <tr class="hover:bg-gray-50 transition-colors">
                             <!-- Nom de la tâche -->
-                            <td class="px-3 py-2">
-                                <div class="flex items-start">
-                                    <div class="flex-1">
-                                        <div class="text-sm font-medium text-gray-900 mb-1">
-                                            {{ tache.nom|truncatewords:8 }}
+                            <td class="px-3 sm:px-4 py-3">
+                                <div class="flex flex-col space-y-1">
+                                    <span class="text-sm font-medium text-gray-900">{{ tache.nom|truncatewords:6 }}</span>
+                                    {% if tache.ajoutee_apres_cloture %}
+                                    <span class="inline-flex items-center w-fit px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                                        <i class="fas fa-star mr-1"></i>Spéciale
+                                    </span>
+                                    {% endif %}
+                                    <!-- Responsable visible uniquement sur mobile -->
+                                    <div class="sm:hidden flex items-center text-xs text-gray-600 mt-1">
+                                        {% if tache.responsable %}
+                                        <div class="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center mr-1.5">
+                                            <span class="text-white text-xs font-bold">{{ tache.responsable.first_name.0 }}</span>
                                         </div>
-                                        {% if tache.ajoutee_apres_cloture %}
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
-                                            <i class="fas fa-star mr-1"></i>Spéciale
-                                        </span>
+                                        <span>{{ tache.responsable.get_full_name|truncatewords:2 }}</span>
+                                        {% else %}
+                                        <i class="fas fa-user-slash text-orange-400 mr-1"></i>
+                                        <span class="text-orange-600">Non assignée</span>
                                         {% endif %}
                                     </div>
                                 </div>
                             </td>
                             
-                            <!-- Statut -->
-                            <td class="px-3 py-2 text-center">
-                                {% if tache.statut == 'A_FAIRE' %}
-                                    <span class="text-gray-500" title="À faire"><i class="fas fa-play-circle text-lg"></i></span>
-                                {% elif tache.statut == 'EN_COURS' %}
-                                    <span class="text-orange-500" title="En cours"><i class="fas fa-play-circle text-lg"></i></span>
-                                {% elif tache.statut == 'EN_PAUSE' %}
-                                    <span class="text-yellow-500" title="En pause"><i class="fas fa-pause-circle text-lg"></i></span>
-                                {% elif tache.statut == 'TERMINEE' %}
-                                    <span class="text-green-500" title="Terminée"><i class="fas fa-check-circle text-lg"></i></span>
-                                {% endif %}
-                            </td>
-                            
-                            <!-- Responsable -->
-                            <td class="px-3 py-2">
-                                <div class="flex items-center text-sm">
+                            <!-- Responsable (caché sur mobile) -->
+                            <td class="hidden sm:table-cell px-4 py-3">
+                                <div class="flex items-center justify-center">
                                     {% if tache.responsable %}
-                                    <div class="w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center mr-2">
-                                        <span class="text-white text-xs font-bold">{{ tache.responsable.first_name.0 }}</span>
+                                    <div class="flex items-center">
+                                        <div class="w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center mr-2">
+                                            <span class="text-white text-xs font-bold">{{ tache.responsable.first_name.0 }}</span>
+                                        </div>
+                                        <span class="text-sm text-gray-700">{{ tache.responsable.get_full_name|truncatewords:2 }}</span>
                                     </div>
-                                    <span class="text-gray-700">{{ tache.responsable.get_full_name|truncatewords:2 }}</span>
                                     {% else %}
-                                    <i class="fas fa-user-slash text-orange-400 mr-2"></i>
-                                    <span class="text-orange-600 text-sm">Non assignée</span>
+                                    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-orange-100 text-orange-700">
+                                        <i class="fas fa-user-slash mr-1"></i>Non assignée
+                                    </span>
                                     {% endif %}
                                 </div>
                             </td>
                             
-                            <!-- Progression -->
-                            <td class="px-3 py-2">
-                                <div class="flex items-center">
-                                    <div class="w-full bg-gray-200 rounded-full h-2 mr-2" style="max-width: 80px;">
-                                        <div class="bg-blue-600 h-2 rounded-full transition-all duration-300" 
-                                             style="width: {{ tache.pourcentage_completion }}%"></div>
-                                    </div>
-                                    <span class="text-xs font-medium text-gray-600 whitespace-nowrap">{{ tache.pourcentage_completion }}%</span>
-                                </div>
+                            <!-- Statut -->
+                            <td class="px-3 sm:px-4 py-3 text-center">
+                                <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium
+                                    {% if tache.statut == 'TERMINEE' %}bg-green-100 text-green-700
+                                    {% elif tache.statut == 'EN_COURS' %}bg-orange-100 text-orange-700
+                                    {% elif tache.statut == 'EN_PAUSE' %}bg-yellow-100 text-yellow-700
+                                    {% else %}bg-gray-100 text-gray-600{% endif %}">
+                                    {% if tache.statut == 'TERMINEE' %}<i class="fas fa-check-circle"></i>
+                                    {% elif tache.statut == 'EN_COURS' %}<i class="fas fa-play-circle"></i>
+                                    {% elif tache.statut == 'EN_PAUSE' %}<i class="fas fa-pause-circle"></i>
+                                    {% else %}<i class="fas fa-circle"></i>{% endif %}
+                                </span>
                             </td>
                             
                             <!-- Actions -->
-                            <td class="px-3 py-2">
+                            <td class="px-3 sm:px-4 py-3">
                                 {% if can_create %}
-                                <div class="flex items-center justify-center space-x-2">
+                                <div class="flex items-center justify-center space-x-1">
                                     <!-- Bouton Voir -->
                                     <button onclick="voirDetailsTache('{{ tache.id }}', '{{ tache.nom|escapejs }}', '{{ tache.description|escapejs }}', '{{ tache.responsable.get_full_name|default:"Non assignée"|escapejs }}', '{{ tache.date_creation|date:"d/m/Y" }}', '{{ tache.pourcentage_completion }}', '{{ etape.statut }}')"
-                                            class="text-blue-600 hover:text-blue-800 p-1.5 rounded transition-colors"
+                                            class="inline-flex items-center justify-center w-7 h-7 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded transition-colors"
                                             title="Voir détails">
-                                        <i class="fas fa-eye text-sm"></i>
+                                        <i class="fas fa-info-circle text-xs"></i>
                                     </button>
                                     
                                     {% if tache.statut != 'TERMINEE' %}
                                     <!-- Bouton Assigner/Transférer -->
                                     {% if not tache.responsable %}
                                     <button onclick="assignerTache('{{ tache.id }}')"
-                                            class="text-blue-600 hover:text-blue-800 p-1.5 rounded transition-colors"
-                                            title="Assigner">
-                                        <i class="fas fa-user-plus text-sm"></i>
+                                            class="inline-flex items-center justify-center w-7 h-7 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded transition-colors"
+                                            title="Assigner un responsable">
+                                        <i class="fas fa-user-plus text-xs"></i>
                                     </button>
                                     {% else %}
                                     <button onclick="transfererTache('{{ tache.id }}')"
-                                            class="text-indigo-600 hover:text-indigo-800 p-1.5 rounded transition-colors"
-                                            title="Transférer">
-                                        <i class="fas fa-exchange-alt text-sm"></i>
+                                            class="inline-flex items-center justify-center w-7 h-7 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 rounded transition-colors"
+                                            title="Transférer à un autre membre">
+                                        <i class="fas fa-exchange-alt text-xs"></i>
                                     </button>
                                     {% endif %}
                                     
                                     <!-- Bouton Modifier -->
                                     <a href="{% url 'modifier_tache_etape' projet.id etape.id tache.id %}"
-                                       class="text-gray-600 hover:text-gray-800 p-1.5 rounded transition-colors"
-                                       title="Modifier">
-                                        <i class="fas fa-edit text-sm"></i>
+                                       class="inline-flex items-center justify-center w-7 h-7 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded transition-colors"
+                                       title="Modifier la tâche">
+                                        <i class="fas fa-edit text-xs"></i>
                                     </a>
                                     
                                     <!-- Bouton Gérer les Tests (uniquement pour étape TEST) -->
                                     {% if etape.type_etape.nom == 'TESTS' %}
                                     <a href="{% url 'gestion_cas_tests_tache' projet.id etape.id tache.id %}"
-                                       class="text-purple-600 hover:text-purple-800 p-1.5 rounded transition-colors"
+                                       class="inline-flex items-center justify-center w-7 h-7 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded transition-colors"
                                        title="Gérer les cas de test">
-                                        <i class="fas fa-vial text-sm"></i>
+                                        <i class="fas fa-vial text-xs"></i>
                                     </a>
                                     {% endif %}
                                     
                                     <!-- Bouton Gérer les Déploiements (uniquement pour étape DEPLOIEMENT) -->
                                     {% if etape.type_etape.nom == 'DEPLOIEMENT' %}
                                     <a href="{% url 'gestion_deploiements_tache' projet.id etape.id tache.id %}"
-                                       class="text-blue-600 hover:text-blue-800 p-1.5 rounded transition-colors"
+                                       class="inline-flex items-center justify-center w-7 h-7 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded transition-colors"
                                        title="Gérer les déploiements">
-                                        <i class="fas fa-rocket text-sm"></i>
+                                        <i class="fas fa-rocket text-xs"></i>
                                     </a>
                                     {% endif %}
                                     
                                     <!-- Bouton Terminer -->
                                     <button onclick="terminerTache('{{ tache.id }}')"
-                                            class="text-green-600 hover:text-green-800 p-1.5 rounded transition-colors"
-                                            title="Terminer">
-                                        <i class="fas fa-check text-sm"></i>
+                                            class="inline-flex items-center justify-center w-7 h-7 bg-green-600 hover:bg-green-700 text-white rounded transition-colors"
+                                            title="Marquer comme terminée">
+                                        <i class="fas fa-check text-xs"></i>
                                     </button>
                                     {% else %}
                                     <!-- Tâche terminée - Afficher bouton Cas de Test pour consultation -->
                                     {% if etape.type_etape.nom == 'TESTS' %}
                                     <a href="{% url 'gestion_cas_tests_tache' projet.id etape.id tache.id %}"
-                                       class="text-purple-600 hover:text-purple-800 p-1.5 rounded transition-colors"
+                                       class="inline-flex items-center justify-center w-7 h-7 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded transition-colors"
                                        title="Consulter les cas de test">
-                                        <i class="fas fa-vial text-sm"></i>
+                                        <i class="fas fa-vial text-xs"></i>
                                     </a>
                                     {% endif %}
                                     {% endif %}
@@ -303,16 +293,17 @@
             </div>
             {% else %}
             <!-- État vide -->
-            <div class="p-8 text-center">
-                <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i class="fas fa-tasks text-gray-400 text-2xl"></i>
+            <div class="p-6 sm:p-8 text-center">
+                <div class="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-tasks text-gray-400 text-xl sm:text-2xl"></i>
                 </div>
-                <h3 class="text-lg font-medium text-gray-500 mb-2">Aucune tâche créée</h3>
-                <p class="text-sm text-gray-400 mb-4">Créez votre première tâche pour organiser le travail sur cette étape</p>
+                <h3 class="text-base sm:text-lg font-medium text-gray-500 mb-2">Aucune tâche créée</h3>
+                <p class="text-xs sm:text-sm text-gray-400 mb-4">Créez votre première tâche pour organiser le travail sur cette étape</p>
                 {% if can_create %}
                 <a href="{% url 'creer_tache_etape' projet.id etape.id %}" 
-                   class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md text-sm transition-colors">
-                    <i class="fas fa-plus mr-2"></i>Créer une Tâche
+                   class="inline-flex items-center justify-center w-9 h-9 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+                   title="Créer une tâche">
+                    <i class="fas fa-plus"></i>
                 </a>
                 {% endif %}
             </div>
@@ -325,22 +316,17 @@
 <div id="assignModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
         <div class="bg-blue-600 rounded-t-lg px-4 py-3 text-white">
-            <h3 class="text-lg font-semibold" id="assignTitle">
-                <i class="fas fa-user-plus mr-2"></i>Assigner la tâche
-            </h3>
+            <h3 class="text-base sm:text-lg font-semibold" id="assignTitle">Assigner la tâche</h3>
         </div>
         
-        <form id="assignForm" class="p-4 space-y-4">
+        <form id="assignForm" class="p-3 sm:p-4 space-y-4">
             {% csrf_token %}
             <input type="hidden" id="tacheId" name="tache_id">
             
             <div>
-                <label for="responsable_id" class="block text-sm font-medium text-gray-700 mb-1">
-                    <i class="fas fa-user text-blue-600 mr-1"></i>
-                    Responsable
-                </label>
+                <label for="responsable_id" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Responsable</label>
                 <select id="responsable_id" name="responsable_id" required 
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm">
                     <option value="">Sélectionner un responsable...</option>
                     {% for membre in equipe %}
                     <option value="{{ membre.id }}">{{ membre.get_full_name }}</option>
@@ -351,12 +337,14 @@
         
         <div class="bg-gray-50 rounded-b-lg px-4 py-3 flex items-center justify-end space-x-3">
             <button onclick="fermerModalAssign()" 
-                    class="px-3 py-1.5 text-gray-600 hover:text-gray-800 font-medium text-sm transition-colors">
-                Annuler
+                    class="inline-flex items-center justify-center w-8 h-8 text-gray-600 hover:text-gray-800 rounded transition-colors"
+                    title="Annuler">
+                <i class="fas fa-times"></i>
             </button>
             <button onclick="confirmerAssignation()" 
-                    class="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md text-sm transition-colors">
-                <i class="fas fa-check mr-1"></i>Confirmer
+                    class="inline-flex items-center justify-center w-8 h-8 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+                    title="Confirmer">
+                <i class="fas fa-check"></i>
             </button>
         </div>
     </div>
@@ -506,17 +494,11 @@
 <div id="completeModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
         <div class="bg-green-600 rounded-t-lg px-4 py-3 text-white">
-            <h3 class="text-lg font-semibold">
-                <i class="fas fa-check-circle mr-2"></i>Terminer la tâche
-            </h3>
+            <h3 class="text-base sm:text-lg font-semibold">Terminer la tâche</h3>
         </div>
         
-        <div class="p-4 text-center">
-            <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <i class="fas fa-check text-green-600 text-xl"></i>
-            </div>
-            <p class="text-gray-600 mb-4">Confirmer que cette tâche est terminée ?</p>
-            
+        <div class="p-3 sm:p-4">
+            <p class="text-xs sm:text-sm text-gray-700 mb-4">Êtes-vous sûr de vouloir marquer cette tâche comme terminée ?</p>
             <form id="completeForm">
                 {% csrf_token %}
                 <input type="hidden" id="completeTacheId" name="tache_id">
@@ -525,12 +507,14 @@
         
         <div class="bg-gray-50 rounded-b-lg px-4 py-3 flex items-center justify-end space-x-3">
             <button onclick="fermerModalComplete()" 
-                    class="px-3 py-1.5 text-gray-600 hover:text-gray-800 font-medium text-sm transition-colors">
-                Annuler
+                    class="inline-flex items-center justify-center w-8 h-8 text-gray-600 hover:text-gray-800 rounded transition-colors"
+                    title="Annuler">
+                <i class="fas fa-times"></i>
             </button>
             <button onclick="confirmerTerminer()" 
-                    class="px-4 py-1.5 bg-green-600 hover:bg-green-700 text-white font-medium rounded-md text-sm transition-colors">
-                <i class="fas fa-check mr-1"></i>Terminer
+                    class="inline-flex items-center justify-center w-8 h-8 bg-green-600 hover:bg-green-700 text-white rounded transition-colors"
+                    title="Confirmer">
+                <i class="fas fa-check"></i>
             </button>
         </div>
     </div>

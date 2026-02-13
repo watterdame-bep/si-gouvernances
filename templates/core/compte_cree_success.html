@@ -59,7 +59,21 @@
                             <code class="block bg-white px-2 md:px-3 py-2 rounded border text-gray-900 font-mono text-xs md:text-sm">{{ compte_info.username }}</code>
                         </div>
 
-                        <!-- Mot de passe -->
+                        <!-- Mot de passe OU Activation sécurisée -->
+                        {% if activation_securisee %}
+                        <div class="bg-green-50 rounded-lg p-3 md:p-4 border border-green-200">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs md:text-sm font-medium text-green-800">Activation sécurisée</span>
+                                <span class="text-green-600 text-sm"><i class="fas fa-shield-check"></i></span>
+                            </div>
+                            <div class="text-sm font-medium text-green-900">
+                                <i class="fas fa-envelope text-green-600 mr-1"></i>Email envoyé
+                            </div>
+                            <p class="text-xs text-green-600 mt-1">
+                                <i class="fas fa-info-circle mr-1"></i>Lien d'activation valide 24h
+                            </p>
+                        </div>
+                        {% else %}
                         <div class="bg-amber-50 rounded-lg p-3 md:p-4 border border-amber-200">
                             <div class="flex items-center justify-between mb-2">
                                 <span class="text-xs md:text-sm font-medium text-amber-800">Mot de passe</span>
@@ -72,6 +86,7 @@
                                 <i class="fas fa-exclamation-triangle mr-1"></i>Temporaire
                             </p>
                         </div>
+                        {% endif %}
 
                         <!-- Rôle système -->
                         <div class="bg-blue-50 rounded-lg p-3 md:p-4 border border-blue-200">

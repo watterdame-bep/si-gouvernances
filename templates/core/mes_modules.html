@@ -4,62 +4,63 @@
 {% block page_title %}Mes Modules - {{ projet.nom }}{% endblock %}
 
 {% block content %}
-<div class="bg-gray-50 min-h-screen p-2 md:p-4">
-    <div class="max-w-6xl mx-auto space-y-4">
+<div class="bg-gray-50 min-h-screen p-2 sm:p-4">
+    <div class="max-w-6xl mx-auto space-y-3 sm:space-y-4">
         
-        <!-- Header Professional -->
-        <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-puzzle-piece text-white text-lg"></i>
+        <!-- Header Compact -->
+        <div class="bg-white rounded-lg p-2 sm:p-3 shadow-sm border border-gray-200">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-2 sm:space-x-3">
+                    <div class="w-8 h-8 sm:w-10 sm:h-10 bg-green-600 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-puzzle-piece text-white text-xs sm:text-sm"></i>
                     </div>
                     <div>
-                        <h1 class="text-xl font-semibold text-gray-900">Mes Modules</h1>
-                        <p class="text-sm text-gray-600">{{ projet.nom }} - Modules qui me sont affectés</p>
+                        <h1 class="text-base sm:text-lg font-semibold text-gray-900">Mes Modules</h1>
+                        <p class="text-xs text-gray-600">{{ projet.nom }}</p>
                     </div>
                 </div>
                 <a href="{% url 'projet_detail' projet.id %}" 
-                   class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md font-medium text-sm transition-colors">
-                    <i class="fas fa-arrow-left mr-2"></i>Retour
+                   class="inline-flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 bg-gray-600 hover:bg-gray-700 text-white rounded transition-colors"
+                   title="Retour au projet">
+                    <i class="fas fa-arrow-left text-xs sm:text-sm"></i>
                 </a>
             </div>
         </div>
 
-        <!-- Statistiques rapides -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+        <!-- Statistiques Compactes -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-3">
+            <div class="bg-white rounded-lg p-2 shadow-sm border border-gray-200">
                 <div class="flex items-center">
-                    <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                        <i class="fas fa-puzzle-piece text-blue-600 text-sm"></i>
+                    <div class="w-7 h-7 sm:w-8 sm:h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-2 sm:mr-3">
+                        <i class="fas fa-puzzle-piece text-blue-600 text-xs"></i>
                     </div>
                     <div>
                         <p class="text-xs text-gray-600">Modules Affectés</p>
-                        <p class="text-lg font-bold text-gray-900">{{ mes_affectations.count }}</p>
+                        <p class="text-base sm:text-lg font-bold text-gray-900">{{ mes_affectations.count }}</p>
                     </div>
                 </div>
             </div>
             
-            <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+            <div class="bg-white rounded-lg p-2 shadow-sm border border-gray-200">
                 <div class="flex items-center">
-                    <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mr-3">
-                        <i class="fas fa-tasks text-green-600 text-sm"></i>
+                    <div class="w-7 h-7 sm:w-8 sm:h-8 bg-green-100 rounded-lg flex items-center justify-center mr-2 sm:mr-3">
+                        <i class="fas fa-tasks text-green-600 text-xs"></i>
                     </div>
                     <div>
                         <p class="text-xs text-gray-600">Mes Tâches</p>
-                        <p class="text-lg font-bold text-gray-900">{{ mes_taches.count }}</p>
+                        <p class="text-base sm:text-lg font-bold text-gray-900">{{ mes_taches.count }}</p>
                     </div>
                 </div>
             </div>
             
-            <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+            <div class="bg-white rounded-lg p-2 shadow-sm border border-gray-200">
                 <div class="flex items-center">
-                    <div class="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center mr-3">
-                        <i class="fas fa-check-circle text-orange-600 text-sm"></i>
+                    <div class="w-7 h-7 sm:w-8 sm:h-8 bg-orange-100 rounded-lg flex items-center justify-center mr-2 sm:mr-3">
+                        <i class="fas fa-check-circle text-orange-600 text-xs"></i>
                     </div>
                     <div>
                         <p class="text-xs text-gray-600">Tâches Terminées</p>
-                        <p class="text-lg font-bold text-gray-900">
+                        <p class="text-base sm:text-lg font-bold text-gray-900">
                             {{ mes_taches|length|add:0 }}
                             {% comment %}TODO: Calculer les tâches terminées{% endcomment %}
                         </p>
@@ -71,9 +72,9 @@
         <!-- Mes modules affectés -->
         {% if mes_affectations %}
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-            <div class="p-4 border-b border-gray-200">
-                <h2 class="text-lg font-semibold text-gray-900">Modules Affectés</h2>
-                <p class="text-sm text-gray-600">Modules sur lesquels vous travaillez</p>
+            <div class="p-2 sm:p-3 border-b border-gray-200">
+                <h2 class="text-sm sm:text-base font-semibold text-gray-900">Modules Affectés</h2>
+                <p class="text-xs text-gray-600">Modules sur lesquels vous travaillez</p>
             </div>
             
             <!-- Tableau des modules -->
@@ -81,16 +82,16 @@
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Module
                             </th>
-                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Rôle
                             </th>
-                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
                                 Date Affectation
                             </th>
-                            <th scope="col" class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Actions
                             </th>
                         </tr>
@@ -104,15 +105,15 @@
                             data-module-couleur="{{ affectation.module.couleur }}"
                             data-date-creation="{{ affectation.module.date_creation|date:'d/m/Y' }}"
                             data-createur="{{ affectation.module.createur.get_full_name }}">
-                            <td class="px-4 py-3 whitespace-nowrap">
-                                <div class="flex items-center space-x-3">
-                                    <div class="w-8 h-8 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0" 
+                            <td class="px-3 py-2">
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0" 
                                          style="background-color: {{ affectation.module.couleur }}20; border: 1px solid {{ affectation.module.couleur }}40;">
-                                        <i class="fas fa-cube text-sm" style="color: {{ affectation.module.couleur }};"></i>
+                                        <i class="fas fa-cube text-xs" style="color: {{ affectation.module.couleur }};"></i>
                                     </div>
                                     <div>
-                                        <div class="flex items-center space-x-2">
-                                            <p class="text-sm font-medium text-gray-900">{{ affectation.module.nom }}</p>
+                                        <div class="flex items-center space-x-1 sm:space-x-2">
+                                            <p class="text-xs sm:text-sm font-medium text-gray-900">{{ affectation.module.nom }}</p>
                                             {% if affectation.module.est_cloture %}
                                                 <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
                                                     <i class="fas fa-check-circle mr-1"></i>Clôturé
@@ -122,15 +123,15 @@
                                     </div>
                                 </div>
                             </td>
-                            <td class="px-4 py-3 whitespace-nowrap">
-                                <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+                            <td class="px-3 py-2 text-center">
+                                <span class="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-medium">
                                     {{ affectation.get_role_module_display }}
                                 </span>
                             </td>
-                            <td class="px-4 py-3 whitespace-nowrap">
-                                <span class="text-sm text-gray-600">{{ affectation.date_affectation|date:"d/m/Y" }}</span>
+                            <td class="px-3 py-2 text-center hidden sm:table-cell">
+                                <span class="text-xs text-gray-600">{{ affectation.date_affectation|date:"d/m/Y" }}</span>
                             </td>
-                            <td class="px-4 py-2 whitespace-nowrap text-center">
+                            <td class="px-3 py-2 text-center">
                                 <div class="flex items-center justify-center space-x-1">
                                     <!-- Bouton Détails -->
                                     <button onclick="voirDetailsModule('{{ affectation.module.id }}', '{{ affectation.module.nom }}', '{{ affectation.module.description|escapejs }}', '{{ affectation.module.couleur }}', '{{ affectation.module.date_creation|date:'d/m/Y' }}', '{{ affectation.module.createur.get_full_name }}')"
@@ -171,12 +172,12 @@
             </div>
         </div>
         {% else %}
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
-            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <i class="fas fa-puzzle-piece text-gray-400 text-2xl"></i>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 sm:p-8 text-center">
+            <div class="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                <i class="fas fa-puzzle-piece text-gray-400 text-xl sm:text-2xl"></i>
             </div>
-            <h3 class="text-lg font-medium text-gray-500 mb-2">Aucun module affecté</h3>
-            <p class="text-sm text-gray-400">Vous n'êtes affecté à aucun module pour le moment</p>
+            <h3 class="text-sm sm:text-base font-medium text-gray-500 mb-2">Aucun module affecté</h3>
+            <p class="text-xs sm:text-sm text-gray-400">Vous n'êtes affecté à aucun module pour le moment</p>
         </div>
         {% endif %}
     </div>

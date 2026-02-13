@@ -3906,3 +3906,9 @@ class PieceJointeTicket(models.Model):
             self.nom_fichier = self.fichier.name
             self.taille_fichier = self.fichier.size
         super().save(*args, **kwargs)
+
+
+# ============================================================================
+# SYSTÈME D'ACTIVATION SÉCURISÉ DES COMPTES
+# ============================================================================
+from .models_activation import AccountActivationToken, AccountActivationLog

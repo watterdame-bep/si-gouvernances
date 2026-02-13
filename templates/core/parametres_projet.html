@@ -8,151 +8,118 @@
 <div class="bg-gray-50 min-h-screen p-2 md:p-4">
     <div class="max-w-6xl mx-auto space-y-3">
         
-        <!-- Header Compact -->
+        <!-- Header -->
         <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
             <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-cog text-white text-lg"></i>
-                    </div>
-                    <div>
-                        <h1 class="text-xl font-semibold text-gray-900">Paramètres du Projet</h1>
-                        <p class="text-sm text-gray-600">{{ projet.nom }}</p>
-                    </div>
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">Paramètres du Projet</h1>
+                    <p class="text-sm text-gray-600 mt-1">{{ projet.nom }}</p>
                 </div>
-                <a href="{% url 'projet_detail' projet.id %}" class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md text-sm font-medium transition-colors">
-                    <i class="fas fa-arrow-left mr-2"></i>Retour
+                <a href="{% url 'projet_detail' projet.id %}" 
+                   class="inline-flex items-center justify-center w-9 h-9 bg-gray-600 hover:bg-gray-700 text-white rounded transition-colors"
+                   title="Retour au projet">
+                    <i class="fas fa-arrow-left"></i>
                 </a>
             </div>
         </div>
 
         <!-- Informations Essentielles -->
         <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <div class="w-8 h-8 bg-blue-100 rounded-lg mr-3 flex items-center justify-center">
-                    <i class="fas fa-info-circle text-blue-600 text-sm"></i>
-                </div>
-                Informations du Projet
-            </h3>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
-                <div class="text-center p-2 bg-gray-50 rounded">
-                    <div class="text-xs text-gray-600">Statut</div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">Informations du Projet</h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div class="text-center p-3 bg-gray-50 rounded">
+                    <div class="text-xs text-gray-600 mb-1">Statut</div>
                     <div class="text-sm font-medium text-gray-900">{{ projet.statut.get_nom_display }}</div>
                 </div>
-                <div class="text-center p-2 bg-gray-50 rounded">
-                    <div class="text-xs text-gray-600">Priorité</div>
+                <div class="text-center p-3 bg-gray-50 rounded">
+                    <div class="text-xs text-gray-600 mb-1">Priorité</div>
                     <div class="text-sm font-medium text-gray-900">{{ projet.get_priorite_display }}</div>
                 </div>
-                <div class="text-center p-2 bg-gray-50 rounded">
-                    <div class="text-xs text-gray-600">Budget</div>
+                <div class="text-center p-3 bg-gray-50 rounded">
+                    <div class="text-xs text-gray-600 mb-1">Budget</div>
                     <div class="text-sm font-medium text-gray-900">{{ projet.budget_previsionnel|floatformat:0 }}€</div>
                 </div>
-                <div class="text-center p-2 bg-gray-50 rounded">
-                    <div class="text-xs text-gray-600">Créé le</div>
+                <div class="text-center p-3 bg-gray-50 rounded">
+                    <div class="text-xs text-gray-600 mb-1">Créé le</div>
                     <div class="text-sm font-medium text-gray-900">{{ projet.date_creation|date:"d/m/Y" }}</div>
                 </div>
             </div>
         </div>
 
         <!-- Sections principales -->
-        <div class="space-y-8">
+        <div class="space-y-4">
             
             <!-- Étapes et Équipe sur la même ligne -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 
-                <!-- Étapes (1/2 de la largeur) -->
+                <!-- Étapes -->
                 <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-lg font-semibold text-gray-900 flex items-center">
-                            <div class="w-8 h-8 bg-purple-100 rounded-lg mr-3 flex items-center justify-center">
-                                <i class="fas fa-tasks text-purple-600 text-sm"></i>
-                            </div>
-                            Étapes ({{ projet.etapes.count }})
-                        </h3>
-                        <a href="{% url 'gestion_etapes' projet.id %}" class="text-sm text-purple-600 hover:text-purple-700 font-medium">
-                            Gérer <i class="fas fa-arrow-right ml-1"></i>
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-lg font-semibold text-gray-900">Étapes ({{ projet.etapes.count }})</h3>
+                        <a href="{% url 'gestion_etapes' projet.id %}" 
+                           class="inline-flex items-center justify-center w-8 h-8 text-purple-600 hover:bg-purple-50 rounded transition-colors"
+                           title="Gérer les étapes">
+                            <i class="fas fa-cog"></i>
                         </a>
                     </div>
                     
-                    <!-- 3 lignes d'étapes -->
-                    <div class="space-y-3 h-40">
+                    <div class="space-y-2">
                         {% for etape in projet.etapes.all|slice:":3" %}
-                        <div class="flex items-center justify-between text-sm p-3 bg-gray-50 rounded-lg">
+                        <div class="flex items-center justify-between text-sm p-2 bg-gray-50 rounded">
                             <span class="font-medium truncate">{{ etape.type_etape.get_nom_display }}</span>
-                            <span class="px-2 py-1 rounded-md text-xs font-medium flex-shrink-0
+                            <span class="px-2 py-1 rounded text-xs font-medium flex-shrink-0
                                 {% if etape.statut == 'TERMINEE' %}bg-green-100 text-green-700
                                 {% elif etape.statut == 'EN_COURS' %}bg-orange-100 text-orange-700
                                 {% else %}bg-gray-100 text-gray-600{% endif %}">
-                                {% if etape.statut == 'TERMINEE' %}<i class="fas fa-check-circle mr-1"></i>Terminée
-                                {% elif etape.statut == 'EN_COURS' %}<i class="fas fa-sync-alt mr-1"></i>En cours
-                                {% else %}<i class="fas fa-clock mr-1"></i>En attente{% endif %}
+                                {% if etape.statut == 'TERMINEE' %}Terminée
+                                {% elif etape.statut == 'EN_COURS' %}En cours
+                                {% else %}En attente{% endif %}
                             </span>
                         </div>
                         {% endfor %}
                         
-                        <!-- Lignes vides pour compléter à 4 -->
                         {% if projet.etapes.count == 0 %}
-                        <div class="flex items-center justify-center text-sm p-3 bg-gray-50 rounded-lg opacity-50">
-                            <i class="fas fa-exclamation-circle text-gray-400 mr-2"></i>
+                        <div class="flex items-center justify-center text-sm p-3 bg-gray-50 rounded">
                             <span class="text-gray-400">Aucune étape</span>
                         </div>
-                        <div class="p-3 bg-gray-50 rounded-lg opacity-30"></div>
-                        <div class="p-3 bg-gray-50 rounded-lg opacity-30"></div>
-                        <div class="p-3 bg-gray-50 rounded-lg opacity-30"></div>
-                        {% elif projet.etapes.count == 1 %}
-                        <div class="p-2 bg-gray-50 rounded opacity-30"></div>
-                        <div class="p-2 bg-gray-50 rounded opacity-30"></div>
-                        <div class="p-2 bg-gray-50 rounded opacity-30"></div>
-                        {% elif projet.etapes.count == 2 %}
-                        <div class="p-2 bg-gray-50 rounded opacity-30"></div>
-                        <div class="p-2 bg-gray-50 rounded opacity-30"></div>
-                        {% elif projet.etapes.count == 3 %}
-                        <div class="p-2 bg-gray-50 rounded opacity-30"></div>
                         {% endif %}
                     </div>
                 </div>
 
-                <!-- Équipe (1/2 de la largeur) -->
+                <!-- Équipe -->
                 <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-lg font-semibold text-gray-900 flex items-center">
-                            <div class="w-8 h-8 bg-blue-100 rounded-lg mr-3 flex items-center justify-center">
-                                <i class="fas fa-users text-blue-600 text-sm"></i>
-                            </div>
-                            Équipe ({{ affectations|length }} membre{{ affectations|length|pluralize }})
-                        </h3>
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-lg font-semibold text-gray-900">Équipe ({{ affectations|length }})</h3>
                         {% if can_manage %}
                         {% if not responsable %}
-                        <!-- Si pas de responsable, bouton pour ajouter le responsable -->
-                        <button onclick="ouvrirModalAjouterResponsable()" class="inline-flex items-center px-3 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-md text-sm font-medium transition-colors">
-                            <i class="fas fa-crown mr-2"></i>Ajouter Responsable
+                        <button onclick="ouvrirModalAjouterResponsable()" 
+                                class="inline-flex items-center justify-center w-8 h-8 bg-yellow-600 hover:bg-yellow-700 text-white rounded transition-colors"
+                                title="Ajouter un responsable au projet">
+                            <i class="fas fa-crown"></i>
                         </button>
                         {% else %}
-                        <!-- Si responsable existe, bouton normal pour ajouter des membres -->
-                        <button onclick="ouvrirModalAjouterMembre()" class="inline-flex items-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium transition-colors">
-                            <i class="fas fa-plus mr-2"></i>Ajouter
+                        <button onclick="ouvrirModalAjouterMembre()" 
+                                class="inline-flex items-center justify-center w-8 h-8 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+                                title="Ajouter un membre à l'équipe">
+                            <i class="fas fa-user-plus"></i>
                         </button>
                         {% endif %}
                         {% endif %}
                     </div>
 
-                    <!-- Section équipe scrollable -->
-                    <div class="space-y-3 h-40 overflow-y-auto scrollbar-thin">
+                    <div class="space-y-2 max-h-40 overflow-y-auto">
                         {% if not responsable and affectations|length == 0 %}
-                        <!-- Message si aucun responsable -->
-                        <div class="flex flex-col items-center justify-center text-center p-4 bg-yellow-50 rounded-lg border-2 border-yellow-200 border-dashed h-full">
-                            <div class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mb-3">
-                                <i class="fas fa-crown text-yellow-600 text-xl"></i>
-                            </div>
+                        <div class="flex flex-col items-center justify-center text-center p-4 bg-yellow-50 rounded border border-yellow-200">
+                            <i class="fas fa-crown text-yellow-600 text-2xl mb-2"></i>
                             <p class="text-sm font-medium text-yellow-900 mb-1">Aucun responsable désigné</p>
-                            <p class="text-xs text-yellow-700">Commencez par ajouter un responsable au projet</p>
+                            <p class="text-xs text-yellow-700">Commencez par ajouter un responsable</p>
                         </div>
                         {% else %}
                         {% for affectation in affectations %}
-                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                            <div class="flex items-center space-x-3 flex-1 min-w-0">
-                                <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                                    <span class="text-sm font-bold text-white">
+                        <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                            <div class="flex items-center space-x-2 flex-1 min-w-0">
+                                <div class="w-8 h-8 bg-blue-600 rounded flex items-center justify-center flex-shrink-0">
+                                    <span class="text-xs font-bold text-white">
                                         {{ affectation.utilisateur.first_name.0 }}{{ affectation.utilisateur.last_name.0 }}
                                     </span>
                                 </div>
@@ -166,34 +133,29 @@
                                 </div>
                             </div>
                             
-                            <div class="flex items-center space-x-2 flex-shrink-0">
+                            <div class="flex items-center space-x-1 flex-shrink-0">
                                 {% if affectation.est_responsable_principal %}
-                                <span class="inline-flex items-center px-2 py-1 bg-yellow-100 text-yellow-800 rounded-md text-xs font-medium">
-                                    <i class="fas fa-crown mr-1"></i>Responsable
-                                </span>
-                                {% endif %}
-                                {% if affectation.utilisateur == projet.createur %}
-                                <span class="inline-flex items-center px-2 py-1 bg-green-100 text-green-800 rounded-md text-xs font-medium">
-                                    <i class="fas fa-star mr-1"></i>Créateur
+                                <span class="inline-flex items-center px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-medium">
+                                    <i class="fas fa-crown"></i>
                                 </span>
                                 {% endif %}
                                 
                                 {% if can_manage %}
                                 <div class="flex space-x-1">
                                     {% if affectation.est_responsable_principal %}
-                                        <!-- Bouton pour transférer la responsabilité (visible sur le responsable actuel) -->
                                         {% if is_creator or responsable == user %}
                                         <button onclick="ouvrirModalTransfert('{{ affectation.id }}', '{{ affectation.utilisateur.get_full_name }}')" 
-                                                class="text-orange-600 hover:text-orange-700 text-sm p-1" title="Transférer responsabilité">
-                                            <i class="fas fa-exchange-alt"></i>
+                                                class="text-orange-600 hover:text-orange-700 p-1" 
+                                                title="Transférer la responsabilité">
+                                            <i class="fas fa-exchange-alt text-sm"></i>
                                         </button>
                                         {% endif %}
                                     {% else %}
-                                        <!-- Bouton pour définir comme responsable (visible sur les non-responsables) -->
                                         {% if is_creator and not responsable %}
                                         <button onclick="definirResponsable('{{ affectation.id }}', '{{ affectation.utilisateur.get_full_name }}')" 
-                                                class="text-yellow-600 hover:text-yellow-700 text-sm p-1" title="Définir responsable">
-                                            <i class="fas fa-crown"></i>
+                                                class="text-yellow-600 hover:text-yellow-700 p-1" 
+                                                title="Définir comme responsable">
+                                            <i class="fas fa-crown text-sm"></i>
                                         </button>
                                         {% endif %}
                                     {% endif %}
@@ -201,8 +163,9 @@
                                     {% if affectation.utilisateur != projet.createur %}
                                         {% if user.est_super_admin or not affectation.est_responsable_principal %}
                                         <button onclick="ouvrirModalRetirer('{{ affectation.id }}', '{{ affectation.utilisateur.get_full_name }}')" 
-                                                class="text-red-600 hover:text-red-700 text-sm p-1" title="Retirer">
-                                            <i class="fas fa-times"></i>
+                                                class="text-red-600 hover:text-red-700 p-1" 
+                                                title="Retirer du projet">
+                                            <i class="fas fa-times text-sm"></i>
                                         </button>
                                         {% endif %}
                                     {% endif %}
@@ -211,30 +174,17 @@
                             </div>
                         </div>
                         {% endfor %}
-                        
-                        <!-- Message si aucun membre (mais responsable existe) -->
-                        {% if affectations|length == 0 and responsable %}
-                        <div class="flex items-center justify-center text-sm p-3 bg-gray-50 rounded-lg opacity-50">
-                            <i class="fas fa-user-plus text-gray-400 mr-2"></i>
-                            <span class="text-gray-400">Aucun membre</span>
-                        </div>
-                        {% endif %}
                         {% endif %}
                     </div>
                 </div>
             </div>
             
-            <!-- Section Notifications Admin - Version compacte -->
+            <!-- Section Notifications Admin -->
             <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
                 <div class="flex items-center justify-between">
-                    <div class="flex items-center">
-                        <div class="w-8 h-8 bg-indigo-100 rounded-lg mr-3 flex items-center justify-center">
-                            <i class="fas fa-bell text-indigo-600 text-sm"></i>
-                        </div>
-                        <div>
-                            <h3 class="text-base font-semibold text-gray-900">Notifications Administrateur</h3>
-                            <p class="text-xs text-gray-600">Recevoir les notifications importantes (étapes, tâches terminées)</p>
-                        </div>
+                    <div>
+                        <h3 class="text-base font-semibold text-gray-900">Notifications Administrateur</h3>
+                        <p class="text-xs text-gray-600 mt-1">Recevoir les notifications importantes (étapes, tâches terminées)</p>
                     </div>
                     
                     <label class="relative inline-flex items-center cursor-pointer">
@@ -259,61 +209,45 @@
                 </div>
             </div>
 
-            <!-- Budget en bas (pleine largeur) - même style que les autres sections -->
+            <!-- Budget -->
             <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-lg font-semibold text-gray-900 flex items-center">
-                        <div class="w-8 h-8 bg-green-100 rounded-lg mr-3 flex items-center justify-center">
-                            <i class="fas fa-euro-sign text-green-600 text-sm"></i>
-                        </div>
-                        Budget & Besoins
-                    </h3>
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-lg font-semibold text-gray-900">Budget & Besoins</h3>
                     {% if can_manage %}
-                    <div class="flex space-x-2">
+                    <div class="flex space-x-1">
                         <button onclick="ouvrirModalBesoins()" 
-                                class="inline-flex items-center px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md text-sm font-medium transition-colors">
-                            <i class="fas fa-plus mr-2"></i>Ajouter
+                                class="inline-flex items-center justify-center w-8 h-8 bg-green-600 hover:bg-green-700 text-white rounded transition-colors"
+                                title="Ajouter un besoin">
+                            <i class="fas fa-plus"></i>
                         </button>
                         <button onclick="afficherTousBesoins()" 
-                                class="inline-flex items-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium transition-colors">
-                            <i class="fas fa-eye mr-2"></i>Voir tout
+                                class="inline-flex items-center justify-center w-8 h-8 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+                                title="Voir tous les besoins">
+                            <i class="fas fa-eye"></i>
                         </button>
                     </div>
                     {% endif %}
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                    <!-- Budget Total -->
-                    <div class="p-3 bg-green-50 rounded-lg border border-green-200 text-center">
+                    <div class="p-3 bg-green-50 rounded border border-green-200 text-center">
                         <div class="text-xs text-green-700 mb-1">Budget Total</div>
                         <div class="text-base font-bold text-green-900">{{ projet.budget_previsionnel|floatformat:0 }}€</div>
                     </div>
                     
-                    <!-- Ressources Humaines -->
-                    <div class="p-4 bg-blue-50 rounded-lg border border-blue-200 text-center">
-                        <div class="flex items-center justify-center mb-2">
-                            <i class="fas fa-users text-blue-700 mr-2"></i>
-                            <span class="text-sm text-blue-700 font-medium">RH</span>
-                        </div>
-                        <div class="text-lg font-bold text-blue-900">0€</div>
+                    <div class="p-3 bg-blue-50 rounded border border-blue-200 text-center">
+                        <div class="text-xs text-blue-700 mb-1">RH</div>
+                        <div class="text-base font-bold text-blue-900">0€</div>
                     </div>
                     
-                    <!-- Matériel -->
-                    <div class="p-4 bg-purple-50 rounded-lg border border-purple-200 text-center">
-                        <div class="flex items-center justify-center mb-2">
-                            <i class="fas fa-tools text-purple-700 mr-2"></i>
-                            <span class="text-sm text-purple-700 font-medium">Matériel</span>
-                        </div>
-                        <div class="text-lg font-bold text-purple-900">0€</div>
+                    <div class="p-3 bg-purple-50 rounded border border-purple-200 text-center">
+                        <div class="text-xs text-purple-700 mb-1">Matériel</div>
+                        <div class="text-base font-bold text-purple-900">0€</div>
                     </div>
                     
-                    <!-- Services -->
-                    <div class="p-4 bg-orange-50 rounded-lg border border-orange-200 text-center">
-                        <div class="flex items-center justify-center mb-2">
-                            <i class="fas fa-building text-orange-700 mr-2"></i>
-                            <span class="text-sm text-orange-700 font-medium">Services</span>
-                        </div>
-                        <div class="text-lg font-bold text-orange-900">0€</div>
+                    <div class="p-3 bg-orange-50 rounded border border-orange-200 text-center">
+                        <div class="text-xs text-orange-700 mb-1">Services</div>
+                        <div class="text-base font-bold text-orange-900">0€</div>
                     </div>
                 </div>
             </div>

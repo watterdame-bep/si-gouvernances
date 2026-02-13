@@ -9,6 +9,7 @@ from . import views_maintenance
 from . import views_maintenance_v2  # Nouvelles vues simplifiées
 from . import views_demarrage_projet
 from . import views_alertes  # Vues pour les alertes
+from . import views_activation  # Vues pour l'activation sécurisée des comptes
 
 urlpatterns = [
     path('', views.dashboard_view, name='dashboard'),
@@ -23,6 +24,7 @@ urlpatterns = [
     path('projets/<uuid:projet_id>/ajouter-fichier-description/', views.ajouter_fichier_description_view, name='ajouter_fichier_description'),
     path('projets/<uuid:projet_id>/modifier-budget/', views.modifier_budget_projet, name='modifier_budget_projet'),
     path('projets/<uuid:projet_id>/modifier/', views.modifier_projet_view, name='modifier_projet'),
+    path('projets/<uuid:projet_id>/supprimer/', views.supprimer_projet_view, name='supprimer_projet'),
     path('projets/<uuid:projet_id>/parametres/', views.parametres_projet_view, name='parametres_projet'),
     path('projets/<uuid:projet_id>/toggle-notifications-admin/', views.toggle_notifications_admin, name='toggle_notifications_admin'),
     path('projets/<uuid:projet_id>/ajouter-membre/', views.ajouter_membre_projet, name='ajouter_membre_projet'),
@@ -48,6 +50,14 @@ urlpatterns = [
     path('comptes/<uuid:user_id>/modifier/', views.modifier_compte_view, name='modifier_compte'),
     path('comptes/<uuid:user_id>/toggle-status/', views.toggle_compte_status, name='toggle_compte_status'),
     path('comptes/<uuid:user_id>/reset-password/', views.reset_compte_password, name='reset_compte_password'),
+    path('comptes/<uuid:user_id>/delete/', views.delete_compte, name='delete_compte'),
+    
+    # ========================================================================
+    # SYSTÈME D'ACTIVATION SÉCURISÉ DES COMPTES
+    # ========================================================================
+    path('activate-account/<uidb64>/<token>/', views_activation.activate_account_view, name='activate_account_view'),
+    path('activate-account/<uidb64>/<token>/submit/', views_activation.activate_account_submit, name='activate_account_submit'),
+    path('comptes/<uuid:user_id>/resend-activation/', views_activation.resend_activation_link, name='resend_activation_link'),
     
     # Anciennes URLs pour compatibilité (à supprimer progressivement)
     path('utilisateurs/', views.gestion_utilisateurs_view, name='gestion_utilisateurs'),

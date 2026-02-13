@@ -4,88 +4,86 @@
 {% block page_title %}Gestion des Comptes{% endblock %}
 
 {% block content %}
-<div class="bg-gray-50 min-h-screen p-2 md:p-4">
-    <div class="max-w-7xl mx-auto space-y-3 md:space-y-4">
+<div class="bg-gray-50 min-h-screen p-2 sm:p-3">
+    <div class="max-w-7xl mx-auto space-y-2">
         
-        <!-- Header Modern -->
-        <div class="bg-white rounded-lg p-3 md:p-4 shadow-md border border-white/20">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-md">
-                        <i class="fas fa-key text-white text-sm"></i>
+        <!-- Header ultra-compact -->
+        <div class="bg-white rounded-lg px-2 py-2 shadow-sm">
+            <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                    <div class="w-7 h-7 bg-blue-600 rounded flex items-center justify-center">
+                        <i class="fas fa-key text-white text-xs"></i>
                     </div>
                     <div>
-                        <h1 class="text-lg md:text-xl font-bold text-gray-900">Gestion des Comptes</h1>
-                        <p class="text-xs md:text-sm text-gray-600">Accès système - {{ stats.total }} compte{{ stats.total|pluralize }}</p>
+                        <h1 class="text-sm md:text-base font-bold text-gray-900">Gestion des Comptes</h1>
+                        <p class="text-xs text-gray-600">{{ stats.total }} compte{{ stats.total|pluralize }}</p>
                     </div>
                 </div>
-                <div class="flex space-x-2">
-                    <a href="{% url 'gestion_membres' %}" class="group flex items-center px-3 py-2 md:px-4 md:py-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-lg font-semibold shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300 text-sm">
-                        <i class="fas fa-users mr-2"></i>
-                        <span class="hidden sm:inline">Profils RH</span>
-                        <span class="sm:hidden">Profils</span>
-                    </a>
+                <a href="{% url 'gestion_membres' %}" 
+                   class="inline-flex items-center justify-center w-7 h-7 bg-emerald-600 hover:bg-emerald-700 text-white rounded transition-colors"
+                   title="Profils RH">
+                    <i class="fas fa-users text-xs"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- Statistiques compactes -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <div class="bg-white rounded-lg shadow-sm p-2">
+                <div class="flex items-center gap-1.5">
+                    <div class="w-6 h-6 bg-blue-100 rounded flex items-center justify-center">
+                        <i class="fas fa-key text-blue-600 text-xs"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-600">Total</p>
+                        <p class="text-sm font-bold text-gray-900">{{ stats.total }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-sm p-2">
+                <div class="flex items-center gap-1.5">
+                    <div class="w-6 h-6 bg-green-100 rounded flex items-center justify-center">
+                        <i class="fas fa-check-circle text-green-600 text-xs"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-600">Actifs</p>
+                        <p class="text-sm font-bold text-gray-900">{{ stats.actifs }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-sm p-2">
+                <div class="flex items-center gap-1.5">
+                    <div class="w-6 h-6 bg-gray-100 rounded flex items-center justify-center">
+                        <i class="fas fa-times-circle text-gray-600 text-xs"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-600">Inactifs</p>
+                        <p class="text-sm font-bold text-gray-900">{{ stats.inactifs }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-sm p-2">
+                <div class="flex items-center gap-1.5">
+                    <div class="w-6 h-6 bg-emerald-100 rounded flex items-center justify-center">
+                        <i class="fas fa-users text-emerald-600 text-xs"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-600">Avec profil</p>
+                        <p class="text-sm font-bold text-gray-900">{{ stats.avec_membre }}</p>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Statistiques Compactes -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
-            <div class="bg-white rounded-lg shadow-md border border-white/20 p-3 hover:shadow-lg transition-shadow">
-                <div class="flex items-center">
-                    <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-2">
-                        <i class="fas fa-key text-blue-600 text-sm"></i>
-                    </div>
-                    <div>
-                        <p class="text-xs font-medium text-gray-500">Total</p>
-                        <p class="text-lg font-bold text-gray-900">{{ stats.total }}</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="bg-white rounded-lg shadow-md border border-white/20 p-3 hover:shadow-lg transition-shadow">
-                <div class="flex items-center">
-                    <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mr-2">
-                        <i class="fas fa-check-circle text-green-600 text-sm"></i>
-                    </div>
-                    <div>
-                        <p class="text-xs font-medium text-gray-500">Actifs</p>
-                        <p class="text-lg font-bold text-gray-900">{{ stats.actifs }}</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="bg-white rounded-lg shadow-md border border-white/20 p-3 hover:shadow-lg transition-shadow">
-                <div class="flex items-center">
-                    <div class="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center mr-2">
-                        <i class="fas fa-times-circle text-gray-600 text-sm"></i>
-                    </div>
-                    <div>
-                        <p class="text-xs font-medium text-gray-500">Inactifs</p>
-                        <p class="text-lg font-bold text-gray-900">{{ stats.inactifs }}</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="bg-white rounded-lg shadow-md border border-white/20 p-3 hover:shadow-lg transition-shadow">
-                <div class="flex items-center">
-                    <div class="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center mr-2">
-                        <i class="fas fa-users text-emerald-600 text-sm"></i>
-                    </div>
-                    <div>
-                        <p class="text-xs font-medium text-gray-500">Avec profil</p>
-                        <p class="text-lg font-bold text-gray-900">{{ stats.avec_membre }}</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Filtres Compacts -->
-        <div class="bg-white rounded-lg p-3 md:p-4 shadow-md border border-white/20">
-            <form method="get" class="grid grid-cols-1 md:grid-cols-5 gap-3">
+        <!-- Filtres compacts -->
+        <div class="bg-white rounded-lg px-2 py-2 shadow-sm">
+            <form method="get" class="grid grid-cols-1 md:grid-cols-5 gap-1.5">
                 <!-- Search -->
                 <div class="md:col-span-2">
-                    <label for="search" class="block text-xs font-semibold text-gray-700 mb-1">Rechercher</label>
+                    <label for="search" class="block text-xs font-medium text-gray-700 mb-0.5">Rechercher</label>
                     <div class="relative">
                         <input 
                             type="text" 
@@ -93,19 +91,19 @@
                             name="search" 
                             value="{{ search }}"
                             placeholder="Username, email, nom..."
-                            class="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 text-sm"
+                            class="w-full pl-6 pr-2 py-1.5 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs"
                         >
-                        <i class="fas fa-search absolute left-2.5 top-2.5 text-gray-400 text-xs"></i>
+                        <i class="fas fa-search absolute left-2 top-2 text-gray-400 text-xs"></i>
                     </div>
                 </div>
 
                 <!-- Status Filter -->
                 <div>
-                    <label for="statut" class="block text-xs font-semibold text-gray-700 mb-1">Statut</label>
+                    <label for="statut" class="block text-xs font-medium text-gray-700 mb-0.5">Statut</label>
                     <select 
                         id="statut" 
                         name="statut"
-                        class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 text-sm"
+                        class="w-full px-2 py-1.5 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs"
                     >
                         <option value="">Tous</option>
                         <option value="actif" {% if statut_filter == 'actif' %}selected{% endif %}>Actifs</option>
@@ -116,11 +114,11 @@
 
                 <!-- Role Filter -->
                 <div>
-                    <label for="role" class="block text-xs font-semibold text-gray-700 mb-1">Rôle</label>
+                    <label for="role" class="block text-xs font-medium text-gray-700 mb-0.5">Rôle</label>
                     <select 
                         id="role" 
                         name="role"
-                        class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 text-sm"
+                        class="w-full px-2 py-1.5 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs"
                     >
                         <option value="">Tous</option>
                         {% for role in roles_systeme %}
@@ -133,23 +131,23 @@
                 <div class="flex items-end">
                     <button 
                         type="submit"
-                        class="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-3 py-2 rounded-lg font-semibold shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300 text-sm"
+                        class="w-full bg-blue-600 hover:bg-blue-700 text-white px-2 py-1.5 rounded text-xs transition-colors"
                     >
-                        <i class="fas fa-search mr-1"></i>Filtrer
+                        <i class="fas fa-filter mr-1"></i>Filtrer
                     </button>
                 </div>
             </form>
         </div>
 
-        <!-- Liste des comptes - Design Compact -->
+        <!-- Liste des comptes -->
         {% if page_obj.object_list %}
-        <div class="space-y-2 md:space-y-3">
-            {% for compte in page_obj.object_list %}
-            <div class="bg-white rounded-lg p-3 md:p-4 shadow-md border border-white/20 hover:shadow-lg transition-all duration-300">
-                <div class="flex flex-col sm:flex-row sm:items-center gap-3">
-                    <!-- Account Info -->
-                    <div class="flex items-center space-x-3 flex-1 min-w-0">
-                        <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center shadow-md flex-shrink-0">
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+            <!-- Version mobile : Cards -->
+            <div class="block md:hidden divide-y divide-gray-100">
+                {% for compte in page_obj.object_list %}
+                <div class="p-2 hover:bg-blue-50 transition-colors">
+                    <div class="flex items-start gap-2 mb-2">
+                        <div class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
                             {% if compte.membre %}
                                 <span class="text-white font-bold text-sm">{{ compte.membre.get_initiales }}</span>
                             {% else %}
@@ -157,144 +155,237 @@
                             {% endif %}
                         </div>
                         <div class="flex-1 min-w-0">
-                            <h3 class="text-sm md:text-base font-semibold text-gray-900 truncate">
-                                {% if compte.membre %}
-                                    {{ compte.membre.get_nom_complet }}
-                                {% else %}
-                                    {{ compte.get_full_name }}
-                                {% endif %}
-                            </h3>
-                            <p class="text-xs md:text-sm text-gray-600 truncate">{{ compte.username }} • {{ compte.email }}</p>
-                            <div class="flex flex-wrap items-center gap-1 mt-1">
-                                <!-- Role Badge -->
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
-                                    {% if compte.is_superuser %}bg-purple-100 text-purple-800
-                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
-                                    {% if compte.is_superuser %}
-                                        <i class="fas fa-crown mr-1"></i>Super Admin
-                                    {% else %}
-                                        {% if compte.role_systeme %}
-                                            <i class="fas fa-shield-alt mr-1"></i>{{ compte.role_systeme.get_nom_display|truncatechars:12 }}
-                                        {% else %}
-                                            <i class="fas fa-shield-alt mr-1"></i>Aucun rôle
-                                        {% endif %}
-                                    {% endif %}
-                                </span>
-                                
-                                <!-- Status Badge -->
-                                {% if compte.statut_actif %}
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                                        <i class="fas fa-check-circle mr-1"></i>Actif
-                                    </span>
-                                {% else %}
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                                        <i class="fas fa-times-circle mr-1"></i>Inactif
-                                    </span>
-                                {% endif %}
+                            <div class="text-sm font-medium text-gray-900">
+                                {% if compte.membre %}{{ compte.membre.get_nom_complet }}{% else %}{{ compte.get_full_name }}{% endif %}
                             </div>
+                            <div class="text-xs text-gray-600">{{ compte.username }}</div>
+                            <div class="text-xs text-gray-500 mt-0.5">{{ compte.email }}</div>
                         </div>
-                    </div>
-
-                    <!-- Account Details & Actions -->
-                    <div class="flex items-center justify-between sm:justify-end gap-3 sm:gap-4">
-                        <!-- Connection Info -->
-                        <div class="text-center hidden sm:block">
-                            <div class="text-xs font-medium text-gray-500">Dernière connexion</div>
-                            {% if compte.derniere_connexion %}
-                                <div class="text-xs text-gray-900">{{ compte.derniere_connexion|date:"d/m/Y H:i" }}</div>
+                        <div class="flex flex-col gap-1 items-end">
+                            {% if compte.statut_actif %}
+                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                <i class="fas fa-check-circle text-xs mr-1"></i>Actif
+                            </span>
                             {% else %}
-                                <div class="text-xs text-gray-400 italic">Jamais</div>
+                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                                <i class="fas fa-times-circle text-xs mr-1"></i>Inactif
+                            </span>
                             {% endif %}
-                        </div>
-
-                        <!-- Actions -->
-                        <div class="flex items-center gap-1">
-                            {% if compte.membre %}
-                            <a href="{% url 'detail_membre' compte.membre.id %}" 
-                               class="inline-flex items-center justify-center w-8 h-8 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-lg shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300" 
-                               title="Voir profil RH">
-                                <i class="fas fa-users text-sm"></i>
-                            </a>
-                            {% endif %}
-                            
-                            <a href="{% url 'modifier_compte' compte.id %}" 
-                               class="inline-flex items-center justify-center w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-lg shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300" 
-                               title="Modifier compte">
-                                <i class="fas fa-edit text-sm"></i>
-                            </a>
-                            
-                            {% if compte != user %}
-                            <button type="button"
-                                    data-compte-id="{{ compte.id }}"
-                                    data-compte-name="{% if compte.membre %}{{ compte.membre.get_nom_complet }}{% else %}{{ compte.get_full_name }}{% endif %}"
-                                    data-compte-active="{{ compte.statut_actif|yesno:'true,false' }}"
-                                    onclick="showToggleCompteStatusModal(this.dataset.compteId, this.dataset.compteName, this.dataset.compteActive === 'true')" 
-                                    class="inline-flex items-center justify-center w-8 h-8 {% if compte.statut_actif %}bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700{% else %}bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700{% endif %} text-white rounded-lg shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300" 
-                                    title="{% if compte.statut_actif %}Désactiver{% else %}Activer{% endif %}">
-                                <i class="fas {% if compte.statut_actif %}fa-times{% else %}fa-check{% endif %} text-sm"></i>
-                            </button>
-                            
-                            <button type="button"
-                                    data-compte-id="{{ compte.id }}"
-                                    data-compte-name="{% if compte.membre %}{{ compte.membre.get_nom_complet }}{% else %}{{ compte.get_full_name }}{% endif %}"
-                                    data-compte-username="{{ compte.username }}"
-                                    onclick="showResetComptePasswordModal(this.dataset.compteId, this.dataset.compteName, this.dataset.compteUsername)" 
-                                    class="inline-flex items-center justify-center w-8 h-8 bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700 text-white rounded-lg shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300" 
-                                    title="Réinitialiser mot de passe">
-                                <i class="fas fa-key text-sm"></i>
-                            </button>
+                            {% if compte.is_superuser %}
+                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                                <i class="fas fa-crown text-xs mr-1"></i>Admin
+                            </span>
                             {% endif %}
                         </div>
                     </div>
-                </div>
-                
-                <!-- Mobile Additional Info -->
-                <div class="sm:hidden mt-2 pt-2 border-t border-gray-100">
-                    <div class="flex items-center justify-between text-xs">
-                        <div class="flex items-center text-gray-500">
-                            <i class="fas fa-clock mr-1"></i>
-                            {% if compte.derniere_connexion %}
-                                <span>{{ compte.derniere_connexion|date:"d/m/Y" }}</span>
-                            {% else %}
-                                <span class="italic">Jamais connecté</span>
-                            {% endif %}
-                        </div>
-                        {% if compte.membre and compte.membre.poste %}
-                        <div class="flex items-center text-gray-500">
-                            <i class="fas fa-briefcase mr-1"></i>
-                            <span>{{ compte.membre.poste|truncatechars:15 }}</span>
-                        </div>
+                    <div class="flex items-center gap-1">
+                        {% if compte.membre %}
+                        <a href="{% url 'detail_membre' compte.membre.id %}" 
+                           title="Voir profil RH"
+                           class="w-7 h-7 bg-emerald-600 hover:bg-emerald-700 text-white rounded transition-colors flex items-center justify-center">
+                            <i class="fas fa-users text-xs"></i>
+                        </a>
+                        {% endif %}
+                        <a href="{% url 'modifier_compte' compte.id %}" 
+                           title="Modifier compte"
+                           class="w-7 h-7 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors flex items-center justify-center">
+                            <i class="fas fa-edit text-xs"></i>
+                        </a>
+                        {% if compte != user %}
+                        <button type="button"
+                                data-compte-id="{{ compte.id }}"
+                                data-compte-name="{{ compte.membre.get_nom_complet|default:compte.get_full_name }}"
+                                data-compte-active="{{ compte.statut_actif|yesno:'true,false' }}"
+                                onclick="showToggleCompteStatusModal(this.dataset.compteId, this.dataset.compteName, this.dataset.compteActive === 'true')" 
+                                class="w-7 h-7 {% if compte.statut_actif %}bg-gray-600 hover:bg-gray-700{% else %}bg-green-600 hover:bg-green-700{% endif %} text-white rounded transition-colors flex items-center justify-center" 
+                                title="{% if compte.statut_actif %}Désactiver{% else %}Activer{% endif %}">
+                            <i class="fas {% if compte.statut_actif %}fa-times{% else %}fa-check{% endif %} text-xs"></i>
+                        </button>
+                        <button type="button"
+                                data-compte-id="{{ compte.id }}"
+                                data-compte-name="{{ compte.membre.get_nom_complet|default:compte.get_full_name }}"
+                                data-compte-username="{{ compte.username }}"
+                                onclick="showResetComptePasswordModal(this.dataset.compteId, this.dataset.compteName, this.dataset.compteUsername)" 
+                                class="w-7 h-7 bg-yellow-600 hover:bg-yellow-700 text-white rounded transition-colors flex items-center justify-center" 
+                                title="Réinitialiser mot de passe">
+                            <i class="fas fa-key text-xs"></i>
+                        </button>
+                        <button type="button"
+                                data-compte-id="{{ compte.id }}"
+                                data-compte-name="{{ compte.membre.get_nom_complet|default:compte.get_full_name }}"
+                                data-compte-username="{{ compte.username }}"
+                                onclick="showDeleteCompteModal(this.dataset.compteId, this.dataset.compteName, this.dataset.compteUsername)" 
+                                class="w-7 h-7 bg-red-600 hover:bg-red-700 text-white rounded transition-colors flex items-center justify-center" 
+                                title="Supprimer le compte">
+                            <i class="fas fa-trash text-xs"></i>
+                        </button>
                         {% endif %}
                     </div>
                 </div>
+                {% endfor %}
             </div>
-            {% endfor %}
-        </div>
+            
+            <!-- Version desktop : Tableau -->
+            <div class="hidden md:block overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-2 py-2 text-left text-xs font-semibold text-gray-700 uppercase">Utilisateur</th>
+                            <th class="px-2 py-2 text-left text-xs font-semibold text-gray-700 uppercase hidden lg:table-cell">Email</th>
+                            <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase">Rôle</th>
+                            <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase">Statut</th>
+                            <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase hidden xl:table-cell">Dernière connexion</th>
+                            <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700 uppercase">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for compte in page_obj.object_list %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-2 py-2">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                        {% if compte.membre %}
+                                            <span class="text-white font-bold text-xs">{{ compte.membre.get_initiales }}</span>
+                                        {% else %}
+                                            <span class="text-white font-bold text-xs">{{ compte.first_name.0|upper }}{{ compte.last_name.0|upper }}</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="min-w-0">
+                                        <p class="text-xs font-medium text-gray-900 truncate">
+                                            {% if compte.membre %}{{ compte.membre.get_nom_complet }}{% else %}{{ compte.get_full_name }}{% endif %}
+                                        </p>
+                                        <p class="text-xs text-gray-500 truncate">{{ compte.username }}</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-2 py-2 hidden lg:table-cell">
+                                <p class="text-xs text-gray-600 truncate">{{ compte.email }}</p>
+                            </td>
+                            <td class="px-2 py-2 text-center">
+                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium
+                                    {% if compte.is_superuser %}bg-purple-100 text-purple-800
+                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {% if compte.is_superuser %}
+                                        <i class="fas fa-crown text-xs mr-1"></i>Admin
+                                    {% else %}
+                                        {% if compte.role_systeme %}
+                                            {{ compte.role_systeme.get_nom_display|truncatechars:10 }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    {% endif %}
+                                </span>
+                            </td>
+                            <td class="px-2 py-2 text-center">
+                                {% if compte.statut_actif %}
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                        <i class="fas fa-check-circle text-xs mr-1"></i>Actif
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                                        <i class="fas fa-times-circle text-xs mr-1"></i>Inactif
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-2 py-2 text-center hidden xl:table-cell">
+                                {% if compte.derniere_connexion %}
+                                    <span class="text-xs text-gray-900">{{ compte.derniere_connexion|date:"d/m/Y H:i" }}</span>
+                                {% else %}
+                                    <span class="text-xs text-gray-400 italic">Jamais</span>
+                                {% endif %}
+                            </td>
 
-        <!-- Pagination similaire à gestion_membres.html -->
+                            <!-- Actions -->
+                            <td class="px-2 py-2">
+                                <div class="flex items-center justify-center gap-1">
+                                    {% if compte.membre %}
+                                    <a href="{% url 'detail_membre' compte.membre.id %}" 
+                                       class="w-6 h-6 bg-emerald-600 hover:bg-emerald-700 text-white rounded transition-colors flex items-center justify-center" 
+                                       title="Voir profil RH">
+                                        <i class="fas fa-users text-xs"></i>
+                                    </a>
+                                    {% endif %}
+                                    
+                                    <a href="{% url 'modifier_compte' compte.id %}" 
+                                       class="w-6 h-6 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors flex items-center justify-center" 
+                                       title="Modifier compte">
+                                        <i class="fas fa-edit text-xs"></i>
+                                    </a>
+                                    
+                                    {% if compte != user %}
+                                    <button type="button"
+                                            data-compte-id="{{ compte.id }}"
+                                            data-compte-name="{{ compte.membre.get_nom_complet|default:compte.get_full_name }}"
+                                            data-compte-active="{{ compte.statut_actif|yesno:'true,false' }}"
+                                            onclick="showToggleCompteStatusModal(this.dataset.compteId, this.dataset.compteName, this.dataset.compteActive === 'true')" 
+                                            class="w-6 h-6 {% if compte.statut_actif %}bg-gray-600 hover:bg-gray-700{% else %}bg-green-600 hover:bg-green-700{% endif %} text-white rounded transition-colors flex items-center justify-center" 
+                                            title="{% if compte.statut_actif %}Désactiver{% else %}Activer{% endif %}">
+                                        <i class="fas {% if compte.statut_actif %}fa-times{% else %}fa-check{% endif %} text-xs"></i>
+                                    </button>
+                                    
+                                    <button type="button"
+                                            data-compte-id="{{ compte.id }}"
+                                            data-compte-name="{{ compte.membre.get_nom_complet|default:compte.get_full_name }}"
+                                            data-compte-username="{{ compte.username }}"
+                                            onclick="showResetComptePasswordModal(this.dataset.compteId, this.dataset.compteName, this.dataset.compteUsername)" 
+                                            class="w-6 h-6 bg-yellow-600 hover:bg-yellow-700 text-white rounded transition-colors flex items-center justify-center" 
+                                            title="Réinitialiser mot de passe">
+                                        <i class="fas fa-key text-xs"></i>
+                                    </button>
+                                    
+                                    <button type="button"
+                                            data-compte-id="{{ compte.id }}"
+                                            data-compte-name="{{ compte.membre.get_nom_complet|default:compte.get_full_name }}"
+                                            data-compte-username="{{ compte.username }}"
+                                            onclick="showDeleteCompteModal(this.dataset.compteId, this.dataset.compteName, this.dataset.compteUsername)" 
+                                            class="w-6 h-6 bg-red-600 hover:bg-red-700 text-white rounded transition-colors flex items-center justify-center" 
+                                            title="Supprimer le compte">
+                                        <i class="fas fa-trash text-xs"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Pagination compacte -->
         {% if page_obj.has_other_pages %}
-        <div class="bg-white rounded-lg px-3 md:px-4 py-3 shadow-md border border-white/20">
-            <!-- Pagination code similar to membres template -->
+        <div class="bg-white rounded-lg px-2 py-2 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div class="text-xs text-gray-700">
+                    Page {{ page_obj.number }}/{{ page_obj.paginator.num_pages }}
+                </div>
+                <div class="flex gap-1">
+                    {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if statut_filter %}&statut={{ statut_filter }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}" 
+                       class="px-2 py-1 border border-gray-300 text-xs rounded text-gray-700 hover:bg-gray-50"
+                       title="Page précédente">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                    {% endif %}
+                    
+                    {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if statut_filter %}&statut={{ statut_filter }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}" 
+                       class="px-2 py-1 border border-gray-300 text-xs rounded text-gray-700 hover:bg-gray-50"
+                       title="Page suivante">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
         </div>
         {% endif %}
         
         {% else %}
-        <!-- Aucun compte trouvé -->
-        <div class="bg-white rounded-lg p-6 md:p-8 shadow-md border border-white/20 text-center">
-            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <i class="fas fa-lock text-gray-400 text-2xl"></i>
-            </div>
-            <h3 class="text-lg font-medium text-gray-900 mb-2">Aucun compte trouvé</h3>
-            <p class="text-gray-600 mb-4">
-                {% if search or statut_filter or role_filter %}
-                    Aucun compte ne correspond aux critères de recherche.
-                {% else %}
-                    Les comptes système sont créés depuis les profils membres.
-                {% endif %}
-            </p>
-            <a href="{% url 'gestion_membres' %}" class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-lg font-medium shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300">
-                <i class="fas fa-users mr-2"></i>Voir les profils RH
-            </a>
+        <!-- État vide -->
+        <div class="bg-white rounded-lg shadow-sm text-center py-12">
+            <i class="fas fa-key text-4xl text-gray-400 mb-3"></i>
+            <h3 class="text-lg font-bold text-gray-900 mb-2">Aucun compte trouvé</h3>
+            <p class="text-sm text-gray-500">Aucun compte ne correspond à vos critères de recherche.</p>
         </div>
         {% endif %}
     </div>
@@ -303,19 +394,19 @@
 <!-- Modals pour les actions sur les comptes -->
 <!-- Modal Toggle Status -->
 <div id="toggleCompteStatusModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
-    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-        <div class="mt-3 text-center">
-            <h3 class="text-lg font-medium text-gray-900" id="modalCompteTitle">Confirmer l'action</h3>
-            <div class="mt-2 px-7 py-3">
+    <div class="relative top-20 mx-auto p-4 border w-11/12 max-w-md shadow-lg rounded-lg bg-white">
+        <div class="mt-2 text-center">
+            <h3 class="text-base font-medium text-gray-900" id="modalCompteTitle">Confirmer l'action</h3>
+            <div class="mt-2 px-4 py-3">
                 <p class="text-sm text-gray-500" id="modalCompteMessage">
                     Êtes-vous sûr de vouloir modifier le statut de ce compte ?
                 </p>
             </div>
-            <div class="items-center px-4 py-3">
-                <button id="confirmToggleCompteStatus" class="px-4 py-2 bg-red-500 text-white text-base font-medium rounded-md w-24 mr-2 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-300">
+            <div class="flex gap-2 px-4 py-3">
+                <button id="confirmToggleCompteStatus" class="flex-1 px-3 py-2 bg-red-600 text-white text-sm font-medium rounded hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-300">
                     Confirmer
                 </button>
-                <button onclick="closeToggleCompteStatusModal()" class="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md w-24 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-300">
+                <button onclick="closeToggleCompteStatusModal()" class="flex-1 px-3 py-2 bg-gray-600 text-white text-sm font-medium rounded hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300">
                     Annuler
                 </button>
             </div>
@@ -325,19 +416,45 @@
 
 <!-- Modal Reset Password -->
 <div id="resetComptePasswordModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
-    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-        <div class="mt-3 text-center">
-            <h3 class="text-lg font-medium text-gray-900">Réinitialiser le mot de passe</h3>
-            <div class="mt-2 px-7 py-3">
+    <div class="relative top-20 mx-auto p-4 border w-11/12 max-w-md shadow-lg rounded-lg bg-white">
+        <div class="mt-2 text-center">
+            <h3 class="text-base font-medium text-gray-900">Réinitialiser le mot de passe</h3>
+            <div class="mt-2 px-4 py-3">
                 <p class="text-sm text-gray-500" id="resetPasswordMessage">
                     Êtes-vous sûr de vouloir réinitialiser le mot de passe ?
                 </p>
             </div>
-            <div class="items-center px-4 py-3">
-                <button id="confirmResetComptePassword" class="px-4 py-2 bg-yellow-500 text-white text-base font-medium rounded-md w-24 mr-2 hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-300">
+            <div class="flex gap-2 px-4 py-3">
+                <button id="confirmResetComptePassword" class="flex-1 px-3 py-2 bg-yellow-600 text-white text-sm font-medium rounded hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-300">
                     Confirmer
                 </button>
-                <button onclick="closeResetComptePasswordModal()" class="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md w-24 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-300">
+                <button onclick="closeResetComptePasswordModal()" class="flex-1 px-3 py-2 bg-gray-600 text-white text-sm font-medium rounded hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300">
+                    Annuler
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Delete Compte -->
+<div id="deleteCompteModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-4 border w-11/12 max-w-md shadow-lg rounded-lg bg-white">
+        <div class="mt-2 text-center">
+            <div class="flex items-center justify-center w-10 h-10 mx-auto bg-red-100 rounded-full mb-3">
+                <i class="fas fa-exclamation-triangle text-red-600 text-lg"></i>
+            </div>
+            <h3 class="text-base font-medium text-gray-900">Supprimer le compte</h3>
+            <div class="mt-2 px-4 py-3">
+                <p class="text-sm text-gray-500" id="deleteCompteMessage">
+                    Êtes-vous sûr de vouloir supprimer ce compte ?
+                </p>
+                <p class="text-xs text-red-600 mt-2">Cette action est irréversible !</p>
+            </div>
+            <div class="flex gap-2 px-4 py-3">
+                <button id="confirmDeleteCompte" class="flex-1 px-3 py-2 bg-red-600 text-white text-sm font-medium rounded hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-300">
+                    Supprimer
+                </button>
+                <button onclick="closeDeleteCompteModal()" class="flex-1 px-3 py-2 bg-gray-600 text-white text-sm font-medium rounded hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300">
                     Annuler
                 </button>
             </div>
@@ -347,25 +464,25 @@
 
 <!-- Modal Success Reset Password -->
 <div id="resetPasswordSuccessModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
-    <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-lg bg-white">
-        <div class="mt-3">
+    <div class="relative top-20 mx-auto p-4 border w-11/12 max-w-md shadow-lg rounded-lg bg-white">
+        <div class="mt-2">
             <!-- Header -->
-            <div class="flex items-center justify-center w-12 h-12 mx-auto bg-green-100 rounded-full mb-4">
-                <i class="fas fa-key text-green-600 text-2xl"></i>
+            <div class="flex items-center justify-center w-10 h-10 mx-auto bg-green-100 rounded-full mb-3">
+                <i class="fas fa-key text-green-600 text-lg"></i>
             </div>
             
             <div class="text-center">
-                <h3 class="text-lg font-semibold text-gray-900 mb-2">Mot de passe réinitialisé</h3>
-                <p class="text-sm text-gray-600 mb-4">Le mot de passe a été réinitialisé avec succès.</p>
+                <h3 class="text-base font-semibold text-gray-900 mb-2">Mot de passe réinitialisé</h3>
+                <p class="text-sm text-gray-600 mb-3">Le mot de passe a été réinitialisé avec succès.</p>
             </div>
             
             <!-- Informations de connexion -->
-            <div class="bg-gray-50 rounded-lg p-4 mb-4">
-                <div class="space-y-3">
+            <div class="bg-gray-50 rounded-lg p-3 mb-3">
+                <div class="space-y-2">
                     <div>
                         <label class="block text-xs font-semibold text-gray-700 mb-1">Nom d'utilisateur</label>
-                        <div class="flex items-center justify-between bg-white border border-gray-200 rounded-lg px-3 py-2">
-                            <span id="resetSuccessUsername" class="text-sm font-mono text-gray-900"></span>
+                        <div class="flex items-center justify-between bg-white border border-gray-200 rounded px-2 py-1.5">
+                            <span id="resetSuccessUsername" class="text-xs font-mono text-gray-900"></span>
                             <button onclick="copyToClipboard('resetSuccessUsername')" class="text-blue-600 hover:text-blue-800 text-xs">
                                 <i class="fas fa-clipboard mr-1"></i>Copier
                             </button>
@@ -374,8 +491,8 @@
                     
                     <div>
                         <label class="block text-xs font-semibold text-gray-700 mb-1">Nouveau mot de passe</label>
-                        <div class="flex items-center justify-between bg-white border border-gray-200 rounded-lg px-3 py-2">
-                            <span id="resetSuccessPassword" class="text-sm font-mono text-gray-900"></span>
+                        <div class="flex items-center justify-between bg-white border border-gray-200 rounded px-2 py-1.5">
+                            <span id="resetSuccessPassword" class="text-xs font-mono text-gray-900"></span>
                             <button onclick="copyToClipboard('resetSuccessPassword')" class="text-blue-600 hover:text-blue-800 text-xs">
                                 <i class="fas fa-clipboard mr-1"></i>Copier
                             </button>
@@ -385,9 +502,9 @@
             </div>
             
             <!-- Avertissement -->
-            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-                <div class="flex items-start">
-                    <i class="fas fa-exclamation-triangle text-yellow-600 text-sm mr-2"></i>
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-2 mb-3">
+                <div class="flex items-start gap-2">
+                    <i class="fas fa-exclamation-triangle text-yellow-600 text-xs mt-0.5"></i>
                     <div>
                         <p class="text-xs font-medium text-yellow-800">Important</p>
                         <p class="text-xs text-yellow-700">Veuillez noter ces informations et les communiquer à l'utilisateur de manière sécurisée.</p>
@@ -396,11 +513,9 @@
             </div>
             
             <!-- Actions -->
-            <div class="flex space-x-3">
-                <button onclick="closeResetPasswordSuccessModal()" class="flex-1 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-4 py-2 rounded-lg font-medium shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300">
-                    Fermer
-                </button>
-            </div>
+            <button onclick="closeResetPasswordSuccessModal()" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-medium text-sm transition-colors">
+                Fermer
+            </button>
         </div>
     </div>
 </div>
@@ -469,6 +584,48 @@ function closeResetComptePasswordModal() {
     currentCompteId = null;
 }
 
+// Delete Compte Modal
+function showDeleteCompteModal(compteId, compteName, username) {
+    currentCompteId = compteId;
+    const modal = document.getElementById('deleteCompteModal');
+    const message = document.getElementById('deleteCompteMessage');
+    
+    message.textContent = `Voulez-vous vraiment supprimer le compte ${username} (${compteName}) ?`;
+    
+    modal.classList.remove('hidden');
+}
+
+function closeDeleteCompteModal() {
+    document.getElementById('deleteCompteModal').classList.add('hidden');
+    currentCompteId = null;
+}
+
+document.getElementById('confirmDeleteCompte').addEventListener('click', function() {
+    if (currentCompteId) {
+        fetch(`/comptes/${currentCompteId}/delete/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Erreur: ' + (data.error || 'Une erreur est survenue'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Une erreur est survenue');
+        });
+        
+        closeDeleteCompteModal();
+    }
+});
+
 // Reset Password Success Modal
 function showResetPasswordSuccessModal(username, password) {
     document.getElementById('resetSuccessUsername').textContent = username;
@@ -478,7 +635,6 @@ function showResetPasswordSuccessModal(username, password) {
 
 function closeResetPasswordSuccessModal() {
     document.getElementById('resetPasswordSuccessModal').classList.add('hidden');
-    // Recharger la page après fermeture de la modale de succès
     location.reload();
 }
 
@@ -488,7 +644,6 @@ function copyToClipboard(elementId) {
     const text = element.textContent;
     
     if (navigator.clipboard && window.isSecureContext) {
-        // Méthode moderne
         navigator.clipboard.writeText(text).then(() => {
             showCopyFeedback(element);
         }).catch(err => {
@@ -496,7 +651,6 @@ function copyToClipboard(elementId) {
             fallbackCopyTextToClipboard(text, element);
         });
     } else {
-        // Méthode de fallback
         fallbackCopyTextToClipboard(text, element);
     }
 }
@@ -546,10 +700,7 @@ document.getElementById('confirmResetComptePassword').addEventListener('click', 
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Fermer la modale de confirmation
                 closeResetComptePasswordModal();
-                
-                // Afficher la modale de succès avec les informations
                 showResetPasswordSuccessModal(data.username, data.nouveau_mot_de_passe);
             } else {
                 alert('Erreur: ' + (data.error || 'Une erreur est survenue'));
@@ -572,6 +723,12 @@ document.getElementById('toggleCompteStatusModal').addEventListener('click', fun
 document.getElementById('resetComptePasswordModal').addEventListener('click', function(e) {
     if (e.target === this) {
         closeResetComptePasswordModal();
+    }
+});
+
+document.getElementById('deleteCompteModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeDeleteCompteModal();
     }
 });
 

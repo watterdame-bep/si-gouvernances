@@ -1684,6 +1684,44 @@ def modifier_projet_view(request, projet_id):
     
     return render(request, 'core/modifier_projet.html', context)
 
+@require_super_admin
+@require_http_methods(["POST"])
+def supprimer_projet_view(request, projet_id):
+    """Vue de suppression d'un projet (Super Admins uniquement)"""
+    projet = get_object_or_404(Projet, id=projet_id)
+    
+    try:
+        # Sauvegarder les informations pour l'audit avant suppression
+        donnees_avant = {
+            'nom': projet.nom,
+            'client': projet.client,
+            'statut': projet.statut.nom,
+            'budget': str(projet.budget_previsionnel),
+            'date_creation': projet.date_creation.isoformat(),
+        }
+        
+        nom_projet = projet.nom
+        
+        # Audit avant suppression
+        enregistrer_audit(
+            utilisateur=request.user,
+            type_action='SUPPRESSION_PROJET',
+            description=f'Suppression du projet {nom_projet}',
+            projet=projet,
+            request=request,
+            donnees_avant=donnees_avant
+        )
+        
+        # Supprimer le projet (cascade supprimera les données liées)
+        projet.delete()
+        
+        messages.success(request, f'Projet "{nom_projet}" supprimé avec succès.')
+        
+    except Exception as e:
+        messages.error(request, f'Erreur lors de la suppression : {str(e)}')
+    
+    return redirect('projets_list')
+
 @login_required
 @require_http_methods(["POST"])
 def transferer_responsabilite_projet(request, projet_id):
@@ -2155,7 +2193,19 @@ def gestion_comptes_view(request):
 
 @require_super_admin
 def creer_compte_utilisateur_view(request, membre_id):
-    """Vue de création d'un compte utilisateur pour un membre existant"""
+    """
+    Vue de création d'un compte utilisateur pour un membre existant.
+    
+    NOUVEAU SYSTÈME D'ACTIVATION SÉCURISÉ :
+    - Le compte est créé inactif (is_active=False)
+    - Aucun mot de passe n'est défini
+    - Un token sécurisé est généré
+    - Un email d'activation est envoyé
+    - L'utilisateur définit son propre mot de passe
+    """
+    from .models_activation import AccountActivationToken, AccountActivationLog
+    from .views_activation import envoyer_email_activation, get_client_ip
+    
     membre = get_object_or_404(Membre, id=membre_id)
     
     # Vérifier que le membre n'a pas déjà un compte
@@ -2172,7 +2222,6 @@ def creer_compte_utilisateur_view(request, membre_id):
         # Récupérer les données du formulaire
         username = request.POST.get('username', '').strip()
         role_systeme_nom = request.POST.get('role_systeme')
-        mot_de_passe_personnalise = request.POST.get('mot_de_passe_personnalise', '').strip()
         
         # Validation
         errors = []
@@ -2196,50 +2245,94 @@ def creer_compte_utilisateur_view(request, membre_id):
                 messages.error(request, error)
         else:
             try:
-                # Générer ou utiliser le mot de passe
-                if mot_de_passe_personnalise:
-                    mot_de_passe_temporaire = mot_de_passe_personnalise
-                else:
-                    mot_de_passe_temporaire = generer_mot_de_passe_temporaire()
-                
-                # Créer le compte utilisateur
-                utilisateur = Utilisateur.objects.create(
-                    username=username,
-                    email=membre.email_personnel,
-                    first_name=membre.prenom,
-                    last_name=membre.nom,
-                    membre=membre,
-                    role_systeme=role_systeme,
-                    password=make_password(mot_de_passe_temporaire),
-                    statut_actif=True
-                )
-                
-                # Audit
-                enregistrer_audit(
-                    utilisateur=request.user,
-                    type_action='CREATION_COMPTE_UTILISATEUR',
-                    description=f'Création du compte utilisateur {username} pour le membre {membre.get_nom_complet()}',
-                    request=request,
-                    donnees_apres={
+                with transaction.atomic():
+                    # ========================================================
+                    # NOUVEAU SYSTÈME D'ACTIVATION SÉCURISÉ
+                    # ========================================================
+                    
+                    # 1. Créer le compte INACTIF sans mot de passe utilisable
+                    utilisateur = Utilisateur.objects.create(
+                        username=username,
+                        email=membre.email_personnel,
+                        first_name=membre.prenom,
+                        last_name=membre.nom,
+                        membre=membre,
+                        role_systeme=role_systeme,
+                        is_active=False,  # COMPTE INACTIF
+                        statut_actif=False  # COMPTE INACTIF
+                    )
+                    # Ne PAS définir de mot de passe
+                    utilisateur.set_unusable_password()
+                    utilisateur.save()
+                    
+                    # 2. Générer un token sécurisé
+                    ip_address = get_client_ip(request)
+                    token_instance, token_plain = AccountActivationToken.create_for_user(
+                        utilisateur, 
+                        ip_address
+                    )
+                    
+                    # 3. Logger la création du token
+                    AccountActivationLog.objects.create(
+                        user=utilisateur,
+                        token=token_instance,
+                        action='TOKEN_CREATED',
+                        ip_address=ip_address,
+                        details=f'Token créé par {request.user.username}'
+                    )
+                    
+                    # 4. Envoyer l'email d'activation
+                    email_sent = envoyer_email_activation(utilisateur, token_plain, request)
+                    
+                    if email_sent:
+                        # Logger l'envoi de l'email
+                        AccountActivationLog.objects.create(
+                            user=utilisateur,
+                            token=token_instance,
+                            action='TOKEN_SENT',
+                            ip_address=ip_address,
+                            details=f'Email envoyé à {utilisateur.email}'
+                        )
+                    
+                    # 5. Audit système
+                    enregistrer_audit(
+                        utilisateur=request.user,
+                        type_action='CREATION_COMPTE_UTILISATEUR',
+                        description=f'Création du compte utilisateur {username} pour le membre {membre.get_nom_complet()} (activation sécurisée)',
+                        request=request,
+                        donnees_apres={
+                            'username': username,
+                            'membre_id': str(membre.id),
+                            'role_systeme': role_systeme.nom if role_systeme else None,
+                            'activation_securisee': True,
+                            'email_envoye': email_sent
+                        }
+                    )
+                    
+                    # 6. Message de succès
+                    if email_sent:
+                        messages.success(
+                            request, 
+                            f'Compte créé avec succès ! Un email d\'activation a été envoyé à {utilisateur.email}'
+                        )
+                    else:
+                        messages.warning(
+                            request,
+                            f'Compte créé mais l\'email n\'a pas pu être envoyé. Utilisez le bouton "Renvoyer lien" dans la gestion des comptes.'
+                        )
+                    
+                    # 7. Stocker les informations pour la page de confirmation
+                    request.session['nouveau_compte'] = {
+                        'id': str(utilisateur.id),
                         'username': username,
-                        'membre_id': str(membre.id),
-                        'role_systeme': role_systeme.nom if role_systeme else None
+                        'membre_nom_complet': membre.get_nom_complet(),
+                        'email': membre.email_personnel,
+                        'role_systeme': role_systeme.get_nom_display() if role_systeme else None,
+                        'activation_securisee': True,
+                        'email_envoye': email_sent
                     }
-                )
-                
-                messages.success(request, f'Compte utilisateur créé avec succès !')
-                
-                # Stocker temporairement le mot de passe pour l'affichage
-                request.session['nouveau_compte'] = {
-                    'id': str(utilisateur.id),
-                    'username': username,
-                    'membre_nom_complet': membre.get_nom_complet(),
-                    'email': membre.email_personnel,
-                    'mot_de_passe': mot_de_passe_temporaire,
-                    'role_systeme': role_systeme.get_nom_display() if role_systeme else None
-                }
-                
-                return redirect('compte_cree_success')
+                    
+                    return redirect('compte_cree_success')
                 
             except Exception as e:
                 messages.error(request, f'Erreur lors de la création : {str(e)}')
@@ -2257,7 +2350,11 @@ def creer_compte_utilisateur_view(request, membre_id):
 
 @require_super_admin
 def compte_cree_success_view(request):
-    """Page de confirmation après création d'un compte utilisateur"""
+    """
+    Page de confirmation après création d'un compte utilisateur.
+    
+    NOUVEAU : Affiche les informations d'activation sécurisée au lieu du mot de passe.
+    """
     
     # Récupérer les informations du nouveau compte depuis la session
     nouveau_compte = request.session.get('nouveau_compte')
@@ -2274,6 +2371,9 @@ def compte_cree_success_view(request):
     # Construire l'URL de connexion complète
     url_connexion = request.build_absolute_uri('/login/')
     
+    # Vérifier si c'est le nouveau système d'activation
+    activation_securisee = nouveau_compte.get('activation_securisee', False)
+    
     # Nettoyer la session après récupération
     del request.session['nouveau_compte']
     
@@ -2282,6 +2382,7 @@ def compte_cree_success_view(request):
         'initiales': initiales,
         'url_connexion': url_connexion,
         'date_creation': timezone.now(),
+        'activation_securisee': activation_securisee,
     }
     
     return render(request, 'core/compte_cree_success.html', context)
@@ -2422,6 +2523,38 @@ def reset_compte_password(request, user_id):
         'nouveau_mot_de_passe': nouveau_mot_de_passe,
         'username': utilisateur.username
     })
+
+@require_super_admin
+@require_http_methods(["POST"])
+def delete_compte(request, user_id):
+    """Supprime un compte utilisateur"""
+    utilisateur = get_object_or_404(Utilisateur, id=user_id)
+    
+    # Empêcher la suppression de son propre compte
+    if utilisateur == request.user:
+        return JsonResponse({'success': False, 'error': 'Impossible de supprimer votre propre compte.'})
+    
+    # Empêcher la suppression du compte admin principal
+    if utilisateur.is_superuser and utilisateur.username == 'admin':
+        return JsonResponse({'success': False, 'error': 'Impossible de supprimer le compte administrateur principal.'})
+    
+    username = utilisateur.username
+    full_name = utilisateur.get_full_name()
+    
+    # Audit avant suppression
+    enregistrer_audit(
+        utilisateur=request.user,
+        type_action='SUPPRESSION_COMPTE',
+        description=f'Suppression du compte {username} ({full_name})',
+        request=request
+    )
+    
+    # Supprimer le compte
+    utilisateur.delete()
+    
+    messages.success(request, f'Le compte {username} a été supprimé avec succès.')
+    
+    return JsonResponse({'success': True})
 
 # ============================================================================
 # NOUVELLES VUES - ARCHITECTURE ÉTAPES/MODULES/TÂCHES

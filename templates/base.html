@@ -161,14 +161,11 @@
                     <div class="px-6 py-4 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-slate-100 h-16 flex items-center">
                         <div class="flex items-center space-x-3">
                             <div class="relative">
-                                <div class="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg">
-                                    <i class="fas fa-building text-white text-lg"></i>
-                                </div>
-                                <div class="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
+                                <img src="/media/logos/jconsult_logo.png" alt="JCONSULT MY" class="h-10 w-auto">
                             </div>
                             <div>
-                                <h1 class="text-lg font-bold text-slate-900">SI Gouvernance</h1>
-                                <p class="text-xs text-slate-600 font-medium">JCONSULT MY</p>
+                                <h1 class="text-base font-bold text-slate-900">SI Gouvernance</h1>
+                                <p class="text-xs text-slate-600">JCONSULT MY</p>
                             </div>
                         </div>
                     </div>
@@ -403,30 +400,32 @@
                                 </span>
                             </button>
                             
-                            <!-- Notifications Dropdown -->
-                            <div id="notificationPanel" class="absolute right-0 mt-2 w-96 max-w-[calc(100vw-2rem)] bg-white rounded-lg shadow-lg border border-slate-200 z-50 hidden">
-                                <!-- Header -->
-                                <div class="px-6 py-4 border-b border-slate-200">
+                            <!-- Notifications Dropdown - Ultra-compact -->
+                            <div id="notificationPanel" class="absolute right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] bg-white rounded-lg shadow-lg border border-slate-200 z-50 hidden">
+                                <!-- Header ultra-compact -->
+                                <div class="px-2 py-2 border-b border-slate-200 bg-slate-50">
                                     <div class="flex items-center justify-between">
-                                        <h3 class="text-lg font-semibold text-slate-900">Notifications</h3>
-                                        <button onclick="markAllAsRead()" class="text-sm text-blue-600 hover:text-blue-700 font-medium">
-                                            Tout marquer comme lu
+                                        <h3 class="text-xs md:text-sm font-semibold text-slate-900">Notifications</h3>
+                                        <button onclick="markAllAsRead()" 
+                                                title="Tout marquer comme lu"
+                                                class="w-6 h-6 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs transition-colors flex items-center justify-center">
+                                            <i class="fas fa-check-double"></i>
                                         </button>
                                     </div>
                                 </div>
                                 
                                 <!-- Notifications List -->
-                                <div id="notificationList" class="max-h-80 overflow-y-auto">
-                                    <div class="p-6 text-center text-slate-500">
-                                        <i class="fas fa-spinner fa-spin text-2xl mb-3"></i>
-                                        <p class="text-sm">Chargement des notifications...</p>
+                                <div id="notificationList" class="max-h-64 overflow-y-auto">
+                                    <div class="p-4 text-center text-slate-500">
+                                        <i class="fas fa-spinner fa-spin text-lg mb-2"></i>
+                                        <p class="text-xs">Chargement...</p>
                                     </div>
                                 </div>
                                 
-                                <!-- Footer -->
-                                <div class="px-6 py-4 border-t border-slate-200 bg-slate-50">
-                                    <a href="{% url 'notifications_taches' %}" class="block text-center text-sm text-blue-600 hover:text-blue-700 font-medium">
-                                        Voir toutes les notifications
+                                <!-- Footer ultra-compact -->
+                                <div class="px-2 py-2 border-t border-slate-200 bg-slate-50">
+                                    <a href="{% url 'notifications_taches' %}" class="block text-center text-xs text-blue-600 hover:text-blue-700 font-medium">
+                                        Voir tout
                                     </a>
                                 </div>
                             </div>
@@ -601,16 +600,16 @@
             }
         }
         
-        // Render notifications (seulement non lues pour l'icône)
+        // Render notifications (seulement non lues pour l'icône) - Version ultra-compacte
         function renderNotifications(notifications) {
             if (notifications.length === 0) {
                 notificationList.innerHTML = `
-                    <div class="p-6 sm:p-8 text-center text-gray-500">
-                        <div class="w-16 h-16 mx-auto mb-4 bg-green-100 rounded-full flex items-center justify-center">
-                            <i class="fas fa-check text-2xl text-green-500"></i>
+                    <div class="p-4 text-center text-gray-500">
+                        <div class="w-10 h-10 mx-auto mb-2 bg-green-100 rounded-full flex items-center justify-center">
+                            <i class="fas fa-check text-sm text-green-500"></i>
                         </div>
-                        <p class="text-sm font-medium text-gray-700">Aucune nouvelle notification</p>
-                        <p class="text-xs text-gray-500 mt-1">Vous êtes à jour !</p>
+                        <p class="text-xs font-medium text-gray-700">Aucune notification</p>
+                        <p class="text-xs text-gray-500 mt-0.5">Vous êtes à jour !</p>
                     </div>
                 `;
                 return;
@@ -622,25 +621,26 @@
                 const projectInfo = notification.projet_nom ? `<span class="text-xs text-blue-600 font-medium">${notification.projet_nom}</span>` : '';
                 
                 html += `
-                    <div class="notification-item p-3 sm:p-4 border-b border-gray-100 hover:bg-blue-50 transition-all duration-200 cursor-pointer bg-blue-50/30" 
+                    <div class="notification-item p-2 border-b border-gray-100 hover:bg-blue-50 transition-all duration-200 cursor-pointer bg-blue-50/30" 
                          data-id="${notification.id}" onclick="handleNotificationClick(${notification.id})">
-                        <div class="flex items-start space-x-3">
+                        <div class="flex items-start gap-2">
                             <div class="flex-shrink-0 relative">
-                                <div class="w-8 sm:w-10 h-8 sm:h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
-                                    <i class="fas fa-tasks text-white text-xs sm:text-sm"></i>
+                                <div class="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center">
+                                    <i class="fas fa-tasks text-white text-xs"></i>
                                 </div>
-                                <div class="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></div>
+                                <div class="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full border border-white"></div>
                             </div>
                             <div class="flex-1 min-w-0">
-                                <p class="text-xs sm:text-sm text-gray-900 font-medium leading-relaxed break-words">${notification.message}</p>
-                                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-2 space-y-1 sm:space-y-0">
-                                    <div class="flex flex-col space-y-1">
+                                <p class="text-xs text-gray-900 leading-snug break-words">${notification.message}</p>
+                                <div class="flex items-center justify-between mt-1 gap-2">
+                                    <div class="flex flex-col gap-0.5">
                                         ${projectInfo}
                                         <span class="text-xs text-gray-500">${timeAgo}</span>
                                     </div>
                                     <button onclick="event.stopPropagation(); markAsRead(${notification.id})" 
-                                            class="self-start sm:self-auto px-2 py-1 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-100 rounded-md font-medium transition-colors duration-200">
-                                        <i class="fas fa-check mr-1"></i>Marquer
+                                            title="Marquer comme lu"
+                                            class="w-6 h-6 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs transition-colors flex items-center justify-center flex-shrink-0">
+                                        <i class="fas fa-check"></i>
                                     </button>
                                 </div>
                             </div>
@@ -664,14 +664,14 @@
             window.location.href = '/notifications/taches/';
         }
         
-        // Show error message
+        // Show error message - Version compacte
         function showErrorMessage() {
             notificationList.innerHTML = `
-                <div class="p-6 text-center text-red-500">
-                    <i class="fas fa-exclamation-triangle text-2xl mb-3"></i>
-                    <p class="text-sm font-medium">Erreur de chargement</p>
-                    <button onclick="loadNotifications()" class="mt-2 px-3 py-1 text-xs bg-red-100 text-red-600 rounded-md hover:bg-red-200 transition-colors duration-200">
-                        Réessayer
+                <div class="p-4 text-center text-red-500">
+                    <i class="fas fa-exclamation-triangle text-lg mb-2"></i>
+                    <p class="text-xs font-medium">Erreur de chargement</p>
+                    <button onclick="loadNotifications()" class="mt-2 w-6 h-6 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center mx-auto">
+                        <i class="fas fa-redo text-xs"></i>
                     </button>
                 </div>
             `;

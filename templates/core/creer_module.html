@@ -4,114 +4,110 @@
 {% block page_title %}Nouveau Module{% endblock %}
 
 {% block content %}
-<div class="bg-gray-50 min-h-screen">
-    <div class="max-w-full space-y-4">
+<div class="bg-gray-50 min-h-screen p-2 sm:p-4">
+    <div class="max-w-4xl mx-auto space-y-3 sm:space-y-4">
         
         <!-- Header compact -->
-        <div class="bg-white px-6 py-4 shadow-sm border-b border-gray-200">
-            <div class="flex items-center justify-between">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div class="bg-blue-50 border-b border-gray-200 px-3 sm:px-4 py-3">
                 <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-cube text-white"></i>
+                    <div class="w-9 h-9 sm:w-10 sm:h-10 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-cube text-white text-sm"></i>
                     </div>
                     <div>
-                        <h1 class="text-xl font-semibold text-gray-900">Nouveau Module</h1>
-                        <p class="text-sm text-gray-600">{{ projet.nom }}</p>
+                        <h1 class="text-base sm:text-lg font-semibold text-gray-900">Nouveau Module</h1>
+                        <p class="text-xs text-gray-600 truncate">{{ projet.nom }}</p>
                     </div>
                 </div>
-                <a href="{% url 'gestion_modules' projet.id %}" 
-                   class="inline-flex items-center px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md text-sm font-medium transition-colors">
-                    <i class="fas fa-arrow-left mr-2"></i>Retour
-                </a>
             </div>
-        </div>
 
-        <!-- Formulaire avec padding -->
-        <div class="bg-white shadow-sm border-t border-gray-200 px-6 py-6">
-            <form method="post" class="space-y-6 max-w-4xl mx-auto">
-                {% csrf_token %}
-                
-                <!-- Informations de base -->
-                <div class="space-y-4">
-                    <!-- Nom -->
-                    <div>
-                        <label class="flex items-center text-sm font-medium text-gray-700 mb-2">
-                            <i class="fas fa-tag text-blue-600 mr-2"></i>
-                            Nom du module
-                        </label>
-                        <input type="text" 
-                               name="nom" 
-                               required 
-                               maxlength="100"
-                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                               placeholder="Ex: Authentification, Gestion stocks..."
-                               value="{{ request.POST.nom|default:'' }}">
-                    </div>
+            <!-- Formulaire -->
+            <div class="p-3 sm:p-4">
+                <form method="post" class="space-y-3 sm:space-y-4">
+                    {% csrf_token %}
                     
-                    <!-- Description -->
-                    <div>
-                        <label class="flex items-center text-sm font-medium text-gray-700 mb-2">
-                            <i class="fas fa-align-left text-blue-600 mr-2"></i>
-                            Description
-                        </label>
-                        <textarea name="description" 
-                                  required 
-                                  rows="4"
-                                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                  placeholder="Décrivez les fonctionnalités principales...">{{ request.POST.description|default:'' }}</textarea>
+                    <!-- Informations de base -->
+                    <div class="space-y-3 sm:space-y-4">
+                        <!-- Nom -->
+                        <div>
+                            <label class="flex items-center text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                                <i class="fas fa-tag text-blue-600 mr-1"></i>
+                                Nom du module <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" 
+                                   name="nom" 
+                                   required 
+                                   maxlength="100"
+                                   class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                   placeholder="Ex: Authentification, Gestion stocks..."
+                                   value="{{ request.POST.nom|default:'' }}">
+                        </div>
+                        
+                        <!-- Description -->
+                        <div>
+                            <label class="flex items-center text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                                <i class="fas fa-align-left text-blue-600 mr-1"></i>
+                                Description <span class="text-red-500">*</span>
+                            </label>
+                            <textarea name="description" 
+                                      required 
+                                      rows="3"
+                                      class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                      placeholder="Décrivez les fonctionnalités...">{{ request.POST.description|default:'' }}</textarea>
+                        </div>
+                        
+                        <!-- Responsable -->
+                        <div>
+                            <label class="flex items-center text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                                <i class="fas fa-user text-green-600 mr-1"></i>
+                                Responsable <span class="text-red-500">*</span>
+                            </label>
+                            <select name="responsable" 
+                                    required
+                                    class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
+                                <option value="">Choisir...</option>
+                                {% for membre in equipe_projet %}
+                                <option value="{{ membre.id }}" {% if membre.id == user.id %}selected{% endif %}>
+                                    {{ membre.get_full_name }}
+                                    {% if membre.id == user.id %} (Vous){% endif %}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
                     </div>
-                    
-                    <!-- Responsable -->
-                    <div>
-                        <label class="flex items-center text-sm font-medium text-gray-700 mb-2">
-                            <i class="fas fa-user text-green-600 mr-2"></i>
-                            Responsable
-                        </label>
-                        <select name="responsable" 
-                                required
-                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            <option value="">Choisir un responsable...</option>
-                            {% for membre in equipe_projet %}
-                            <option value="{{ membre.id }}" {% if membre.id == user.id %}selected{% endif %}>
-                                {{ membre.get_full_name }}
-                                {% if membre.id == user.id %} (Vous){% endif %}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                </div>
 
-                <!-- Justification si nécessaire -->
-                {% if not peut_creer_librement %}
-                <div class="border-t border-gray-200 pt-6">
-                    <div class="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                        <label class="flex items-center text-sm font-medium text-orange-800 mb-2">
-                            <i class="fas fa-exclamation-triangle text-orange-600 mr-2"></i>
-                            Justification requise
-                        </label>
-                        <textarea name="justification" 
-                                  required 
-                                  rows="3"
-                                  class="w-full px-4 py-3 border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white"
-                                  placeholder="Pourquoi créer ce module maintenant ?">{{ request.POST.justification|default:'' }}</textarea>
-                        <p class="text-xs text-orange-600 mt-1">Création hors phase de conception</p>
+                    <!-- Justification si nécessaire -->
+                    {% if not peut_creer_librement %}
+                    <div class="border-t border-gray-200 pt-3 sm:pt-4">
+                        <div class="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                            <label class="flex items-center text-xs sm:text-sm font-medium text-orange-800 mb-1">
+                                <i class="fas fa-exclamation-triangle text-orange-600 mr-1"></i>
+                                Justification requise <span class="text-red-500">*</span>
+                            </label>
+                            <textarea name="justification" 
+                                      required 
+                                      rows="2"
+                                      class="w-full px-3 py-2 text-sm border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white"
+                                      placeholder="Pourquoi créer ce module maintenant ?">{{ request.POST.justification|default:'' }}</textarea>
+                            <p class="text-xs text-orange-600 mt-1">Création hors phase de conception</p>
+                        </div>
                     </div>
-                </div>
-                {% endif %}
+                    {% endif %}
 
-                <!-- Actions -->
-                <div class="flex items-center justify-between pt-6 border-t border-gray-200">
-                    <a href="{% url 'gestion_modules' projet.id %}" 
-                       class="inline-flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors">
-                        <i class="fas fa-times mr-2"></i>Annuler
-                    </a>
-                    
-                    <button type="submit" 
-                            class="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-sm">
-                        <i class="fas fa-plus mr-2"></i>Créer le module
-                    </button>
-                </div>
-            </form>
+                    <!-- Actions -->
+                    <div class="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 sm:pt-4 border-t border-gray-200">
+                        <a href="{% url 'gestion_modules' projet.id %}" 
+                           class="flex-1 bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center">
+                            <i class="fas fa-arrow-left mr-2"></i>Annuler
+                        </a>
+                        
+                        <button type="submit" 
+                                class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center">
+                            <i class="fas fa-plus mr-2"></i>Créer le module
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 </div>
