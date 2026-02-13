@@ -2525,36 +2525,117 @@ def reset_compte_password(request, user_id):
     })
 
 @require_super_admin
+@require_super_admin
 @require_http_methods(["POST"])
 def delete_compte(request, user_id):
     """Supprime un compte utilisateur"""
-    utilisateur = get_object_or_404(Utilisateur, id=user_id)
+    try:
+        utilisateur = get_object_or_404(Utilisateur, id=user_id)
+        
+        # Empêcher la suppression de son propre compte
+        if utilisateur == request.user:
+            return JsonResponse({'success': False, 'error': 'Impossible de supprimer votre propre compte.'})
+        
+        # Empêcher la suppression du compte admin principal
+        if utilisateur.is_superuser and utilisateur.username == 'admin':
+            return JsonResponse({'success': False, 'error': 'Impossible de supprimer le compte administrateur principal.'})
+        
+        # Vérifier si l'utilisateur a créé des projets
+        projets_crees = Projet.objects.filter(createur=utilisateur).count()
+        if projets_crees > 0:
+            return JsonResponse({
+                'success': False, 
+                'error': f'Impossible de supprimer ce compte. L\'utilisateur a créé {projets_crees} projet(s). Veuillez d\'abord réassigner ou supprimer ces projets.'
+            })
+        
+        # Vérifier si l'utilisateur a créé des étapes
+        etapes_creees = EtapeProjet.objects.filter(createur=utilisateur).count()
+        if etapes_creees > 0:
+            return JsonResponse({
+                'success': False, 
+                'error': f'Impossible de supprimer ce compte. L\'utilisateur a créé {etapes_creees} étape(s). Veuillez d\'abord réassigner ou supprimer ces étapes.'
+            })
+        
+        # Vérifier si l'utilisateur a créé des modules
+        modules_crees = ModuleProjet.objects.filter(createur=utilisateur).count()
+        if modules_crees > 0:
+            return JsonResponse({
+                'success': False, 
+                'error': f'Impossible de supprimer ce compte. L\'utilisateur a créé {modules_crees} module(s). Veuillez d\'abord réassigner ou supprimer ces modules.'
+            })
+        
+        # Vérifier si l'utilisateur a créé des tâches
+        taches_module_creees = TacheModule.objects.filter(createur=utilisateur).count()
+        taches_etape_creees = TacheEtape.objects.filter(createur=utilisateur).count()
+        total_taches = taches_module_creees + taches_etape_creees
+        if total_taches > 0:
+            return JsonResponse({
+                'success': False, 
+                'error': f'Impossible de supprimer ce compte. L\'utilisateur a créé {total_taches} tâche(s). Veuillez d\'abord réassigner ou supprimer ces tâches.'
+            })
+        
+        username = utilisateur.username
+        full_name = utilisateur.get_full_name()
+        
+        # Supprimer les dépendances avant la suppression du compte
+        # 1. Supprimer toutes les notifications (émetteur et destinataire)
+        NotificationTache.objects.filter(emetteur=utilisateur).delete()
+        NotificationTache.objects.filter(destinataire=utilisateur).delete()
+        NotificationEtape.objects.filter(emetteur=utilisateur).delete()
+        NotificationEtape.objects.filter(destinataire=utilisateur).delete()
+        NotificationModule.objects.filter(emetteur=utilisateur).delete()
+        NotificationModule.objects.filter(destinataire=utilisateur).delete()
+        NotificationProjet.objects.filter(emetteur=utilisateur).delete()
+        NotificationProjet.objects.filter(destinataire=utilisateur).delete()
+        
+        # 2. Supprimer les alertes
+        AlerteProjet.objects.filter(destinataire=utilisateur).delete()
+        
+        # 3. Supprimer les tokens et logs d'activation
+        from .models_activation import AccountActivationToken, AccountActivationLog
+        AccountActivationToken.objects.filter(user=utilisateur).delete()
+        AccountActivationLog.objects.filter(user=utilisateur).delete()
+        
+        # 4. Supprimer les commentaires, historiques et pièces jointes
+        CommentaireTache.objects.filter(auteur=utilisateur).delete()
+        HistoriqueTache.objects.filter(utilisateur=utilisateur).delete()
+        PieceJointeTache.objects.filter(uploade_par=utilisateur).delete()
+        
+        # 5. Supprimer les tests créés
+        TacheTest.objects.filter(createur=utilisateur).delete()
+        
+        # 6. Supprimer les déploiements créés
+        Deploiement.objects.filter(createur=utilisateur).delete()
+        
+        # Les relations CASCADE seront supprimées automatiquement:
+        # - Membre.utilisateur
+        # - AffectationModule.utilisateur
+        
+        # Les relations SET_NULL seront mises à NULL automatiquement:
+        # - ActionAudit.utilisateur
+        # - Deploiement.responsable, executant, autorise_par
+        # - Contrat.cree_par
+        
+        # Audit avant suppression
+        enregistrer_audit(
+            utilisateur=request.user,
+            type_action='SUPPRESSION_COMPTE',
+            description=f'Suppression du compte {username} ({full_name})',
+            request=request
+        )
+        
+        # Supprimer le compte
+        utilisateur.delete()
+        
+        messages.success(request, f'Le compte {username} a été supprimé avec succès.')
+        
+        return JsonResponse({'success': True, 'message': f'Le compte {username} a été supprimé avec succès.'})
     
-    # Empêcher la suppression de son propre compte
-    if utilisateur == request.user:
-        return JsonResponse({'success': False, 'error': 'Impossible de supprimer votre propre compte.'})
-    
-    # Empêcher la suppression du compte admin principal
-    if utilisateur.is_superuser and utilisateur.username == 'admin':
-        return JsonResponse({'success': False, 'error': 'Impossible de supprimer le compte administrateur principal.'})
-    
-    username = utilisateur.username
-    full_name = utilisateur.get_full_name()
-    
-    # Audit avant suppression
-    enregistrer_audit(
-        utilisateur=request.user,
-        type_action='SUPPRESSION_COMPTE',
-        description=f'Suppression du compte {username} ({full_name})',
-        request=request
-    )
-    
-    # Supprimer le compte
-    utilisateur.delete()
-    
-    messages.success(request, f'Le compte {username} a été supprimé avec succès.')
-    
-    return JsonResponse({'success': True})
+    except Exception as e:
+        import traceback
+        error_detail = traceback.format_exc()
+        print(f"Erreur suppression compte: {error_detail}")
+        return JsonResponse({'success': False, 'error': f'Erreur lors de la suppression: {str(e)}'}, status=500)
 
 # ============================================================================
 # NOUVELLES VUES - ARCHITECTURE ÉTAPES/MODULES/TÂCHES
