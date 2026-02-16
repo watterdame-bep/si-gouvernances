@@ -1,0 +1,86 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Alerte Projet - SI-Gouvernance{% endblock %}
+
+{% block header_title %}⚠️ Alerte Projet{% endblock %}
+{% block header_subtitle %}Action requise sur votre projet{% endblock %}
+
+{% block content %}
+<div class="greeting">
+    Bonjour {{ destinataire_nom }},
+</div>
+
+<div class="message-content">
+    <p>Une alerte a été déclenchée concernant le projet <strong>{{ projet_nom }}</strong>.</p>
+</div>
+
+<div class="alert-box alert-box-warning">
+    <div class="alert-title">⚠️ {{ alerte_titre }}</div>
+    <div class="alert-message">
+        {{ alerte_message }}
+    </div>
+</div>
+
+<div class="info-card">
+    <div class="info-card-title">
+        <span class="info-card-icon">📊</span>
+        Informations du Projet
+    </div>
+    <ul class="info-list">
+        <li class="info-item">
+            <span class="info-label">Projet :</span>
+            <span class="info-value"><strong>{{ projet_nom }}</strong></span>
+        </li>
+        <li class="info-item">
+            <span class="info-label">Client :</span>
+            <span class="info-value">{{ projet_client }}</span>
+        </li>
+        <li class="info-item">
+            <span class="info-label">Statut :</span>
+            <span class="info-value">{{ projet_statut }}</span>
+        </li>
+        {% if date_echeance %}
+        <li class="info-item">
+            <span class="info-label">Date limite :</span>
+            <span class="info-value">{{ date_echeance }}</span>
+        </li>
+        {% endif %}
+        {% if jours_restants %}
+        <li class="info-item">
+            <span class="info-label">Jours restants :</span>
+            <span class="info-value"><strong>{{ jours_restants }} jours</strong></span>
+        </li>
+        {% endif %}
+        <li class="info-item">
+            <span class="info-label">Date de l'alerte :</span>
+            <span class="info-value">{{ date_notification }}</span>
+        </li>
+    </ul>
+</div>
+
+<div class="action-button-container">
+    <a href="{{ projet_url }}" class="action-button">
+        🔍 Consulter le Projet
+    </a>
+</div>
+
+<div class="alert-box alert-box-info">
+    <div class="alert-title">💡 Actions Recommandées</div>
+    <div class="alert-message">
+        <ul style="margin: 10px 0 0 20px; padding: 0;">
+            <li>Vérifiez l'état d'avancement du projet</li>
+            <li>Identifiez les blocages éventuels</li>
+            <li>Communiquez avec votre équipe</li>
+            <li>Ajustez le planning si nécessaire</li>
+            <li>Informez les parties prenantes</li>
+        </ul>
+    </div>
+</div>
+
+<div class="message-content">
+    <p style="margin-top: 20px;">
+        Cordialement,<br>
+        <strong>L'équipe SI-Gouvernance</strong>
+    </p>
+</div>
+{% endblock %}

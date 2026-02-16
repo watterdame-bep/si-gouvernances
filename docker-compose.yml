@@ -1,0 +1,279 @@
+# ============================================================================
+# DOCKER COMPOSE UNIFIÉ - SI-GOUVERNANCE
+# ============================================================================
+# Configuration unique pour LOCAL et PRODUCTION
+# 
+# Usage:
+#   Local:      docker-compose up -d
+#   Production: docker-compose --profile production up -d
+#   Monitoring: docker-compose --profile monitoring up -d
+# ============================================================================
+
+services:
+  # ==========================================================================
+  # BASE DE DONNÉES MYSQL
+  # ==========================================================================
+  db:
+    image: mysql:8.0
+    container_name: si_gouvernance_db
+    restart: always
+    environment:
+      MYSQL_DATABASE: ${DB_NAME:-si_gouvernance}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root123}
+      MYSQL_USER: ${DB_USER:-si_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-si_pass123}
+      MYSQL_ROOT_HOST: '%'
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    networks:
+      - si_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: --default-authentication-plugin=mysql_native_password
+
+  # ==========================================================================
+  # REDIS (BROKER CELERY)
+  # ==========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: si_gouvernance_redis
+    restart: always
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - si_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: redis-server --appendonly yes
+
+  # ==========================================================================
+  # APPLICATION WEB DJANGO - LOCAL
+  # ==========================================================================
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: si_gouvernance_web
+    restart: always
+    command: >
+      sh -c "echo '⏳ Attente de la base de données...' &&
+             while ! nc -z db 3306; do
+               echo 'En attente de MySQL...';
+               sleep 2;
+             done;
+             echo '✅ MySQL est prêt!' &&
+             echo '⏳ Attente supplémentaire pour initialisation MySQL...' &&
+             sleep 5 &&
+             echo '🔄 Initialisation...' &&
+             python manage.py migrate &&
+             python manage.py init_data &&
+             python manage.py create_superuser_jovi &&
+             python manage.py setup_celery_beat &&
+             python manage.py collectstatic --noinput &&
+             echo '🚀 Démarrage du serveur...' &&
+             python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - .:/app
+      - static_volume:/app/staticfiles
+    ports:
+      - "${WEB_PORT:-8000}:8000"
+    env_file:
+      - .env
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - si_network
+    profiles:
+      - ""  # Profil par défaut (local)
+
+  # ==========================================================================
+  # APPLICATION WEB DJANGO - PRODUCTION
+  # ==========================================================================
+  web_prod:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: si_gouvernance_web_prod
+    restart: always
+    command: >
+      sh -c "echo '⏳ Attente de la base de données...' &&
+             while ! nc -z db 3306; do
+               echo 'En attente de MySQL...';
+               sleep 2;
+             done;
+             echo '✅ MySQL est prêt!' &&
+             python manage.py migrate --noinput &&
+             python manage.py collectstatic --noinput &&
+             gunicorn si_gouvernance.wsgi:application
+             --bind 0.0.0.0:8000
+             --workers 4
+             --timeout 120
+             --access-logfile /app/logs/gunicorn-access.log
+             --error-logfile /app/logs/gunicorn-error.log"
+    volumes:
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+      - app_logs:/app/logs
+    env_file:
+      - .env.production
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - si_network
+    profiles:
+      - production
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+
+  # ==========================================================================
+  # NGINX REVERSE PROXY - PRODUCTION UNIQUEMENT
+  # ==========================================================================
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: si_gouvernance_nginx
+    restart: always
+    ports:
+      - "${NGINX_HTTP_PORT:-80}:80"
+      - "${NGINX_HTTPS_PORT:-443}:443"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
+      - static_volume:/app/staticfiles:ro
+      - media_volume:/app/media:ro
+    depends_on:
+      - web_prod
+    networks:
+      - si_network
+    profiles:
+      - production
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+  # ==========================================================================
+  # CELERY WORKER
+  # ==========================================================================
+  celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: ${DOCKER_TARGET:-development}
+    container_name: si_gouvernance_celery_worker
+    restart: always
+    command: celery -A si_gouvernance worker --loglevel=info --concurrency=2
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - C_FORCE_ROOT=true
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - si_network
+
+  # ==========================================================================
+  # CELERY BEAT (ALERTES AUTOMATIQUES)
+  # ==========================================================================
+  celery_beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: ${DOCKER_TARGET:-development}
+    container_name: si_gouvernance_celery_beat
+    restart: always
+    command: >
+      sh -c "echo '⏰ Attente initialisation...' &&
+             sleep 15 &&
+             celery -A si_gouvernance beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler"
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - si_network
+
+  # ==========================================================================
+  # FLOWER (MONITORING) - Optionnel
+  # ==========================================================================
+  flower:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: ${DOCKER_TARGET:-development}
+    container_name: si_gouvernance_flower
+    restart: always
+    command: celery -A si_gouvernance flower --port=5555
+    ports:
+      - "${FLOWER_PORT:-5555}:5555"
+    env_file:
+      - .env
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      - redis
+      - celery_worker
+    networks:
+      - si_network
+    profiles:
+      - monitoring
+
+# ============================================================================
+# VOLUMES
+# ============================================================================
+volumes:
+  mysql_data:
+  redis_data:
+  static_volume:
+  media_volume:
+  app_logs:
+
+# ============================================================================
+# RÉSEAU
+# ============================================================================
+networks:
+  si_network:
+    driver: bridge

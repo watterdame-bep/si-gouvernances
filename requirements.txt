@@ -3,3 +3,15 @@ django-tailwind==3.6.0
 django-browser-reload==1.12.1
 python-decouple==3.8
 mysqlclient==2.2.0
+
+# Celery & Redis pour tâches asynchrones et planifiées
+celery[redis]==5.3.4
+redis==4.6.0
+django-celery-beat==2.5.0
+django-celery-results==2.5.1
+
+# Monitoring et logs
+flower==2.0.1
+
+# Production server
+gunicorn==21.2.0

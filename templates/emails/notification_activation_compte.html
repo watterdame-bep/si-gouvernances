@@ -1,0 +1,81 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Activation de Compte - SI-Gouvernance{% endblock %}
+
+{% block header_title %}Bienvenue !{% endblock %}
+{% block header_subtitle %}Activez votre compte pour commencer{% endblock %}
+
+{% block content %}
+<div class="greeting">
+    Bonjour {{ destinataire_nom }},
+</div>
+
+<div class="message-content">
+    <p>Bienvenue sur <strong>SI-Gouvernance</strong>, la plateforme de gestion et gouvernance de projets de J-Consult MY !</p>
+    <p>Un compte a été créé pour vous. Pour commencer à utiliser la plateforme, vous devez activer votre compte en cliquant sur le bouton ci-dessous.</p>
+</div>
+
+<div class="info-card">
+    <div class="info-card-title">
+        <span class="info-card-icon">👤</span>
+        Informations de Votre Compte
+    </div>
+    <ul class="info-list">
+        <li class="info-item">
+            <span class="info-label">Nom complet :</span>
+            <span class="info-value"><strong>{{ destinataire_nom }}</strong></span>
+        </li>
+        <li class="info-item">
+            <span class="info-label">Email :</span>
+            <span class="info-value">{{ email }}</span>
+        </li>
+        <li class="info-item">
+            <span class="info-label">Rôle :</span>
+            <span class="info-value">{{ role }}</span>
+        </li>
+        <li class="info-item">
+            <span class="info-label">Créé le :</span>
+            <span class="info-value">{{ date_creation }}</span>
+        </li>
+    </ul>
+</div>
+
+<div class="action-button-container">
+    <a href="{{ activation_url }}" class="action-button">
+        ✅ Activer Mon Compte
+    </a>
+</div>
+
+<div class="alert-box alert-box-warning">
+    <div class="alert-title">⚠️ Important</div>
+    <div class="alert-message">
+        Ce lien d'activation est valide pendant <strong>48 heures</strong>. Après ce délai, vous devrez demander un nouveau lien d'activation.
+    </div>
+</div>
+
+<div class="message-content">
+    <p><strong>Après l'activation, vous pourrez :</strong></p>
+    <ul style="margin-left: 20px; margin-top: 10px;">
+        <li>Définir votre mot de passe personnel</li>
+        <li>Accéder à vos projets et tâches</li>
+        <li>Collaborer avec votre équipe</li>
+        <li>Suivre l'avancement de vos missions</li>
+        <li>Recevoir des notifications en temps réel</li>
+    </ul>
+</div>
+
+<div class="alert-box alert-box-info">
+    <div class="alert-title">🔒 Sécurité</div>
+    <div class="alert-message">
+        Si vous n'avez pas demandé la création de ce compte, veuillez ignorer cet email et contacter immédiatement votre administrateur système.
+    </div>
+</div>
+
+<div class="message-content">
+    <p style="margin-top: 20px;">
+        Nous sommes ravis de vous accueillir dans notre équipe !<br><br>
+        Cordialement,<br>
+        <strong>L'équipe SI-Gouvernance</strong>
+    </p>
+</div>
+{% endblock %}

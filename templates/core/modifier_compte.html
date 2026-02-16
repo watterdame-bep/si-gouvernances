@@ -90,32 +90,25 @@
                             Statut du Compte
                         </h2>
                         
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                            <div>
-                                <label for="statut_actif" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
-                                    <i class="fas fa-power-off text-orange-600 mr-1"></i>
-                                    Statut
-                                </label>
-                                <select id="statut_actif" 
-                                        name="statut_actif"
-                                        class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
-                                    <option value="true" {% if utilisateur.statut_actif %}selected{% endif %}>Actif</option>
-                                    <option value="false" {% if not utilisateur.statut_actif %}selected{% endif %}>Inactif</option>
-                                </select>
-                            </div>
-                            
-                            <div>
-                                <label for="is_superuser" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
-                                    <i class="fas fa-user-shield text-red-600 mr-1"></i>
-                                    Privilèges
-                                </label>
-                                <select id="is_superuser" 
-                                        name="is_superuser"
-                                        class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
-                                    <option value="false" {% if not utilisateur.is_superuser %}selected{% endif %}>Utilisateur standard</option>
-                                    <option value="true" {% if utilisateur.is_superuser %}selected{% endif %}>Super administrateur</option>
-                                </select>
-                            </div>
+                        <div>
+                            <label for="statut_actif" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                                <i class="fas fa-power-off text-orange-600 mr-1"></i>
+                                Statut du compte
+                            </label>
+                            <select id="statut_actif" 
+                                    name="statut_actif"
+                                    class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
+                                <option value="true" {% if utilisateur.statut_actif %}selected{% endif %}>
+                                    <i class="fas fa-check-circle"></i> Actif
+                                </option>
+                                <option value="false" {% if not utilisateur.statut_actif %}selected{% endif %}>
+                                    <i class="fas fa-times-circle"></i> Inactif
+                                </option>
+                            </select>
+                            <p class="mt-1 text-xs text-gray-500">
+                                <i class="fas fa-info-circle mr-1"></i>
+                                Un compte inactif ne peut pas se connecter au système
+                            </p>
                         </div>
                     </div>
 
@@ -183,10 +176,6 @@ document.getElementById('role_systeme').addEventListener('change', function() {
         'CHEF_PROJET': {
             title: 'Chef de Projet',
             description: 'Gestion des projets et équipes'
-        },
-        'QA': {
-            title: 'Quality Assurance',
-            description: 'Tests, validation et contrôle qualité'
         },
         'DIRECTION': {
             title: 'Direction',

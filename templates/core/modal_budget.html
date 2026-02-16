@@ -1,0 +1,447 @@
+<!-- Modal Ajout Lignes Budget - Version Professionnelle Compacte -->
+<div id="modalBudget" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden z-50 flex items-center justify-center p-2 sm:p-4">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+        <!-- Header Compact -->
+        <div class="px-4 py-3 border-b border-gray-200 bg-gray-50">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-plus-circle text-green-600 text-lg"></i>
+                    <h3 class="text-lg font-semibold text-gray-900">Ajouter des Dépenses</h3>
+                </div>
+                <button onclick="fermerModalBudget()" class="text-gray-400 hover:text-gray-600 p-1">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Body -->
+        <div class="p-4 overflow-y-auto" style="max-height: calc(90vh - 140px);">
+            <form id="budgetForm">
+                {% csrf_token %}
+                
+                <!-- Container des lignes -->
+                <div id="lignesContainer" class="space-y-3">
+                    <!-- Ligne 1 (template) -->
+                    <div class="ligne-budget p-3 bg-gray-50 rounded border border-gray-200" data-ligne="1">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-medium text-gray-600">
+                                <i class="fas fa-hashtag text-gray-400 mr-1"></i>Ligne 1
+                            </span>
+                            <button type="button" onclick="retirerLigne(1)" class="text-red-500 hover:text-red-600 hidden ligne-retirer" title="Retirer">
+                                <i class="fas fa-trash-alt text-xs"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- Nom de la dépense -->
+                        <div class="mb-2">
+                            <label class="block text-xs font-medium text-gray-700 mb-1">
+                                <i class="fas fa-tag text-blue-500 mr-1"></i>Nom de la dépense
+                            </label>
+                            <input type="text" name="lignes[0][description]" required placeholder="Ex: Lecteur empreinte digitale"
+                                   class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-2">
+                            <!-- Type -->
+                            <div>
+                                <label class="block text-xs font-medium text-gray-700 mb-1">
+                                    <i class="fas fa-layer-group text-purple-500 mr-1"></i>Type
+                                </label>
+                                <select name="lignes[0][type]" required 
+                                        class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 focus:border-purple-500">
+                                    <option value="">Choisir...</option>
+                                    <option value="MATERIEL">💻 Matériel</option>
+                                    <option value="SERVICE">🏢 Service</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Montant -->
+                            <div>
+                                <label class="block text-xs font-medium text-gray-700 mb-1">
+                                    <i class="fas fa-dollar-sign text-green-500 mr-1"></i>Montant ($)
+                                </label>
+                                <input type="number" name="lignes[0][montant]" required min="0" step="0.01" placeholder="0.00"
+                                       class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                                       onchange="calculerTotal()">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Bouton Ajouter Ligne -->
+                <button type="button" onclick="ajouterLigne()" 
+                        class="w-full mt-3 py-2 border border-dashed border-gray-300 rounded text-sm text-gray-600 hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50 transition-colors">
+                    <i class="fas fa-plus mr-1"></i>Ajouter une ligne
+                </button>
+                
+                <!-- Résumé Compact -->
+                <div class="mt-3 p-2 bg-green-50 rounded border border-green-200">
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-gray-700">
+                            <i class="fas fa-calculator text-green-600 mr-1"></i>
+                            <span id="nombreLignes">0</span> ligne(s)
+                        </span>
+                        <span id="totalLignes" class="text-lg font-bold text-green-700">$0.00</span>
+                    </div>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Footer Compact -->
+        <div class="px-4 py-3 border-t border-gray-200 bg-gray-50">
+            <div class="flex space-x-2">
+                <button type="button" onclick="fermerModalBudget()" 
+                        class="flex-1 bg-white hover:bg-gray-100 text-gray-700 px-4 py-2 rounded text-sm font-medium border border-gray-300 transition-colors">
+                    <i class="fas fa-times mr-1"></i>Annuler
+                </button>
+                <button type="button" onclick="enregistrerLignesBudget()" 
+                        class="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm font-medium transition-colors">
+                    <i class="fas fa-save mr-1"></i>Enregistrer
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Liste Complète Budget - Version Professionnelle -->
+<div id="modalListeBudget" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden z-50 flex items-center justify-center p-2 sm:p-4">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+        <!-- Header -->
+        <div class="px-4 py-3 border-b border-gray-200 bg-gray-50">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-list text-blue-600 text-lg"></i>
+                    <h3 class="text-lg font-semibold text-gray-900">Toutes les Dépenses</h3>
+                </div>
+                <button onclick="fermerModalListeBudget()" class="text-gray-400 hover:text-gray-600 p-1">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Body -->
+        <div class="p-4 overflow-y-auto" style="max-height: calc(90vh - 140px);">
+            <!-- Résumé Compact -->
+            <div id="resumeBudgetListe" class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+                <!-- Sera rempli dynamiquement -->
+            </div>
+            
+            <!-- Tableau Responsive -->
+            <div class="overflow-x-auto -mx-4 sm:mx-0">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-100 border-y border-gray-300">
+                        <tr>
+                            <th class="px-2 py-2 text-left text-xs font-semibold text-gray-700">
+                                <i class="fas fa-tag mr-1"></i>Dépense
+                            </th>
+                            <th class="px-2 py-2 text-left text-xs font-semibold text-gray-700 hidden sm:table-cell">
+                                <i class="fas fa-layer-group mr-1"></i>Type
+                            </th>
+                            <th class="px-2 py-2 text-right text-xs font-semibold text-gray-700">
+                                <i class="fas fa-euro-sign mr-1"></i>Montant
+                            </th>
+                            <th class="px-2 py-2 text-center text-xs font-semibold text-gray-700">
+                                <i class="fas fa-cog"></i>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableauLignesBudget" class="divide-y divide-gray-200">
+                        <!-- Sera rempli dynamiquement -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Message vide -->
+            <div id="messageBudgetVide" class="hidden text-center py-8">
+                <i class="fas fa-inbox text-gray-300 text-4xl mb-2"></i>
+                <p class="text-gray-500 text-sm">Aucune dépense enregistrée</p>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="px-4 py-3 border-t border-gray-200 bg-gray-50">
+            <button type="button" onclick="fermerModalListeBudget()" 
+                    class="w-full bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded text-sm font-medium transition-colors">
+                <i class="fas fa-times mr-1"></i>Fermer
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+let compteurLignes = 1;
+
+function ajouterLigne() {
+    compteurLignes++;
+    const container = document.getElementById('lignesContainer');
+    const nouvelleLigne = document.createElement('div');
+    nouvelleLigne.className = 'ligne-budget p-3 bg-gray-50 rounded border border-gray-200';
+    nouvelleLigne.setAttribute('data-ligne', compteurLignes);
+    
+    nouvelleLigne.innerHTML = `
+        <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-medium text-gray-600">
+                <i class="fas fa-hashtag text-gray-400 mr-1"></i>Ligne ${compteurLignes}
+            </span>
+            <button type="button" onclick="retirerLigne(${compteurLignes})" class="text-red-500 hover:text-red-600 ligne-retirer" title="Retirer">
+                <i class="fas fa-trash-alt text-xs"></i>
+            </button>
+        </div>
+        
+        <div class="mb-2">
+            <label class="block text-xs font-medium text-gray-700 mb-1">
+                <i class="fas fa-tag text-blue-500 mr-1"></i>Nom de la dépense
+            </label>
+            <input type="text" name="lignes[${compteurLignes-1}][description]" required placeholder="Ex: Lecteur empreinte digitale"
+                   class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+        </div>
+        
+        <div class="grid grid-cols-2 gap-2">
+            <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">
+                    <i class="fas fa-layer-group text-purple-500 mr-1"></i>Type
+                </label>
+                <select name="lignes[${compteurLignes-1}][type]" required 
+                        class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 focus:border-purple-500">
+                    <option value="">Choisir...</option>
+                    <option value="MATERIEL">💻 Matériel</option>
+                    <option value="SERVICE">🏢 Service</option>
+                </select>
+            </div>
+            
+            <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">
+                    <i class="fas fa-dollar-sign text-green-500 mr-1"></i>Montant ($)
+                </label>
+                <input type="number" name="lignes[${compteurLignes-1}][montant]" required min="0" step="0.01" placeholder="0.00"
+                       class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                       onchange="calculerTotal()">
+            </div>
+        </div>
+    `;
+    
+    container.appendChild(nouvelleLigne);
+    calculerTotal();
+    
+    if (compteurLignes > 1) {
+        document.querySelectorAll('.ligne-retirer').forEach(btn => btn.classList.remove('hidden'));
+    }
+}
+
+function retirerLigne(numero) {
+    const ligne = document.querySelector(`[data-ligne="${numero}"]`);
+    if (ligne) {
+        ligne.remove();
+        calculerTotal();
+        
+        const lignesRestantes = document.querySelectorAll('.ligne-budget').length;
+        if (lignesRestantes === 1) {
+            document.querySelectorAll('.ligne-retirer').forEach(btn => btn.classList.add('hidden'));
+        }
+        
+        renumeroterLignes();
+    }
+}
+
+function renumeroterLignes() {
+    const lignes = document.querySelectorAll('.ligne-budget');
+    lignes.forEach((ligne, index) => {
+        const numero = index + 1;
+        ligne.setAttribute('data-ligne', numero);
+        ligne.querySelector('span').innerHTML = `<i class="fas fa-hashtag text-gray-400 mr-1"></i>Ligne ${numero}`;
+        
+        ligne.querySelectorAll('[name^="lignes"]').forEach(input => {
+            const name = input.getAttribute('name');
+            const newName = name.replace(/lignes\[\d+\]/, `lignes[${index}]`);
+            input.setAttribute('name', newName);
+        });
+    });
+}
+
+function calculerTotal() {
+    let total = 0;
+    let nombre = 0;
+    
+    document.querySelectorAll('.ligne-budget').forEach(ligne => {
+        const montantInput = ligne.querySelector('input[name*="[montant]"]');
+        if (montantInput && montantInput.value) {
+            total += parseFloat(montantInput.value) || 0;
+            nombre++;
+        }
+    });
+    
+    document.getElementById('totalLignes').textContent = '$' + total.toFixed(2);
+    document.getElementById('nombreLignes').textContent = nombre;
+}
+
+function ouvrirModalBudget() {
+    document.getElementById('modalBudget').classList.remove('hidden');
+    document.getElementById('budgetForm').reset();
+    const container = document.getElementById('lignesContainer');
+    const lignes = container.querySelectorAll('.ligne-budget');
+    lignes.forEach((ligne, index) => {
+        if (index > 0) ligne.remove();
+    });
+    compteurLignes = 1;
+    calculerTotal();
+    document.querySelectorAll('.ligne-retirer').forEach(btn => btn.classList.add('hidden'));
+}
+
+function fermerModalBudget() {
+    document.getElementById('modalBudget').classList.add('hidden');
+}
+
+function enregistrerLignesBudget() {
+    const form = document.getElementById('budgetForm');
+    const lignes = [];
+    const lignesElements = document.querySelectorAll('.ligne-budget');
+    
+    lignesElements.forEach((ligne, index) => {
+        const type = ligne.querySelector(`[name="lignes[${index}][type]"]`).value;
+        const montant = ligne.querySelector(`[name="lignes[${index}][montant]"]`).value;
+        const description = ligne.querySelector(`[name="lignes[${index}][description]"]`).value;
+        
+        if (type && montant) {
+            lignes.push({
+                type: type,
+                montant: parseFloat(montant),
+                description: description
+            });
+        }
+    });
+    
+    if (lignes.length === 0) {
+        afficherErreur('Veuillez remplir au moins une ligne budgétaire.');
+        return;
+    }
+    
+    fetch(`/projets/{{ projet.id }}/budget/ajouter/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({ lignes: lignes })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            fermerModalBudget();
+            afficherSucces(data.message || 'Dépenses ajoutées avec succès !');
+            
+            // Mise à jour dynamique SANS rechargement
+            if (data.resume) {
+                mettreAJourResumeBudget(data.resume);
+            }
+        } else {
+            afficherErreur(data.error || 'Erreur lors de l\'ajout des dépenses.');
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        afficherErreur('Erreur lors de la communication avec le serveur.');
+    });
+}
+
+function afficherTousLignesBudget() {
+    document.getElementById('modalListeBudget').classList.remove('hidden');
+    chargerLignesBudget();
+}
+
+function fermerModalListeBudget() {
+    document.getElementById('modalListeBudget').classList.add('hidden');
+}
+
+function chargerLignesBudget() {
+    fetch(`/projets/{{ projet.id }}/budget/liste/`)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            afficherResumeBudget(data.resume);
+            afficherTableauLignes(data.lignes, data.peut_gerer);
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+    });
+}
+
+function afficherResumeBudget(resume) {
+    const container = document.getElementById('resumeBudgetListe');
+    container.innerHTML = `
+        <div class="p-2 bg-green-50 rounded border border-green-200 text-center">
+            <div class="text-xs text-green-700 mb-1">Budget Total</div>
+            <div class="text-base font-bold text-green-900">$${resume.budget_total.toFixed(0)}</div>
+        </div>
+        <div class="p-2 bg-purple-50 rounded border border-purple-200 text-center">
+            <div class="text-xs text-purple-700 mb-1">💻 Matériel</div>
+            <div class="text-base font-bold text-purple-900">$${resume.total_materiel.toFixed(0)}</div>
+        </div>
+        <div class="p-2 bg-orange-50 rounded border border-orange-200 text-center">
+            <div class="text-xs text-orange-700 mb-1">🏢 Services</div>
+            <div class="text-base font-bold text-orange-900">$${resume.total_services.toFixed(0)}</div>
+        </div>
+        <div class="p-2 bg-blue-50 rounded border border-blue-200 text-center">
+            <div class="text-xs text-blue-700 mb-1">Disponible</div>
+            <div class="text-base font-bold ${resume.budget_disponible < 0 ? 'text-red-900' : 'text-blue-900'}">
+                $${resume.budget_disponible.toFixed(0)}
+            </div>
+        </div>
+    `;
+}
+
+function afficherTableauLignes(lignes, peutGerer) {
+    const tbody = document.getElementById('tableauLignesBudget');
+    const messageVide = document.getElementById('messageBudgetVide');
+    
+    if (lignes.length === 0) {
+        tbody.innerHTML = '';
+        messageVide.classList.remove('hidden');
+        return;
+    }
+    
+    messageVide.classList.add('hidden');
+    tbody.innerHTML = lignes.map(ligne => `
+        <tr class="hover:bg-gray-50">
+            <td class="px-2 py-2">
+                <div class="text-sm font-medium text-gray-900">${ligne.description_courte}</div>
+                <div class="text-xs text-gray-500 sm:hidden">${ligne.type_display}</div>
+            </td>
+            <td class="px-2 py-2 hidden sm:table-cell">
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${ligne.type === 'MATERIEL' ? 'bg-purple-100 text-purple-800' : 'bg-orange-100 text-orange-800'}">
+                    ${ligne.type === 'MATERIEL' ? '💻' : '🏢'} ${ligne.type_display}
+                </span>
+            </td>
+            <td class="px-2 py-2 text-right font-semibold text-gray-900 text-sm">${ligne.montant_formate}</td>
+            <td class="px-2 py-2 text-center">
+                ${peutGerer ? `
+                    <button onclick="supprimerLigneBudget('${ligne.id}')" 
+                            class="text-red-500 hover:text-red-600 p-1"
+                            title="Supprimer">
+                        <i class="fas fa-trash-alt text-xs"></i>
+                    </button>
+                ` : '<span class="text-gray-400 text-xs">-</span>'}
+            </td>
+        </tr>
+    `).join('');
+}
+
+function supprimerLigneBudget(ligneId) {
+    // Trouver le nom de la dépense pour l'afficher dans la confirmation
+    const lignes = document.querySelectorAll('#tableauLignesBudget tr');
+    let nomDepense = 'cette dépense';
+    
+    lignes.forEach(ligne => {
+        const btnSupprimer = ligne.querySelector(`button[onclick*="${ligneId}"]`);
+        if (btnSupprimer) {
+            const celluleNom = ligne.querySelector('td:first-child .text-sm');
+            if (celluleNom) {
+                nomDepense = celluleNom.textContent.trim();
+            }
+        }
+    });
+    
+    // Demander confirmation via modale
+    demanderConfirmationSuppression(ligneId, nomDepense);
+}
+</script>

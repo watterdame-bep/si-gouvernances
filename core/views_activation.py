@@ -45,7 +45,7 @@ def get_user_agent(request):
 
 def envoyer_email_activation(user, token_plain, request):
     """
-    Envoie l'email d'activation avec le lien sécurisé.
+    Envoie l'email d'activation avec le lien sécurisé et template HTML professionnel.
     
     Args:
         user: Instance de Utilisateur
@@ -55,6 +55,9 @@ def envoyer_email_activation(user, token_plain, request):
     Returns:
         bool: True si l'email a été envoyé avec succès
     """
+    from django.core.mail import EmailMultiAlternatives
+    from django.template.loader import render_to_string
+    
     # Encoder l'ID utilisateur en base64
     uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
     
@@ -63,40 +66,75 @@ def envoyer_email_activation(user, token_plain, request):
         f'/activate-account/{uidb64}/{token_plain}/'
     )
     
-    # Préparer le contenu de l'email
-    subject = 'Activation de votre compte - SI Gouvernance'
+    # URL de base et logo
+    base_url = f"{request.scheme}://{request.get_host()}"
+    logo_url = f"{base_url}/media/logos/jconsult_logo.png"
     
-    message = f"""
+    # Contexte pour le template
+    context = {
+        'destinataire_nom': user.get_full_name(),
+        'email': user.email,
+        'role': user.get_role_systeme_display(),
+        'date_creation': user.date_creation.strftime('%d/%m/%Y à %H:%M'),
+        'activation_url': activation_url,
+        'base_url': base_url,
+        'logo_url': logo_url,
+    }
+    
+    # Sujet de l'email
+    subject = '[SI-Gouvernance] Activation de votre compte'
+    
+    # Message texte (fallback)
+    message_text = f"""
 Bonjour {user.get_full_name()},
 
-Un compte utilisateur a été créé pour vous sur la plateforme SI Gouvernance.
+Un compte utilisateur a été créé pour vous sur la plateforme SI-Gouvernance.
 
 Pour activer votre compte et définir votre mot de passe, veuillez cliquer sur le lien ci-dessous :
 
 {activation_url}
 
 ⚠️ IMPORTANT :
-- Ce lien est valide pendant 24 heures
+- Ce lien est valide pendant 48 heures
 - Vous devrez définir un mot de passe fort lors de l'activation
 - Ce lien ne peut être utilisé qu'une seule fois
 
-Si vous n'avez pas demandé la création de ce compte, veuillez ignorer cet email.
+Informations de votre compte :
+- Nom complet : {user.get_full_name()}
+- Email : {user.email}
+- Rôle : {user.get_role_systeme_display()}
+- Créé le : {user.date_creation.strftime('%d/%m/%Y à %H:%M')}
+
+Si vous n'avez pas demandé la création de ce compte, veuillez ignorer cet email et contacter votre administrateur système.
 
 Cordialement,
-L'équipe SI Gouvernance
+L'équipe SI-Gouvernance
+J-Consult MY
+
+---
+Ceci est un email automatique, merci de ne pas y répondre.
 """
     
     try:
-        send_mail(
-            subject,
-            message,
-            settings.DEFAULT_FROM_EMAIL,
-            [user.email],
-            fail_silently=False,
+        # Générer le HTML avec le template professionnel
+        message_html = render_to_string('emails/notification_activation_compte.html', context)
+        
+        # Créer l'email avec alternatives
+        email = EmailMultiAlternatives(
+            subject=subject,
+            body=message_text,
+            from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'SI-Gouvernance <noreply@si-gouvernance.com>'),
+            to=[user.email],
         )
+        
+        email.attach_alternative(message_html, "text/html")
+        email.send(fail_silently=False)
+        
         return True
     except Exception as e:
         print(f"Erreur lors de l'envoi de l'email : {str(e)}")
+        import traceback
+        traceback.print_exc()
         return False
 
 

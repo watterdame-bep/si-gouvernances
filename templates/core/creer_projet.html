@@ -62,23 +62,28 @@
                         </div>
                     </div>
 
-                    <!-- Fichier de description (pleine largeur) -->
+                    <!-- Fichiers joints (pleine largeur) - MULTI-FICHIERS -->
                     <div>
-                        <label for="fichier_description" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
-                            <i class="fas fa-file-alt text-purple-600 mr-1"></i>
-                            Fichier de description <span class="text-gray-500 text-xs">(optionnel)</span>
+                        <label for="fichiers" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                            <i class="fas fa-paperclip text-purple-600 mr-1"></i>
+                            Fichiers joints <span class="text-gray-500 text-xs">(optionnel)</span>
                         </label>
                         <input 
                             type="file" 
-                            id="fichier_description" 
-                            name="fichier_description" 
-                            accept=".pdf,.doc,.docx"
-                            class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                            id="fichiers" 
+                            name="fichiers" 
+                            multiple
+                            accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar,.jpg,.jpeg,.png,.gif"
+                            class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
                         >
                         <p class="mt-1 text-xs text-gray-500">
                             <i class="fas fa-info-circle mr-1"></i>
-                            PDF, Word (.doc, .docx) - Max 10 MB
+                            Vous pouvez sélectionner plusieurs fichiers (PDF, Word, Excel, PowerPoint, images, archives) - Max 10 MB par fichier
                         </p>
+                        <div id="fichiers-selectionnes" class="mt-2 hidden">
+                            <p class="text-xs font-medium text-gray-700 mb-1">Fichiers sélectionnés:</p>
+                            <div id="liste-fichiers" class="space-y-1"></div>
+                        </div>
                     </div>
 
                     <!-- Grid 3 colonnes pour Statut, Priorité et Durée -->
@@ -178,10 +183,42 @@
 
 {% block extra_js %}
 <script>
+// Affichage des fichiers sélectionnés
+document.getElementById('fichiers').addEventListener('change', function(e) {
+    const fichiers = e.target.files;
+    const container = document.getElementById('fichiers-selectionnes');
+    const liste = document.getElementById('liste-fichiers');
+    
+    if (fichiers.length > 0) {
+        container.classList.remove('hidden');
+        liste.innerHTML = '';
+        
+        Array.from(fichiers).forEach((fichier, index) => {
+            const div = document.createElement('div');
+            div.className = 'flex items-center justify-between text-xs bg-purple-50 px-2 py-1 rounded';
+            
+            const taille = (fichier.size / 1024).toFixed(1);
+            const unite = taille > 1024 ? ((fichier.size / (1024 * 1024)).toFixed(1) + ' MB') : (taille + ' KB');
+            
+            div.innerHTML = `
+                <span class="flex items-center">
+                    <i class="fas fa-file text-purple-600 mr-2"></i>
+                    <span class="font-medium">${fichier.name}</span>
+                    <span class="text-gray-500 ml-2">(${unite})</span>
+                </span>
+                ${fichier.size > 10 * 1024 * 1024 ? '<span class="text-red-600 text-xs"><i class="fas fa-exclamation-triangle mr-1"></i>Trop volumineux</span>' : ''}
+            `;
+            liste.appendChild(div);
+        });
+    } else {
+        container.classList.add('hidden');
+    }
+});
+
 // Validation du formulaire
 document.getElementById('projectForm').addEventListener('submit', function(e) {
     const nom = document.getElementById('nom').value.trim();
-    const fichier = document.getElementById('fichier_description').files[0];
+    const fichiers = document.getElementById('fichiers').files;
     const statut = document.getElementById('statut').value;
     const priorite = document.getElementById('priorite').value;
     
@@ -191,20 +228,20 @@ document.getElementById('projectForm').addEventListener('submit', function(e) {
         return false;
     }
     
-    // Validation du fichier (seulement si fourni)
-    if (fichier) {
+    // Validation des fichiers (seulement si fournis)
+    if (fichiers.length > 0) {
         const maxSize = 10 * 1024 * 1024; // 10 MB
-        const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+        let hasError = false;
         
-        if (fichier.size > maxSize) {
-            e.preventDefault();
-            alert('Le fichier est trop volumineux. Taille maximale : 10 MB');
-            return false;
-        }
+        Array.from(fichiers).forEach(fichier => {
+            if (fichier.size > maxSize) {
+                hasError = true;
+                alert(`Le fichier "${fichier.name}" est trop volumineux. Taille maximale : 10 MB`);
+            }
+        });
         
-        if (!allowedTypes.includes(fichier.type)) {
+        if (hasError) {
             e.preventDefault();
-            alert('Format de fichier non accepté. Utilisez PDF ou Word (.doc, .docx)');
             return false;
         }
     }

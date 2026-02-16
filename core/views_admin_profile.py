@@ -1,7 +1,11 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .models import Membre
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
+from django.db import transaction
+import json
+from .models import Membre, Utilisateur
 from .utils import enregistrer_audit
 
 @login_required
@@ -118,3 +122,109 @@ def creer_profil_membre_admin_view(request):
     }
     
     return render(request, 'core/creer_profil_membre_admin.html', context)
+
+
+@login_required
+@require_http_methods(["POST"])
+def modifier_email_admin_view(request):
+    """
+    Permet à un administrateur de modifier son email personnel
+    et synchronise automatiquement avec son compte utilisateur
+    """
+    user = request.user
+    
+    # Vérifier que l'utilisateur est admin
+    if not user.is_superuser:
+        return JsonResponse({
+            'success': False,
+            'error': 'Seuls les administrateurs peuvent modifier leur email.'
+        }, status=403)
+    
+    # Vérifier que l'utilisateur a un profil membre
+    if not hasattr(user, 'membre') or not user.membre:
+        return JsonResponse({
+            'success': False,
+            'error': 'Vous n\'avez pas de profil membre associé.'
+        }, status=400)
+    
+    try:
+        # Récupérer les données
+        data = json.loads(request.body)
+        nouvel_email = data.get('email_personnel', '').strip()
+        
+        # Validation
+        if not nouvel_email:
+            return JsonResponse({
+                'success': False,
+                'error': 'L\'email ne peut pas être vide.'
+            }, status=400)
+        
+        # Vérifier le format email
+        import re
+        email_regex = r'^[^\s@]+@[^\s@]+\.[^\s@]+$'
+        if not re.match(email_regex, nouvel_email):
+            return JsonResponse({
+                'success': False,
+                'error': 'Format d\'email invalide.'
+            }, status=400)
+        
+        # Vérifier que l'email n'est pas déjà utilisé par un autre membre
+        if Membre.objects.filter(email_personnel=nouvel_email).exclude(id=user.membre.id).exists():
+            return JsonResponse({
+                'success': False,
+                'error': 'Cet email est déjà utilisé par un autre membre.'
+            }, status=400)
+        
+        # Vérifier que l'email n'est pas déjà utilisé par un autre utilisateur
+        if Utilisateur.objects.filter(email=nouvel_email).exclude(id=user.id).exists():
+            return JsonResponse({
+                'success': False,
+                'error': 'Cet email est déjà utilisé par un autre compte utilisateur.'
+            }, status=400)
+        
+        # Sauvegarder l'ancien email pour l'audit
+        ancien_email_membre = user.membre.email_personnel
+        ancien_email_user = user.email
+        
+        # Transaction atomique pour garantir la cohérence
+        with transaction.atomic():
+            # Mettre à jour le profil membre
+            user.membre.email_personnel = nouvel_email
+            user.membre.save()
+            
+            # Synchroniser avec le compte utilisateur
+            user.email = nouvel_email
+            user.save()
+        
+        # Audit
+        enregistrer_audit(
+            utilisateur=user,
+            type_action='MODIFICATION_EMAIL_ADMIN',
+            description=f'Modification de l\'email par l\'administrateur {user.get_full_name()}',
+            request=request,
+            donnees_avant={
+                'email_membre': ancien_email_membre,
+                'email_user': ancien_email_user
+            },
+            donnees_apres={
+                'email_membre': nouvel_email,
+                'email_user': nouvel_email
+            }
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Email modifié avec succès !',
+            'nouvel_email': nouvel_email
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'Données JSON invalides.'
+        }, status=400)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Erreur lors de la modification : {str(e)}'
+        }, status=500)

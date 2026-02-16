@@ -11,13 +11,11 @@ class RoleSysteme(models.Model):
     """Rôles système pour la connexion et l'accès à l'interface"""
     DEVELOPPEUR = 'DEVELOPPEUR'
     CHEF_PROJET = 'CHEF_PROJET'
-    QA = 'QA'
     DIRECTION = 'DIRECTION'
     
     ROLE_CHOICES = [
         (DEVELOPPEUR, 'Développeur'),
         (CHEF_PROJET, 'Chef de Projet'),
-        (QA, 'Quality Assurance'),
         (DIRECTION, 'Direction'),
     ]
     
@@ -835,7 +833,7 @@ class ActionAudit(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     utilisateur = models.ForeignKey(Utilisateur, on_delete=models.SET_NULL, null=True, related_name='actions_audit')
     type_action = models.CharField(max_length=50, choices=TYPE_ACTIONS)
-    projet = models.ForeignKey(Projet, on_delete=models.PROTECT, null=True, blank=True, related_name='actions_audit')
+    projet = models.ForeignKey(Projet, on_delete=models.SET_NULL, null=True, blank=True, related_name='actions_audit')
     description = models.TextField()
     donnees_avant = models.JSONField(null=True, blank=True)  # État avant modification
     donnees_apres = models.JSONField(null=True, blank=True)  # État après modification
@@ -981,9 +979,28 @@ class EtapeProjet(models.Model):
             etape_courante.save()
         
         # Activer cette étape
+        ancien_statut = self.statut
         self.statut = 'EN_COURS'
         self.date_debut_reelle = timezone.now()
         self.save()
+        
+        # Notification CHANGEMENT_STATUT pour l'étape
+        from .models import NotificationEtape
+        responsable = self.projet.get_responsable_principal()
+        if responsable:
+            NotificationEtape.objects.create(
+                destinataire=responsable,
+                etape=self,
+                type_notification='CHANGEMENT_STATUT',
+                titre=f"Étape activée: {self.type_etape.get_nom_display()}",
+                message=f"L'étape '{self.type_etape.get_nom_display()}' du projet '{self.projet.nom}' a été activée manuellement.",
+                emetteur=utilisateur,
+                donnees_contexte={
+                    'ancien_statut': ancien_statut,
+                    'nouveau_statut': self.statut,
+                    'date_activation': self.date_debut_reelle.isoformat()
+                }
+            )
         
         # Audit
         from .utils import enregistrer_audit
@@ -1061,6 +1078,23 @@ class EtapeProjet(models.Model):
             etape_suivante.date_debut_reelle = timezone.now()
             etape_suivante.save()
             
+            # Notifier l'équipe de l'activation de la nouvelle étape
+            from .models import NotificationEtape
+            equipe = self.projet.get_equipe()
+            for membre in equipe:
+                NotificationEtape.objects.create(
+                    destinataire=membre,
+                    etape=etape_suivante,
+                    type_notification='ETAPE_ACTIVEE',
+                    titre=f"Nouvelle étape activée: {etape_suivante.type_etape.get_nom_display()}",
+                    message=f"L'étape '{etape_suivante.type_etape.get_nom_display()}' du projet '{self.projet.nom}' a été activée.",
+                    emetteur=utilisateur,
+                    donnees_contexte={
+                        'etape_precedente': self.type_etape.nom,
+                        'date_activation': etape_suivante.date_debut_reelle.isoformat()
+                    }
+                )
+            
             # Audit d'activation automatique
             enregistrer_audit(
                 utilisateur=utilisateur,
@@ -1075,8 +1109,30 @@ class EtapeProjet(models.Model):
                 }
             )
             
-            # Si l'étape suivante est DEVELOPPEMENT, activer automatiquement la création de modules
+            # Si l'étape suivante est DEVELOPPEMENT, notifier les développeurs
             if etape_suivante.type_etape.nom == 'DEVELOPPEMENT':
+                # Notifier les développeurs que les modules sont disponibles
+                developpeurs = Utilisateur.objects.filter(
+                    role_systeme__nom='DEVELOPPEUR',
+                    statut_actif=True,
+                    affectations__projet=self.projet,
+                    affectations__date_fin__isnull=True
+                ).distinct()
+                
+                for dev in developpeurs:
+                    NotificationEtape.objects.create(
+                        destinataire=dev,
+                        etape=etape_suivante,
+                        type_notification='MODULES_DISPONIBLES',
+                        titre=f"Modules disponibles: {self.projet.nom}",
+                        message=f"L'étape de développement est activée. Vous pouvez maintenant créer et vous affecter des modules pour le projet '{self.projet.nom}'.",
+                        emetteur=utilisateur,
+                        donnees_contexte={
+                            'projet_id': str(self.projet.id),
+                            'etape_id': str(etape_suivante.id)
+                        }
+                    )
+                
                 # Audit spécial pour l'activation des modules
                 enregistrer_audit(
                     utilisateur=utilisateur,
@@ -1091,6 +1147,25 @@ class EtapeProjet(models.Model):
                 )
             
             return etape_suivante  # Retourner l'étape activée
+        
+        # Si c'était la dernière étape, notifier que le projet est terminé
+        else:
+            # Notifier l'équipe que le projet est terminé
+            from .models import NotificationProjet
+            equipe = self.projet.get_equipe()
+            for membre in equipe:
+                NotificationProjet.objects.create(
+                    destinataire=membre,
+                    projet=self.projet,
+                    type_notification='PROJET_TERMINE',
+                    titre=f"🎉 Projet terminé: {self.projet.nom}",
+                    message=f"Toutes les étapes du projet '{self.projet.nom}' sont terminées. Félicitations à toute l'équipe!",
+                    emetteur=utilisateur,
+                    donnees_contexte={
+                        'derniere_etape': self.type_etape.nom,
+                        'date_fin': timezone.now().isoformat()
+                    }
+                )
         
         return None  # Aucune étape suivante
     
@@ -1176,6 +1251,14 @@ class ModuleProjet(models.Model):
         
         taches_terminees = taches.filter(statut='TERMINEE').count()
         return round((taches_terminees / taches.count()) * 100)
+    
+    def get_responsable(self):
+        """Retourne le responsable du module"""
+        affectation = self.affectations.filter(
+            role_module='RESPONSABLE',
+            date_fin_affectation__isnull=True
+        ).first()
+        return affectation.utilisateur if affectation else None
 
 class AffectationModule(models.Model):
     """Affectation d'un module à un ou plusieurs membres de l'équipe"""
@@ -1256,6 +1339,11 @@ class AffectationModule(models.Model):
         """Termine l'affectation"""
         self.date_fin_affectation = timezone.now()
         self.save()
+    
+    def get_role_module_display_from_value(self, role_value):
+        """Retourne le libellé d'un rôle à partir de sa valeur"""
+        role_dict = dict(self.ROLE_MODULE_CHOICES)
+        return role_dict.get(role_value, role_value)
 
 class TacheModule(models.Model):
     """Tâches d'un module"""
@@ -1356,6 +1444,11 @@ class TacheModule(models.Model):
     
     def __str__(self):
         return f"{self.module.nom} - {self.nom}"
+    
+    def get_statut_display_from_value(self, statut_value):
+        """Retourne le libellé d'un statut à partir de sa valeur"""
+        statut_dict = dict(self.STATUT_CHOICES)
+        return statut_dict.get(statut_value, statut_value)
     
     def peut_etre_executee(self):
         """Vérifie si la tâche peut être exécutée selon l'étape actuelle du projet"""
@@ -2179,6 +2272,7 @@ class NotificationModule(models.Model):
         ('TACHE_TERMINEE', 'Tâche terminée'),
         ('CHANGEMENT_ROLE', 'Changement de rôle'),
         ('MODULE_TERMINE', 'Module terminé'),
+        ('CHANGEMENT_STATUT', 'Changement de statut de tâche'),
     ]
     
     destinataire = models.ForeignKey(Utilisateur, on_delete=models.CASCADE, related_name='notifications_modules')
@@ -3912,3 +4006,13 @@ class PieceJointeTicket(models.Model):
 # SYSTÈME D'ACTIVATION SÉCURISÉ DES COMPTES
 # ============================================================================
 from .models_activation import AccountActivationToken, AccountActivationLog
+
+# ============================================================================
+# SYSTÈME DE GESTION BUDGÉTAIRE
+# ============================================================================
+from .models_budget import LigneBudget, ResumeBudget
+
+# ============================================================================
+# SYSTÈME DE GESTION DES FICHIERS
+# ============================================================================
+from .models_fichiers import FichierProjet

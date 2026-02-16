@@ -1,0 +1,80 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Nouvelle Tâche Assignée - SI-Gouvernance{% endblock %}
+
+{% block header_title %}Nouvelle Tâche{% endblock %}
+{% block header_subtitle %}Une tâche vous a été assignée{% endblock %}
+
+{% block content %}
+<div class="greeting">
+    Bonjour {{ destinataire_nom }},
+</div>
+
+<div class="message-content">
+    <p>Une nouvelle tâche vous a été assignée dans le projet <strong>{{ projet_nom }}</strong>.</p>
+</div>
+
+<div class="info-card">
+    <div class="info-card-title">
+        <span class="info-card-icon">✅</span>
+        Détails de la Tâche
+    </div>
+    <ul class="info-list">
+        <li class="info-item">
+            <span class="info-label">Tâche :</span>
+            <span class="info-value"><strong>{{ tache_titre }}</strong></span>
+        </li>
+        <li class="info-item">
+            <span class="info-label">Projet :</span>
+            <span class="info-value">{{ projet_nom }}</span>
+        </li>
+        <li class="info-item">
+            <span class="info-label">Étape :</span>
+            <span class="info-value">{{ etape_nom }}</span>
+        </li>
+        {% if tache_description %}
+        <li class="info-item">
+            <span class="info-label">Description :</span>
+            <span class="info-value">{{ tache_description }}</span>
+        </li>
+        {% endif %}
+        {% if date_echeance %}
+        <li class="info-item">
+            <span class="info-label">Échéance :</span>
+            <span class="info-value">{{ date_echeance }}</span>
+        </li>
+        {% endif %}
+        <li class="info-item">
+            <span class="info-label">Assignée par :</span>
+            <span class="info-value">{{ assigne_par }}</span>
+        </li>
+        <li class="info-item">
+            <span class="info-label">Date :</span>
+            <span class="info-value">{{ date_notification }}</span>
+        </li>
+    </ul>
+</div>
+
+<div class="action-button-container">
+    <a href="{{ tache_url }}" class="action-button">
+        📝 Voir la Tâche
+    </a>
+</div>
+
+{% if date_echeance %}
+<div class="alert-box alert-box-warning">
+    <div class="alert-title">⏰ Échéance</div>
+    <div class="alert-message">
+        Cette tâche doit être complétée avant le <strong>{{ date_echeance }}</strong>. Assurez-vous de respecter ce délai.
+    </div>
+</div>
+{% endif %}
+
+<div class="message-content">
+    <p style="margin-top: 20px;">
+        Bon travail !<br><br>
+        Cordialement,<br>
+        <strong>L'équipe SI-Gouvernance</strong>
+    </p>
+</div>
+{% endblock %}

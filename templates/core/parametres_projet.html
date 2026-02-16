@@ -37,7 +37,7 @@
                 </div>
                 <div class="text-center p-3 bg-gray-50 rounded">
                     <div class="text-xs text-gray-600 mb-1">Budget</div>
-                    <div class="text-sm font-medium text-gray-900">{{ projet.budget_previsionnel|floatformat:0 }}€</div>
+                    <div class="text-sm font-medium text-gray-900">${{ projet.budget_previsionnel|floatformat:0 }}</div>
                 </div>
                 <div class="text-center p-3 bg-gray-50 rounded">
                     <div class="text-xs text-gray-600 mb-1">Créé le</div>
@@ -209,20 +209,25 @@
                 </div>
             </div>
 
-            <!-- Budget -->
+            <!-- Budget Simplifié -->
             <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
                 <div class="flex items-center justify-between mb-3">
-                    <h3 class="text-lg font-semibold text-gray-900">Budget & Besoins</h3>
+                    <h3 class="text-lg font-semibold text-gray-900">Budget & Dépenses</h3>
                     {% if can_manage %}
                     <div class="flex space-x-1">
-                        <button onclick="ouvrirModalBesoins()" 
+                        <button onclick="ouvrirModalDefinirBudget()" 
+                                class="inline-flex items-center justify-center w-8 h-8 bg-indigo-600 hover:bg-indigo-700 text-white rounded transition-colors"
+                                title="Définir le budget total">
+                            <i class="fas fa-wallet"></i>
+                        </button>
+                        <button onclick="ouvrirModalBudget()" 
                                 class="inline-flex items-center justify-center w-8 h-8 bg-green-600 hover:bg-green-700 text-white rounded transition-colors"
-                                title="Ajouter un besoin">
+                                title="Ajouter des dépenses">
                             <i class="fas fa-plus"></i>
                         </button>
-                        <button onclick="afficherTousBesoins()" 
+                        <button onclick="afficherTousLignesBudget()" 
                                 class="inline-flex items-center justify-center w-8 h-8 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
-                                title="Voir tous les besoins">
+                                title="Voir toutes les dépenses">
                             <i class="fas fa-eye"></i>
                         </button>
                     </div>
@@ -230,24 +235,35 @@
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                    <div class="p-3 bg-green-50 rounded border border-green-200 text-center">
-                        <div class="text-xs text-green-700 mb-1">Budget Total</div>
-                        <div class="text-base font-bold text-green-900">{{ projet.budget_previsionnel|floatformat:0 }}€</div>
-                    </div>
-                    
-                    <div class="p-3 bg-blue-50 rounded border border-blue-200 text-center">
-                        <div class="text-xs text-blue-700 mb-1">RH</div>
-                        <div class="text-base font-bold text-blue-900">0€</div>
+                    <div class="p-3 bg-green-50 rounded border border-green-200 text-center cursor-pointer hover:bg-green-100 transition-colors" onclick="{% if can_manage %}ouvrirModalDefinirBudget(){% endif %}">
+                        <div class="text-xs text-green-700 mb-1">
+                            <i class="fas fa-wallet mr-1"></i>Budget Total
+                        </div>
+                        <div class="text-base font-bold text-green-900" id="budgetTotal">${{ projet.budget_previsionnel|floatformat:0 }}</div>
                     </div>
                     
                     <div class="p-3 bg-purple-50 rounded border border-purple-200 text-center">
-                        <div class="text-xs text-purple-700 mb-1">Matériel</div>
-                        <div class="text-base font-bold text-purple-900">0€</div>
+                        <div class="text-xs text-purple-700 mb-1">💻 Matériel</div>
+                        <div class="text-base font-bold text-purple-900" id="totalMateriel">
+                            {% load budget_tags %}
+                            ${{ projet|total_materiel }}
+                        </div>
                     </div>
                     
                     <div class="p-3 bg-orange-50 rounded border border-orange-200 text-center">
-                        <div class="text-xs text-orange-700 mb-1">Services</div>
-                        <div class="text-base font-bold text-orange-900">0€</div>
+                        <div class="text-xs text-orange-700 mb-1">🏢 Services</div>
+                        <div class="text-base font-bold text-orange-900" id="totalServices">
+                            {% load budget_tags %}
+                            ${{ projet|total_services }}
+                        </div>
+                    </div>
+                    
+                    <div class="p-3 bg-blue-50 rounded border border-blue-200 text-center">
+                        <div class="text-xs text-blue-700 mb-1">Disponible</div>
+                        <div class="text-base font-bold text-blue-900" id="budgetDisponible">
+                            {% load budget_tags %}
+                            ${{ projet|budget_disponible }}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -378,142 +394,6 @@
     </div>
 </div>
 
-<!-- Modal Gestion des Besoins -->
-<div id="modalBesoins" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
-        <div class="p-6 border-b border-gray-200">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-4">
-                    <div class="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-euro-sign text-white text-lg"></i>
-                    </div>
-                    <div>
-                        <h3 class="text-xl font-semibold text-gray-900">Gestion des Besoins</h3>
-                        <p class="text-sm text-gray-600">Définir les besoins financiers du projet</p>
-                    </div>
-                </div>
-                <button onclick="fermerModalBesoins()" class="text-gray-400 hover:text-gray-600 p-2">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
-            </div>
-        </div>
-        
-        <div class="p-4 overflow-y-auto max-h-96">
-            <form id="besoinsForm">
-                {% csrf_token %}
-                
-                <!-- Budget Global -->
-                <div class="mb-6">
-                    <label for="budget_previsionnel" class="block text-sm font-semibold text-gray-700 mb-3 flex items-center">
-                        <i class="fas fa-euro-sign text-green-600 mr-2"></i>
-                        Budget Prévisionnel Total
-                    </label>
-                    <div class="relative">
-                        <input type="number" id="budget_previsionnel" name="budget_previsionnel" 
-                               value="{{ projet.budget_previsionnel|floatformat:0 }}" 
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 pr-8"
-                               placeholder="0">
-                        <span class="absolute right-3 top-2 text-gray-500 text-sm">€</span>
-                    </div>
-                </div>
-
-                <!-- Catégories de Besoins -->
-                <div class="mb-6">
-                    <h4 class="text-sm font-semibold text-gray-700 mb-4 flex items-center">
-                        <i class="fas fa-list text-blue-600 mr-2"></i>
-                        Catégories de Besoins
-                    </h4>
-                    <div class="space-y-3">
-                        
-                        <!-- Ressources Humaines -->
-                        <div class="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                            <div class="flex items-center justify-between mb-3">
-                                <label class="text-sm font-semibold text-blue-900 flex items-center">
-                                    <i class="fas fa-users text-blue-600 mr-2"></i>
-                                    Ressources Humaines
-                                </label>
-                                <input type="number" name="budget_rh" placeholder="0" 
-                                       class="w-32 px-3 py-2 text-sm border border-blue-300 rounded-md focus:ring-2 focus:ring-blue-500">
-                            </div>
-                            <textarea name="description_rh" placeholder="Détails des besoins en personnel..." 
-                                      class="w-full px-3 py-2 text-sm border border-blue-300 rounded-md focus:ring-2 focus:ring-blue-500" rows="3"></textarea>
-                        </div>
-
-                        <!-- Matériel et Équipements -->
-                        <div class="p-4 bg-purple-50 rounded-lg border border-purple-200">
-                            <div class="flex items-center justify-between mb-3">
-                                <label class="text-sm font-semibold text-purple-900 flex items-center">
-                                    <i class="fas fa-tools text-purple-600 mr-2"></i>
-                                    Matériel & Équipements
-                                </label>
-                                <input type="number" name="budget_materiel" placeholder="0" 
-                                       class="w-32 px-3 py-2 text-sm border border-purple-300 rounded-md focus:ring-2 focus:ring-purple-500">
-                            </div>
-                            <textarea name="description_materiel" placeholder="Matériel, logiciels, équipements nécessaires..." 
-                                      class="w-full px-3 py-2 text-sm border border-purple-300 rounded-md focus:ring-2 focus:ring-purple-500" rows="3"></textarea>
-                        </div>
-
-                        <!-- Services Externes -->
-                        <div class="p-4 bg-orange-50 rounded-lg border border-orange-200">
-                            <div class="flex items-center justify-between mb-3">
-                                <label class="text-sm font-semibold text-orange-900 flex items-center">
-                                    <i class="fas fa-building text-orange-600 mr-2"></i>
-                                    Services Externes
-                                </label>
-                                <input type="number" name="budget_services" placeholder="0" 
-                                       class="w-32 px-3 py-2 text-sm border border-orange-300 rounded-md focus:ring-2 focus:ring-orange-500">
-                            </div>
-                            <textarea name="description_services" placeholder="Consultants, sous-traitance, formations..." 
-                                      class="w-full px-3 py-2 text-sm border border-orange-300 rounded-md focus:ring-2 focus:ring-orange-500" rows="3"></textarea>
-                        </div>
-
-                        <!-- Autres Coûts -->
-                        <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                            <div class="flex items-center justify-between mb-3">
-                                <label class="text-sm font-semibold text-gray-900 flex items-center">
-                                    <i class="fas fa-box text-gray-600 mr-2"></i>
-                                    Autres Coûts
-                                </label>
-                                <input type="number" name="budget_autres" placeholder="0" 
-                                       class="w-32 px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-gray-500">
-                            </div>
-                            <textarea name="description_autres" placeholder="Frais divers, imprévus, déplacements..." 
-                                      class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-gray-500" rows="3"></textarea>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Total Calculé -->
-                <div class="p-4 bg-green-50 rounded-lg border border-green-200 mb-6">
-                    <div class="flex items-center justify-between">
-                        <span class="text-sm font-semibold text-green-900 flex items-center">
-                            <i class="fas fa-calculator text-green-600 mr-2"></i>
-                            Total des Besoins
-                        </span>
-                        <span id="totalBesoins" class="text-xl font-bold text-green-900">0 €</span>
-                    </div>
-                    <div class="text-sm text-green-700 mt-2">
-                        Budget disponible: <span class="font-semibold">{{ projet.budget_previsionnel|floatformat:0 }} €</span>
-                    </div>
-                </div>
-            </form>
-        </div>
-        
-        <div class="p-4 border-t border-gray-200">
-            <div class="flex space-x-3">
-                <button onclick="fermerModalBesoins()" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-medium">
-                    Annuler
-                </button>
-                <button onclick="ajouterNouveauBesoin()" class="inline-flex items-center bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors">
-                    <i class="fas fa-plus mr-2"></i>Ajouter besoin
-                </button>
-                <button onclick="sauvegarderBesoins()" class="inline-flex items-center bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md font-medium transition-colors">
-                    <i class="fas fa-save mr-2"></i>Sauvegarder
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
 <!-- Modal Transférer Responsabilité -->
 <div id="modalTransfertResponsabilite" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
@@ -603,6 +483,11 @@
         </div>
     </div>
 </div>
+
+<!-- Inclure les modales budget -->
+{% include 'core/modal_budget.html' %}
+{% include 'core/modales_confirmation_budget.html' %}
+
 {% endblock %}
 
 {% block extra_js %}
@@ -722,7 +607,7 @@ function calculerTotalBesoins() {
     const budgetAutres = parseFloat(document.querySelector('input[name="budget_autres"]').value) || 0;
     
     const total = budgetRh + budgetMateriel + budgetServices + budgetAutres;
-    document.getElementById('totalBesoins').textContent = total.toLocaleString() + ' €';
+    document.getElementById('totalBesoins').textContent = '$' + total.toLocaleString();
 }
 
 function sauvegarderBesoins() {
@@ -745,7 +630,7 @@ function sauvegarderBesoins() {
     fermerModalBesoins();
     
     // Mettre à jour l'affichage des budgets sur la page
-    document.querySelector('.text-green-900').textContent = budgetPrevisionnel + '€';
+    document.querySelector('.text-green-900').textContent = '$' + budgetPrevisionnel;
     
     alert('Besoins sauvegardés avec succès !');
 }
@@ -803,7 +688,7 @@ document.getElementById('ajouterMembreForm').addEventListener('submit', function
     const submitBtn = this.querySelector('button[type="submit"]');
     const originalText = submitBtn.innerHTML;
     
-    submitBtn.innerHTML = 'Ajout...';
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Ajout...';
     submitBtn.disabled = true;
     
     fetch('{% url "ajouter_membre_projet" projet.id %}', {
@@ -816,7 +701,16 @@ document.getElementById('ajouterMembreForm').addEventListener('submit', function
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            location.reload();
+            fermerModalAjouterMembre();
+            // Afficher message de succès
+            const message = document.createElement('div');
+            message.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-fade-in';
+            message.innerHTML = '<i class="fas fa-check mr-2"></i>Membre ajouté avec succès !';
+            document.body.appendChild(message);
+            setTimeout(() => {
+                message.remove();
+                location.reload(); // Recharger pour mettre à jour la liste
+            }, 1500);
         } else {
             alert('Erreur: ' + data.error);
             submitBtn.innerHTML = originalText;
@@ -853,7 +747,16 @@ document.getElementById('ajouterResponsableForm').addEventListener('submit', fun
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            location.reload();
+            fermerModalAjouterResponsable();
+            // Afficher message de succès
+            const message = document.createElement('div');
+            message.className = 'fixed top-4 right-4 bg-yellow-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-fade-in';
+            message.innerHTML = '<i class="fas fa-crown mr-2"></i>Responsable désigné avec succès !';
+            document.body.appendChild(message);
+            setTimeout(() => {
+                message.remove();
+                location.reload(); // Recharger pour mettre à jour la liste
+            }, 1500);
         } else {
             alert('Erreur: ' + data.error);
             submitBtn.innerHTML = originalText;
@@ -875,7 +778,7 @@ document.getElementById('retirerMembreForm').addEventListener('submit', function
     const submitBtn = this.querySelector('button[type="submit"]');
     const originalText = submitBtn.innerHTML;
     
-    submitBtn.innerHTML = 'Suppression...';
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Suppression...';
     submitBtn.disabled = true;
     
     fetch('{% url "retirer_membre_projet" projet.id %}', {
@@ -885,7 +788,16 @@ document.getElementById('retirerMembreForm').addEventListener('submit', function
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            location.reload();
+            fermerModalRetirer();
+            // Afficher message de succès
+            const message = document.createElement('div');
+            message.className = 'fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-fade-in';
+            message.innerHTML = '<i class="fas fa-check mr-2"></i>Membre retiré avec succès !';
+            document.body.appendChild(message);
+            setTimeout(() => {
+                message.remove();
+                location.reload(); // Recharger pour mettre à jour la liste
+            }, 1500);
         } else {
             alert('Erreur: ' + data.error);
             submitBtn.innerHTML = originalText;
@@ -949,7 +861,7 @@ document.getElementById('transfertResponsabiliteForm').addEventListener('submit'
     const submitBtn = this.querySelector('button[type="submit"]');
     const originalText = submitBtn.innerHTML;
     
-    submitBtn.innerHTML = 'Transfert...';
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Transfert...';
     submitBtn.disabled = true;
     
     fetch('{% url "definir_responsable" projet.id %}', {
@@ -960,7 +872,15 @@ document.getElementById('transfertResponsabiliteForm').addEventListener('submit'
     .then(data => {
         if (data.success) {
             fermerModalTransfert();
-            location.reload();
+            // Afficher message de succès
+            const message = document.createElement('div');
+            message.className = 'fixed top-4 right-4 bg-orange-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-fade-in';
+            message.innerHTML = '<i class="fas fa-exchange-alt mr-2"></i>Responsabilité transférée avec succès !';
+            document.body.appendChild(message);
+            setTimeout(() => {
+                message.remove();
+                location.reload(); // Recharger pour mettre à jour la liste
+            }, 1500);
         } else {
             alert('Erreur: ' + data.error);
             submitBtn.innerHTML = originalText;
@@ -982,7 +902,7 @@ document.getElementById('definirResponsableForm').addEventListener('submit', fun
     const submitBtn = this.querySelector('button[type="submit"]');
     const originalText = submitBtn.innerHTML;
     
-    submitBtn.innerHTML = 'Définition...';
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Définition...';
     submitBtn.disabled = true;
     
     fetch('{% url "definir_responsable" projet.id %}', {
@@ -993,7 +913,15 @@ document.getElementById('definirResponsableForm').addEventListener('submit', fun
     .then(data => {
         if (data.success) {
             fermerModalDefinirResponsable();
-            location.reload();
+            // Afficher message de succès
+            const message = document.createElement('div');
+            message.className = 'fixed top-4 right-4 bg-yellow-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-fade-in';
+            message.innerHTML = '<i class="fas fa-crown mr-2"></i>Responsable défini avec succès !';
+            document.body.appendChild(message);
+            setTimeout(() => {
+                message.remove();
+                location.reload(); // Recharger pour mettre à jour la liste
+            }, 1500);
         } else {
             alert('Erreur: ' + data.error);
             submitBtn.innerHTML = originalText;

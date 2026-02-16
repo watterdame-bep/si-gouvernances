@@ -6,68 +6,78 @@
 {% block content %}
 <div class="max-w-7xl mx-auto p-3 md:p-6 space-y-4 md:space-y-6 bg-gray-50 min-h-screen">
 
-    <!-- 6 Cards Obligatoires - 2 par ligne mobile, 3 par ligne desktop -->
+    {% if user.est_super_admin %}
+    <!-- DASHBOARD ADMIN -->
+    <!-- 6 Cards Statistiques Admin - 2 par ligne mobile, 3 par ligne desktop -->
     <div class="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-4">
-        <!-- Total Projets -->
+        <!-- Projets En Cours -->
         <div class="bg-white rounded-xl p-3 md:p-4 shadow-lg hover:shadow-xl transition-shadow duration-300">
             <div class="flex items-center justify-between mb-2 md:mb-3">
-                <div class="w-8 h-8 md:w-10 md:h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-folder-open text-white text-sm md:text-base"></i>
-                </div>
-                <div class="text-right">
-                    <div class="text-lg md:text-2xl font-bold text-slate-900">{{ total_projets }}</div>
-                    <div class="text-xs font-medium text-slate-600">Total Projets</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Projets Actifs -->
-        <div class="bg-white rounded-xl p-3 md:p-4 shadow-lg hover:shadow-xl transition-shadow duration-300">
-            <div class="flex items-center justify-between mb-2 md:mb-3">
-                <div class="w-8 h-8 md:w-10 md:h-10 bg-emerald-600 rounded-lg flex items-center justify-center">
+                <div class="w-8 h-8 md:w-10 md:h-10 bg-green-600 rounded-lg flex items-center justify-center">
                     <i class="fas fa-play text-white text-sm md:text-base"></i>
                 </div>
                 <div class="text-right">
-                    <div class="text-lg md:text-2xl font-bold text-slate-900">{{ projets_actifs }}</div>
-                    <div class="text-xs font-medium text-slate-600">Projets Actifs</div>
+                    <div class="text-lg md:text-2xl font-bold text-slate-900">{{ projets_en_cours }}</div>
+                    <div class="text-xs font-medium text-slate-600">En Cours</div>
                 </div>
             </div>
         </div>
 
-        <!-- Projets à Risque -->
+        <!-- Projets Terminés -->
         <div class="bg-white rounded-xl p-3 md:p-4 shadow-lg hover:shadow-xl transition-shadow duration-300">
             <div class="flex items-center justify-between mb-2 md:mb-3">
-                <div class="w-8 h-8 md:w-10 md:h-10 bg-orange-600 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-exclamation-triangle text-white text-sm md:text-base"></i>
+                <div class="w-8 h-8 md:w-10 md:h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-check-circle text-white text-sm md:text-base"></i>
                 </div>
                 <div class="text-right">
-                    <div class="text-lg md:text-2xl font-bold text-slate-900">{% if projets_a_risque %}{{ projets_a_risque }}{% else %}2{% endif %}</div>
-                    <div class="text-xs font-medium text-slate-600">Projets à Risque</div>
+                    <div class="text-lg md:text-2xl font-bold text-slate-900">{{ projets_termines }}</div>
+                    <div class="text-xs font-medium text-slate-600">Terminés</div>
                 </div>
             </div>
         </div>
 
-        <!-- Budget Global Consommé -->
+        <!-- Projets Non Démarrés -->
+        <div class="bg-white rounded-xl p-3 md:p-4 shadow-lg hover:shadow-xl transition-shadow duration-300">
+            <div class="flex items-center justify-between mb-2 md:mb-3">
+                <div class="w-8 h-8 md:w-10 md:h-10 bg-gray-600 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-pause text-white text-sm md:text-base"></i>
+                </div>
+                <div class="text-right">
+                    <div class="text-lg md:text-2xl font-bold text-slate-900">{{ projets_non_demarres }}</div>
+                    <div class="text-xs font-medium text-slate-600">Non Démarrés</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Budget Consommé (Projets En Cours) -->
         <div class="bg-white rounded-xl p-3 md:p-4 shadow-lg hover:shadow-xl transition-shadow duration-300">
             <div class="flex items-center justify-between mb-2 md:mb-3">
                 <div class="w-8 h-8 md:w-10 md:h-10 bg-purple-600 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-chart-pie text-white text-sm md:text-base"></i>
+                    <i class="fas fa-dollar-sign text-white text-sm md:text-base"></i>
                 </div>
                 <div class="text-right">
-                    <div class="text-base md:text-xl font-bold text-slate-900">{% if budget_global %}{{ budget_global|floatformat:0 }}K€{% else %}1.2M€{% endif %}</div>
+                    <div class="text-base md:text-xl font-bold text-slate-900">
+                        {% if budget_consomme >= 1000000 %}
+                            ${{ budget_consomme|floatformat:1|slice:":-7" }}M
+                        {% elif budget_consomme >= 1000 %}
+                            ${{ budget_consomme|floatformat:0|slice:":-3" }}K
+                        {% else %}
+                            ${{ budget_consomme|floatformat:0 }}
+                        {% endif %}
+                    </div>
                     <div class="text-xs font-medium text-slate-600">Budget Consommé</div>
                 </div>
             </div>
         </div>
 
-        <!-- Alertes Actives -->
+        <!-- Alertes Projets En Cours -->
         <div class="bg-white rounded-xl p-3 md:p-4 shadow-lg hover:shadow-xl transition-shadow duration-300">
             <div class="flex items-center justify-between mb-2 md:mb-3">
-                <div class="w-8 h-8 md:w-10 md:h-10 bg-red-600 rounded-lg flex items-center justify-center">
+                <div class="w-8 h-8 md:w-10 md:h-10 bg-orange-600 rounded-lg flex items-center justify-center">
                     <i class="fas fa-bell text-white text-sm md:text-base"></i>
                 </div>
                 <div class="text-right">
-                    <div class="text-lg md:text-2xl font-bold text-slate-900">{% if alertes_actives %}{{ alertes_actives }}{% else %}5{% endif %}</div>
+                    <div class="text-lg md:text-2xl font-bold text-slate-900">{{ alertes_projets_en_cours }}</div>
                     <div class="text-xs font-medium text-slate-600">Alertes Actives</div>
                 </div>
             </div>
@@ -95,13 +105,11 @@
                 <span class="hidden sm:inline">Nouveau Projet</span>
                 <span class="sm:hidden">Projet</span>
             </a>
-            {% if user.est_super_admin %}
             <a href="{% url 'creer_membre' %}" class="flex items-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium transition-colors text-sm">
                 <i class="fas fa-user-plus mr-2"></i>
                 <span class="hidden sm:inline">Nouveau Membre</span>
                 <span class="sm:hidden">Membre</span>
             </a>
-            {% endif %}
         </div>
     </div>
 
@@ -139,6 +147,7 @@
             </div>
         </div>
     </div>
+    <!-- Alertes Critiques -->
     <div class="bg-white rounded-lg shadow-lg overflow-hidden">
         <div class="px-6 py-4 border-b border-slate-200 bg-slate-50">
             <div class="flex items-center justify-between">
@@ -148,52 +157,67 @@
                     </div>
                     <div>
                         <h3 class="text-lg font-semibold text-slate-900">Alertes Critiques</h3>
-                        <p class="text-sm text-slate-600">Surveillance en temps réel</p>
+                        <p class="text-sm text-slate-600">Projets nécessitant une attention immédiate</p>
                     </div>
                 </div>
                 <span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-medium">
-                    5 Actives
+                    {{ alertes_critiques|length }} Active{{ alertes_critiques|length|pluralize }}
                 </span>
             </div>
         </div>
         
         <div class="p-6 space-y-4">
-            <!-- Alertes Critiques -->
-            <div class="flex items-center p-4 bg-red-50 border border-red-200 rounded-lg">
-                <div class="w-10 h-10 bg-red-500 rounded-lg flex items-center justify-center mr-4">
-                    <i class="fas fa-exclamation text-white"></i>
+            {% if alertes_critiques %}
+                {% for alerte in alertes_critiques %}
+                <div class="flex items-center p-4 
+                    {% if alerte.type_alerte == 'PROJET_EN_RETARD' %}bg-red-50 border border-red-200
+                    {% elif alerte.type_alerte == 'BUDGET_DEPASSE' %}bg-orange-50 border border-orange-200
+                    {% else %}bg-yellow-50 border border-yellow-200{% endif %} rounded-lg">
+                    <div class="w-10 h-10 
+                        {% if alerte.type_alerte == 'PROJET_EN_RETARD' %}bg-red-500
+                        {% elif alerte.type_alerte == 'BUDGET_DEPASSE' %}bg-orange-500
+                        {% else %}bg-yellow-500{% endif %} rounded-lg flex items-center justify-center mr-4">
+                        <i class="fas 
+                            {% if alerte.type_alerte == 'PROJET_EN_RETARD' %}fa-clock
+                            {% elif alerte.type_alerte == 'BUDGET_DEPASSE' %}fa-dollar-sign
+                            {% else %}fa-exclamation{% endif %} text-white"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="font-medium 
+                            {% if alerte.type_alerte == 'PROJET_EN_RETARD' %}text-red-800
+                            {% elif alerte.type_alerte == 'BUDGET_DEPASSE' %}text-orange-800
+                            {% else %}text-yellow-800{% endif %}">
+                            {{ alerte.get_type_alerte_display }} - {{ alerte.projet.nom }}
+                        </div>
+                        <div class="text-sm 
+                            {% if alerte.type_alerte == 'PROJET_EN_RETARD' %}text-red-600
+                            {% elif alerte.type_alerte == 'BUDGET_DEPASSE' %}text-orange-600
+                            {% else %}text-yellow-600{% endif %}">
+                            {{ alerte.message }}
+                        </div>
+                    </div>
+                    <div class="text-sm 
+                        {% if alerte.type_alerte == 'PROJET_EN_RETARD' %}text-red-600
+                        {% elif alerte.type_alerte == 'BUDGET_DEPASSE' %}text-orange-600
+                        {% else %}text-yellow-600{% endif %} font-medium">
+                        {% if alerte.type_alerte == 'PROJET_EN_RETARD' %}Critique
+                        {% elif alerte.type_alerte == 'BUDGET_DEPASSE' %}Urgent
+                        {% else %}Attention{% endif %}
+                    </div>
                 </div>
-                <div class="flex-1">
-                    <div class="font-medium text-red-800">Budget dépassé - Projet Alpha</div>
-                    <div class="text-sm text-red-600">Dépassement de 15% du budget alloué</div>
+                {% endfor %}
+            {% else %}
+                <div class="text-center py-8">
+                    <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <i class="fas fa-check text-green-600 text-2xl"></i>
+                    </div>
+                    <p class="text-slate-600 font-medium">Aucune alerte critique</p>
+                    <p class="text-sm text-slate-500 mt-1">Tous les projets sont sous contrôle</p>
                 </div>
-                <div class="text-sm text-red-600 font-medium">Critique</div>
-            </div>
-            
-            <div class="flex items-center p-4 bg-orange-50 border border-orange-200 rounded-lg">
-                <div class="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center mr-4">
-                    <i class="fas fa-clock text-white"></i>
-                </div>
-                <div class="flex-1">
-                    <div class="font-medium text-orange-800">Retard de livraison - Projet Beta</div>
-                    <div class="text-sm text-orange-600">3 jours de retard sur le planning</div>
-                </div>
-                <div class="text-sm text-orange-600 font-medium">Attention</div>
-            </div>
-            
-            <div class="flex items-center p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <div class="w-10 h-10 bg-yellow-500 rounded-lg flex items-center justify-center mr-4">
-                    <i class="fas fa-user-times text-white"></i>
-                </div>
-                <div class="flex-1">
-                    <div class="font-medium text-yellow-800">Ressource indisponible</div>
-                    <div class="text-sm text-yellow-600">Développeur senior en congé maladie</div>
-                </div>
-                <div class="text-sm text-yellow-600 font-medium">Modéré</div>
-            </div>
+            {% endif %}
             
             <div class="text-center pt-4">
-                <a href="{% url 'audit' %}" class="inline-flex items-center text-sm font-medium text-slate-600 hover:text-slate-800 transition-colors">
+                <a href="{% url 'alertes' %}" class="inline-flex items-center text-sm font-medium text-slate-600 hover:text-slate-800 transition-colors">
                     <span>Voir toutes les alertes</span>
                     <i class="fas fa-arrow-right ml-2 text-xs"></i>
                 </a>
@@ -218,41 +242,57 @@
             </div>
             
             <div class="p-4 md:p-6 space-y-3">
-                <!-- Projet en retard -->
-                <div class="flex items-center p-3 bg-red-50 border-l-4 border-red-500 rounded-r-lg">
-                    <div class="w-6 h-6 md:w-8 md:h-8 bg-red-500 rounded-full flex items-center justify-center mr-3">
-                        <i class="fas fa-clock text-white text-xs"></i>
+                {% if projets_a_surveiller %}
+                    {% for item in projets_a_surveiller %}
+                    <div class="flex items-center p-3 
+                        {% if item.severite == 'critique' %}bg-red-50 border-l-4 border-red-500
+                        {% elif item.severite == 'urgent' %}bg-orange-50 border-l-4 border-orange-500
+                        {% else %}bg-yellow-50 border-l-4 border-yellow-500{% endif %} rounded-r-lg">
+                        <div class="w-6 h-6 md:w-8 md:h-8 
+                            {% if item.severite == 'critique' %}bg-red-500
+                            {% elif item.severite == 'urgent' %}bg-orange-500
+                            {% else %}bg-yellow-500{% endif %} rounded-full flex items-center justify-center mr-3">
+                            <i class="fas 
+                                {% if item.type == 'retard' %}fa-clock
+                                {% elif item.type == 'sans_responsable' %}fa-user-slash
+                                {% else %}fa-dollar-sign{% endif %} text-white text-xs"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="font-medium 
+                                {% if item.severite == 'critique' %}text-red-800
+                                {% elif item.severite == 'urgent' %}text-orange-800
+                                {% else %}text-yellow-800{% endif %} text-sm">
+                                {{ item.projet.nom }} - 
+                                {% if item.type == 'retard' %}En retard
+                                {% elif item.type == 'sans_responsable' %}Sans responsable
+                                {% else %}Budget dépassé{% endif %}
+                            </div>
+                            <div class="text-xs 
+                                {% if item.severite == 'critique' %}text-red-600
+                                {% elif item.severite == 'urgent' %}text-orange-600
+                                {% else %}text-yellow-600{% endif %}">
+                                {{ item.message }}
+                            </div>
+                        </div>
+                        <span class="px-2 py-1 rounded-full text-xs font-medium
+                            {% if item.severite == 'critique' %}bg-red-100 text-red-700
+                            {% elif item.severite == 'urgent' %}bg-orange-100 text-orange-700
+                            {% else %}bg-yellow-100 text-yellow-700{% endif %}">
+                            {% if item.severite == 'critique' %}Critique
+                            {% elif item.severite == 'urgent' %}Urgent
+                            {% else %}Attention{% endif %}
+                        </span>
                     </div>
-                    <div class="flex-1 min-w-0">
-                        <div class="font-medium text-red-800 text-sm">Projet Alpha - En retard</div>
-                        <div class="text-xs text-red-600">Livraison prévue il y a 5 jours</div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-8">
+                        <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <i class="fas fa-check text-green-600 text-2xl"></i>
+                        </div>
+                        <p class="text-slate-600 font-medium">Aucun projet à surveiller</p>
+                        <p class="text-sm text-slate-500 mt-1">Tous les projets sont sous contrôle</p>
                     </div>
-                    <span class="bg-red-100 text-red-700 px-2 py-1 rounded-full text-xs font-medium">Critique</span>
-                </div>
-                
-                <!-- Projet sans responsable -->
-                <div class="flex items-center p-3 bg-orange-50 border-l-4 border-orange-500 rounded-r-lg">
-                    <div class="w-6 h-6 md:w-8 md:h-8 bg-orange-500 rounded-full flex items-center justify-center mr-3">
-                        <i class="fas fa-user-slash text-white text-xs"></i>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <div class="font-medium text-orange-800 text-sm">Projet Gamma - Sans responsable</div>
-                        <div class="text-xs text-orange-600">Aucun responsable principal assigné</div>
-                    </div>
-                    <span class="bg-orange-100 text-orange-700 px-2 py-1 rounded-full text-xs font-medium">Urgent</span>
-                </div>
-                
-                <!-- Budget dépassé -->
-                <div class="flex items-center p-3 bg-yellow-50 border-l-4 border-yellow-500 rounded-r-lg">
-                    <div class="w-6 h-6 md:w-8 md:h-8 bg-yellow-500 rounded-full flex items-center justify-center mr-3">
-                        <i class="fas fa-euro-sign text-white text-xs"></i>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <div class="font-medium text-yellow-800 text-sm">Projet Delta - Budget dépassé</div>
-                        <div class="text-xs text-yellow-600">120% du budget initial consommé</div>
-                    </div>
-                    <span class="bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full text-xs font-medium">Attention</span>
-                </div>
+                {% endif %}
                 
                 <div class="text-center pt-3">
                     <a href="{% url 'projets_list' %}" class="text-sm font-medium text-slate-600 hover:text-slate-800 transition-colors">
@@ -276,7 +316,12 @@
                         </div>
                     </div>
                     <div class="text-right">
-                        <div class="text-xl md:text-2xl font-bold text-green-600">85%</div>
+                        <div class="text-xl md:text-2xl font-bold 
+                            {% if score_sante_global >= 75 %}text-green-600
+                            {% elif score_sante_global >= 50 %}text-orange-600
+                            {% else %}text-red-600{% endif %}">
+                            {{ score_sante_global }}%
+                        </div>
                         <div class="text-xs text-slate-500">Score global</div>
                     </div>
                 </div>
@@ -285,49 +330,39 @@
             <div class="p-4 md:p-6 space-y-3 md:space-y-4">
                 <!-- Checklist automatique -->
                 <div class="space-y-3">
-                    <!-- Bon indicateur -->
-                    <div class="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+                    {% for indicateur in indicateurs_sante %}
+                    <div class="flex items-center justify-between p-3 
+                        {% if indicateur.statut == 'ok' %}bg-green-50 border border-green-200
+                        {% elif indicateur.statut == 'attention' %}bg-orange-50 border border-orange-200
+                        {% else %}bg-red-50 border border-red-200{% endif %} rounded-lg">
                         <div class="flex items-center">
-                            <div class="w-5 h-5 md:w-6 md:h-6 bg-green-500 rounded-full flex items-center justify-center mr-3">
-                                <i class="fas fa-check text-white text-xs"></i>
+                            <div class="w-5 h-5 md:w-6 md:h-6 
+                                {% if indicateur.statut == 'ok' %}bg-green-500
+                                {% elif indicateur.statut == 'attention' %}bg-orange-500
+                                {% else %}bg-red-500{% endif %} rounded-full flex items-center justify-center mr-3">
+                                <i class="fas 
+                                    {% if indicateur.statut == 'ok' %}fa-check
+                                    {% elif indicateur.statut == 'attention' %}fa-exclamation
+                                    {% else %}fa-times{% endif %} text-white text-xs"></i>
                             </div>
-                            <span class="text-sm font-medium text-green-800">Tous les projets ont un responsable</span>
+                            <span class="text-sm font-medium 
+                                {% if indicateur.statut == 'ok' %}text-green-800
+                                {% elif indicateur.statut == 'attention' %}text-orange-800
+                                {% else %}text-red-800{% endif %}">
+                                {{ indicateur.titre }}
+                            </span>
                         </div>
-                        <span class="text-xs text-green-600 font-medium"><i class="fas fa-check mr-1"></i>OK</span>
+                        <span class="text-xs font-medium
+                            {% if indicateur.statut == 'ok' %}text-green-600
+                            {% elif indicateur.statut == 'attention' %}text-orange-600
+                            {% else %}text-red-600{% endif %}">
+                            <i class="fas 
+                                {% if indicateur.statut == 'ok' %}fa-check
+                                {% elif indicateur.statut == 'attention' %}fa-exclamation-triangle
+                                {% else %}fa-times-circle{% endif %} mr-1"></i>{{ indicateur.message }}
+                        </span>
                     </div>
-                    
-                    <!-- Indicateur d'attention -->
-                    <div class="flex items-center justify-between p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                        <div class="flex items-center">
-                            <div class="w-5 h-5 md:w-6 md:h-6 bg-orange-500 rounded-full flex items-center justify-center mr-3">
-                                <i class="fas fa-exclamation text-white text-xs"></i>
-                            </div>
-                            <span class="text-sm font-medium text-orange-800">2 utilisateurs inactifs affectés</span>
-                        </div>
-                        <span class="text-xs text-orange-600 font-medium"><i class="fas fa-exclamation-triangle mr-1"></i>Action</span>
-                    </div>
-                    
-                    <!-- Indicateur critique -->
-                    <div class="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg">
-                        <div class="flex items-center">
-                            <div class="w-5 h-5 md:w-6 md:h-6 bg-red-500 rounded-full flex items-center justify-center mr-3">
-                                <i class="fas fa-times text-white text-xs"></i>
-                            </div>
-                            <span class="text-sm font-medium text-red-800">3 budgets sans validation</span>
-                        </div>
-                        <span class="text-xs text-red-600 font-medium"><i class="fas fa-times-circle mr-1"></i>Urgent</span>
-                    </div>
-                    
-                    <!-- Bon indicateur -->
-                    <div class="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
-                        <div class="flex items-center">
-                            <div class="w-5 h-5 md:w-6 md:h-6 bg-green-500 rounded-full flex items-center justify-center mr-3">
-                                <i class="fas fa-check text-white text-xs"></i>
-                            </div>
-                            <span class="text-sm font-medium text-green-800">Audit à jour</span>
-                        </div>
-                        <span class="text-xs text-green-600 font-medium"><i class="fas fa-check mr-1"></i>OK</span>
-                    </div>
+                    {% endfor %}
                 </div>
                 
                 <div class="text-center pt-3 border-t border-slate-200">
@@ -442,15 +477,16 @@ const statutCtx = document.getElementById('statutChart').getContext('2d');
 new Chart(statutCtx, {
     type: 'doughnut',
     data: {
-        labels: ['En cours', 'Planifié', 'Terminé', 'Idée', 'Suspendu'],
+        labels: [{% for label, count in projets_par_statut.items %}'{{ label }}'{% if not forloop.last %}, {% endif %}{% endfor %}],
         datasets: [{
-            data: [{{ projets_actifs|default:0 }}, 3, 2, 1, 1],
+            data: [{% for label, count in projets_par_statut.items %}{{ count }}{% if not forloop.last %}, {% endif %}{% endfor %}],
             backgroundColor: [
-                '#10b981', // Vert pour En cours
-                '#8b5cf6', // Violet pour Planifié
-                '#059669', // Vert foncé pour Terminé
-                '#6b7280', // Gris pour Idée
-                '#ef4444'  // Rouge pour Suspendu
+                '#10b981', // Vert
+                '#8b5cf6', // Violet
+                '#3b82f6', // Bleu
+                '#f59e0b', // Orange
+                '#ef4444', // Rouge
+                '#6b7280'  // Gris
             ],
             borderWidth: 2,
             borderColor: '#ffffff'
@@ -463,8 +499,22 @@ new Chart(statutCtx, {
             legend: {
                 position: 'bottom',
                 labels: {
-                    padding: 20,
-                    usePointStyle: true
+                    padding: 15,
+                    usePointStyle: true,
+                    font: {
+                        size: 11
+                    }
+                }
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        let label = context.label || '';
+                        let value = context.parsed || 0;
+                        let total = context.dataset.data.reduce((a, b) => a + b, 0);
+                        let percentage = ((value / total) * 100).toFixed(1);
+                        return label + ': ' + value + ' (' + percentage + '%)';
+                    }
                 }
             }
         }
@@ -476,10 +526,10 @@ const budgetCtx = document.getElementById('budgetChart').getContext('2d');
 new Chart(budgetCtx, {
     type: 'bar',
     data: {
-        labels: ['Critique', 'Haute', 'Moyenne', 'Basse'],
+        labels: [{% for label, montant in budget_par_priorite.items %}'{{ label }}'{% if not forloop.last %}, {% endif %}{% endfor %}],
         datasets: [{
-            label: 'Budget (K€)',
-            data: [450, 320, 180, 50],
+            label: 'Budget ($)',
+            data: [{% for label, montant in budget_par_priorite.items %}{{ montant }}{% if not forloop.last %}, {% endif %}{% endfor %}],
             backgroundColor: [
                 '#ef4444', // Rouge pour Critique
                 '#f59e0b', // Orange pour Haute
@@ -496,6 +546,19 @@ new Chart(budgetCtx, {
         plugins: {
             legend: {
                 display: false
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        let value = context.parsed.y;
+                        if (value >= 1000000) {
+                            return '$' + (value / 1000000).toFixed(2) + 'M';
+                        } else if (value >= 1000) {
+                            return '$' + (value / 1000).toFixed(0) + 'K';
+                        }
+                        return '$' + value.toFixed(0);
+                    }
+                }
             }
         },
         scales: {
@@ -503,7 +566,12 @@ new Chart(budgetCtx, {
                 beginAtZero: true,
                 ticks: {
                     callback: function(value) {
-                        return value + 'K€';
+                        if (value >= 1000000) {
+                            return '$' + (value / 1000000).toFixed(1) + 'M';
+                        } else if (value >= 1000) {
+                            return '$' + (value / 1000).toFixed(0) + 'K';
+                        }
+                        return '$' + value;
                     }
                 }
             }
@@ -511,4 +579,282 @@ new Chart(budgetCtx, {
     }
 });
 </script>
+
+{% else %}
+<!-- DASHBOARD UTILISATEUR NORMAL -->
+<!-- 3 Cards Statistiques Utilisateur -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <!-- Total Mes Projets -->
+    <div class="bg-white rounded-xl p-4 shadow-lg hover:shadow-xl transition-shadow duration-300">
+        <div class="flex items-center justify-between mb-3">
+            <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                <i class="fas fa-folder text-white"></i>
+            </div>
+            <div class="text-right">
+                <div class="text-2xl font-bold text-slate-900">{{ total_mes_projets }}</div>
+                <div class="text-xs font-medium text-slate-600">Mes Projets</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mes Projets En Cours -->
+    <div class="bg-white rounded-xl p-4 shadow-lg hover:shadow-xl transition-shadow duration-300">
+        <div class="flex items-center justify-between mb-3">
+            <div class="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
+                <i class="fas fa-play text-white"></i>
+            </div>
+            <div class="text-right">
+                <div class="text-2xl font-bold text-slate-900">{{ projets_en_cours }}</div>
+                <div class="text-xs font-medium text-slate-600">En Cours</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mes Projets Terminés -->
+    <div class="bg-white rounded-xl p-4 shadow-lg hover:shadow-xl transition-shadow duration-300">
+        <div class="flex items-center justify-between mb-3">
+            <div class="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
+                <i class="fas fa-check-circle text-white"></i>
+            </div>
+            <div class="text-right">
+                <div class="text-2xl font-bold text-slate-900">{{ projets_termines }}</div>
+                <div class="text-xs font-medium text-slate-600">Terminés</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Graphique Mes Projets par Statut -->
+<div class="bg-white rounded-lg shadow-lg p-6">
+    <div class="flex items-center mb-4">
+        <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+            <i class="fas fa-chart-pie text-blue-600"></i>
+        </div>
+        <div>
+            <h3 class="text-lg font-semibold text-slate-900">Mes Projets par Statut</h3>
+            <p class="text-sm text-slate-600">Répartition de mes projets</p>
+        </div>
+    </div>
+    <div class="h-64 flex items-center justify-center">
+        {% if mes_projets_par_statut %}
+        <canvas id="mesStatutChart"></canvas>
+        {% else %}
+        <div class="text-center py-12">
+            <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-folder-open text-slate-400 text-2xl"></i>
+            </div>
+            <p class="text-sm font-medium text-slate-600 mb-2">Aucun projet assigné</p>
+            <p class="text-xs text-slate-500">Vous serez notifié lorsqu'un projet vous sera assigné</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Mes Alertes Critiques -->
+<div class="bg-white rounded-lg shadow-lg overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-200 bg-slate-50">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-exclamation-triangle text-white"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-slate-900">Mes Alertes</h3>
+                    <p class="text-sm text-slate-600">Alertes liées à mes projets et tâches</p>
+                </div>
+            </div>
+            <span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-medium">
+                {{ mes_alertes_critiques|length }} Active{{ mes_alertes_critiques|length|pluralize }}
+            </span>
+        </div>
+    </div>
+    
+    <div class="p-6 space-y-4">
+        {% if mes_alertes_critiques %}
+            {% for alerte in mes_alertes_critiques %}
+            <div class="flex items-center p-4 
+                {% if alerte.type_alerte == 'PROJET_EN_RETARD' or alerte.type_alerte == 'TACHE_EN_RETARD' %}bg-red-50 border border-red-200
+                {% elif alerte.type_alerte == 'BUDGET_DEPASSE' %}bg-orange-50 border border-orange-200
+                {% else %}bg-yellow-50 border border-yellow-200{% endif %} rounded-lg">
+                <div class="w-10 h-10 
+                    {% if alerte.type_alerte == 'PROJET_EN_RETARD' or alerte.type_alerte == 'TACHE_EN_RETARD' %}bg-red-500
+                    {% elif alerte.type_alerte == 'BUDGET_DEPASSE' %}bg-orange-500
+                    {% else %}bg-yellow-500{% endif %} rounded-lg flex items-center justify-center mr-4">
+                    <i class="fas 
+                        {% if alerte.type_alerte == 'PROJET_EN_RETARD' or alerte.type_alerte == 'TACHE_EN_RETARD' %}fa-clock
+                        {% elif alerte.type_alerte == 'BUDGET_DEPASSE' %}fa-dollar-sign
+                        {% else %}fa-exclamation{% endif %} text-white"></i>
+                </div>
+                <div class="flex-1">
+                    <div class="font-medium 
+                        {% if alerte.type_alerte == 'PROJET_EN_RETARD' or alerte.type_alerte == 'TACHE_EN_RETARD' %}text-red-800
+                        {% elif alerte.type_alerte == 'BUDGET_DEPASSE' %}text-orange-800
+                        {% else %}text-yellow-800{% endif %}">
+                        {{ alerte.get_type_alerte_display }} - {{ alerte.projet.nom }}
+                    </div>
+                    <div class="text-sm 
+                        {% if alerte.type_alerte == 'PROJET_EN_RETARD' or alerte.type_alerte == 'TACHE_EN_RETARD' %}text-red-600
+                        {% elif alerte.type_alerte == 'BUDGET_DEPASSE' %}text-orange-600
+                        {% else %}text-yellow-600{% endif %}">
+                        {{ alerte.message }}
+                    </div>
+                </div>
+                <div class="text-sm 
+                    {% if alerte.type_alerte == 'PROJET_EN_RETARD' or alerte.type_alerte == 'TACHE_EN_RETARD' %}text-red-600
+                    {% elif alerte.type_alerte == 'BUDGET_DEPASSE' %}text-orange-600
+                    {% else %}text-yellow-600{% endif %} font-medium">
+                    {% if alerte.type_alerte == 'PROJET_EN_RETARD' or alerte.type_alerte == 'TACHE_EN_RETARD' %}Critique
+                    {% elif alerte.type_alerte == 'BUDGET_DEPASSE' %}Urgent
+                    {% else %}Attention{% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="text-center py-8">
+                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <i class="fas fa-check text-green-600 text-2xl"></i>
+                </div>
+                <p class="text-slate-600 font-medium">Aucune alerte</p>
+                <p class="text-sm text-slate-500 mt-1">Tous vos projets sont sous contrôle</p>
+            </div>
+        {% endif %}
+        
+        <div class="text-center pt-4">
+            <a href="{% url 'alertes' %}" class="inline-flex items-center text-sm font-medium text-slate-600 hover:text-slate-800 transition-colors">
+                <span>Voir toutes les alertes</span>
+                <i class="fas fa-arrow-right ml-2 text-xs"></i>
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Mes Projets Récents -->
+<div class="bg-white rounded-lg shadow-lg overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-200 bg-slate-50">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-slate-600 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-folder text-white"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-slate-900">Mes Projets</h3>
+                    <p class="text-sm text-slate-600">Projets auxquels je participe</p>
+                </div>
+            </div>
+            <a href="{% url 'projets_list' %}" class="flex items-center px-3 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg font-medium transition-colors text-sm">
+                <span class="mr-2">Voir tous</span>
+                <i class="fas fa-arrow-right text-xs"></i>
+            </a>
+        </div>
+    </div>
+    
+    <div class="p-6">
+        {% if mes_projets %}
+            {% for projet in mes_projets|slice:":5" %}
+            <div class="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-b-0">
+                <div class="flex items-center space-x-4 flex-1">
+                    <div class="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <span class="text-white font-semibold text-lg">{{ projet.nom.0|upper }}</span>
+                    </div>
+                    
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center space-x-3 mb-1">
+                            <h4 class="text-sm font-semibold text-slate-900 truncate">{{ projet.nom }}</h4>
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+                                {% if projet.statut.nom == 'IDEE' %}bg-gray-100 text-gray-800
+                                {% elif projet.statut.nom == 'AFFECTE' %}bg-blue-100 text-blue-800
+                                {% elif projet.statut.nom == 'PLANIFIE' %}bg-purple-100 text-purple-800
+                                {% elif projet.statut.nom == 'EN_COURS' %}bg-yellow-100 text-yellow-800
+                                {% elif projet.statut.nom == 'TERMINE' %}bg-green-100 text-green-800
+                                {% elif projet.statut.nom == 'SUSPENDU' %}bg-red-100 text-red-800
+                                {% endif %}">
+                                {{ projet.statut.get_nom_display }}
+                            </span>
+                        </div>
+                        
+                        <div class="flex items-center space-x-4 text-xs text-slate-600">
+                            <span class="flex items-center">
+                                <i class="fas fa-calendar mr-1"></i>
+                                {{ projet.date_creation|date:"d/m/Y" }}
+                            </span>
+                            {% if projet.client %}
+                            <span class="flex items-center">
+                                <i class="fas fa-building mr-1"></i>
+                                {{ projet.client|truncatechars:20 }}
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <a href="{% url 'projet_detail' projet.id %}" class="w-8 h-8 bg-slate-600 hover:bg-slate-700 text-white rounded-lg flex items-center justify-center transition-colors ml-4" title="Voir le projet">
+                    <i class="fas fa-arrow-right text-xs"></i>
+                </a>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="text-center py-12">
+                <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-folder-open text-slate-400 text-xl"></i>
+                </div>
+                <p class="text-sm font-medium text-slate-600 mb-2">Aucun projet assigné</p>
+                <p class="text-xs text-slate-500">Vous serez notifié lorsqu'un projet vous sera assigné</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+{% if mes_projets_par_statut %}
+// Graphique Mes Projets par Statut (Donut)
+const mesStatutCtx = document.getElementById('mesStatutChart').getContext('2d');
+new Chart(mesStatutCtx, {
+    type: 'doughnut',
+    data: {
+        labels: [{% for label, count in mes_projets_par_statut.items %}'{{ label }}'{% if not forloop.last %}, {% endif %}{% endfor %}],
+        datasets: [{
+            data: [{% for label, count in mes_projets_par_statut.items %}{{ count }}{% if not forloop.last %}, {% endif %}{% endfor %}],
+            backgroundColor: [
+                '#6b7280', // Gris pour Idée
+                '#8b5cf6', // Violet pour Planifié
+                '#f59e0b', // Orange pour En cours
+                '#10b981'  // Vert pour Terminé
+            ],
+            borderWidth: 2,
+            borderColor: '#ffffff'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: {
+                    padding: 15,
+                    usePointStyle: true,
+                    font: {
+                        size: 11
+                    }
+                }
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        let label = context.label || '';
+                        let value = context.parsed || 0;
+                        let total = context.dataset.data.reduce((a, b) => a + b, 0);
+                        let percentage = ((value / total) * 100).toFixed(1);
+                        return label + ': ' + value + ' (' + percentage + '%)';
+                    }
+                }
+            }
+        }
+    }
+});
+{% endif %}
+</script>
+
+{% endif %}
+</div>
 {% endblock %}

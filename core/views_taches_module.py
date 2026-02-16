@@ -521,6 +521,39 @@ def modifier_statut_tache_module_view(request, projet_id, module_id, tache_id):
             except Exception as e:
                 print(f"Erreur création notification tâche terminée: {e}")
         
+        # Notification CHANGEMENT_STATUT pour tous les changements de statut (sauf terminaison qui a déjà sa notification)
+        elif ancien_statut != nouveau_statut:
+            try:
+                from .models import NotificationModule
+                
+                # Notifier le responsable de la tâche si ce n'est pas lui qui fait le changement
+                if tache.responsable and tache.responsable != user:
+                    ancien_statut_display = tache.get_statut_display_from_value(ancien_statut)
+                    nouveau_statut_display = tache.get_statut_display_from_value(nouveau_statut)
+                    
+                    NotificationModule.objects.create(
+                        destinataire=tache.responsable,
+                        module=module,
+                        type_notification='CHANGEMENT_STATUT',
+                        titre=f'Changement de statut: {tache.nom}',
+                        message=f'Le statut de votre tâche "{tache.nom}" a été modifié de "{ancien_statut_display}" vers "{nouveau_statut_display}" par {user.get_full_name()}',
+                        emetteur=user,
+                        donnees_contexte={
+                            'tache_id': str(tache.id),
+                            'tache_nom': tache.nom,
+                            'ancien_statut': ancien_statut,
+                            'nouveau_statut': nouveau_statut,
+                            'ancien_statut_display': ancien_statut_display,
+                            'nouveau_statut_display': nouveau_statut_display,
+                            'module_id': str(module.id),
+                            'module_nom': module.nom,
+                            'projet_id': str(projet.id),
+                            'projet_nom': projet.nom,
+                        }
+                    )
+            except Exception as e:
+                print(f"Erreur création notification changement statut: {e}")
+        
         # Audit
         enregistrer_audit(
             utilisateur=user,
@@ -676,6 +709,13 @@ def modifier_statut_tache_module_view(request, projet_id, module_id, tache_id):
     module = get_object_or_404(ModuleProjet, id=module_id, projet=projet)
     tache = get_object_or_404(TacheModule, id=tache_id, module=module)
     
+    # Vérifier que le projet est démarré
+    if not projet.date_debut:
+        return JsonResponse({
+            'success': False, 
+            'error': 'Le projet n\'est pas encore démarré. Impossible de modifier le statut d\'une tâche.'
+        })
+    
     # Vérifier les permissions (responsable de la tâche ou gestionnaire du module)
     peut_modifier = False
     
@@ -771,6 +811,13 @@ def mettre_a_jour_progression_tache_module_view(request, projet_id, tache_id):
     if not user.est_super_admin():
         if not user.a_acces_projet(projet) and projet.createur != user:
             return JsonResponse({'success': False, 'error': 'Accès refusé au projet'})
+    
+    # Vérifier que le projet est démarré
+    if not projet.date_debut:
+        return JsonResponse({
+            'success': False, 
+            'error': 'Le projet n\'est pas encore démarré. Impossible de mettre à jour la progression d\'une tâche.'
+        })
     
     try:
         import json
@@ -902,6 +949,13 @@ def demarrer_tache_module_view(request, projet_id, tache_id):
     try:
         from django.utils import timezone
         
+        # NOUVELLE RÈGLE: Vérifier que le projet est démarré
+        if not projet.date_debut:
+            return JsonResponse({
+                'success': False, 
+                'error': 'Le projet n\'est pas encore démarré. Impossible de démarrer une tâche.'
+            })
+        
         # RÈGLE: Seul le responsable de la tâche peut la démarrer
         if not tache.responsable:
             return JsonResponse({'success': False, 'error': 'Cette tâche n\'a pas de responsable assigné'})
@@ -959,6 +1013,13 @@ def terminer_tache_module_view(request, projet_id, tache_id):
     
     try:
         from django.utils import timezone
+        
+        # NOUVELLE RÈGLE: Vérifier que le projet est démarré
+        if not projet.date_debut:
+            return JsonResponse({
+                'success': False, 
+                'error': 'Le projet n\'est pas encore démarré. Impossible de terminer une tâche.'
+            })
         
         # RÈGLE: Seul le responsable de la tâche peut la terminer
         if not tache.responsable:

@@ -91,6 +91,10 @@
                             <label for="email" class="block text-xs font-medium text-gray-700 mb-1">Email</label>
                             <input type="email" id="email" value="{{ user.email }}" disabled
                                    class="w-full px-2 py-1 border border-gray-300 rounded bg-gray-50 text-gray-500 text-xs">
+                            <p class="text-xs text-gray-500 mt-1">
+                                <i class="fas fa-info-circle mr-1"></i>
+                                Email utilisé pour la connexion
+                            </p>
                         </div>
                         
                         <div class="flex justify-end pt-1">
@@ -186,9 +190,23 @@
                         </div>
                         
                         <div>
-                            <label class="block text-xs font-medium text-gray-700 mb-1">Email personnel</label>
+                            <label for="email_personnel" class="block text-xs font-medium text-gray-700 mb-1">
+                                Email personnel
+                                {% if user.is_superuser %}
+                                <span class="text-blue-600">(Éditable - Admin)</span>
+                                {% endif %}
+                            </label>
+                            {% if user.is_superuser %}
+                            <input type="email" id="email_personnel" name="email_personnel" value="{{ membre.email_personnel }}"
+                                   class="w-full px-2 py-1 border border-blue-300 rounded text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-blue-50">
+                            <p class="text-xs text-blue-600 mt-1">
+                                <i class="fas fa-sync-alt mr-1"></i>
+                                Cet email sera synchronisé avec votre compte de connexion
+                            </p>
+                            {% else %}
                             <input type="email" value="{{ membre.email_personnel }}" disabled
                                    class="w-full px-2 py-1 border border-gray-300 rounded bg-gray-50 text-gray-500 text-xs">
+                            {% endif %}
                         </div>
                     </div>
                     
@@ -267,10 +285,24 @@
                             <i class="fas fa-info-circle text-blue-600 mt-0.5 mr-2 text-xs"></i>
                             <div>
                                 <p class="text-xs text-blue-800 font-medium">Informations RH</p>
+                                {% if user.is_superuser %}
+                                <p class="text-xs text-blue-700 mt-1">En tant qu'administrateur, vous pouvez modifier votre email personnel. Ce changement sera automatiquement synchronisé avec votre compte de connexion.</p>
+                                {% else %}
                                 <p class="text-xs text-blue-700 mt-1">Ces informations sont gérées par les ressources humaines. Pour toute modification, contactez votre administrateur.</p>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
+                    
+                    {% if user.is_superuser %}
+                    <!-- Bouton de sauvegarde pour admin -->
+                    <div class="flex justify-end pt-2">
+                        <button type="button" onclick="sauvegarderEmailPersonnel()" 
+                                class="inline-flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-medium transition-colors">
+                            <i class="fas fa-save mr-2"></i>Sauvegarder l'email
+                        </button>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
             {% else %}
@@ -624,6 +656,70 @@ function afficherMessage(message, type) {
             }
         }, 300);
     }, 4000);
+}
+
+// Fonction pour sauvegarder l'email personnel (Admin uniquement)
+function sauvegarderEmailPersonnel() {
+    const emailInput = document.getElementById('email_personnel');
+    if (!emailInput) {
+        afficherMessage('Champ email non trouvé', 'error');
+        return;
+    }
+    
+    const nouvelEmail = emailInput.value.trim();
+    
+    // Validation basique
+    if (!nouvelEmail) {
+        afficherMessage('L\'email ne peut pas être vide', 'error');
+        return;
+    }
+    
+    // Validation format email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(nouvelEmail)) {
+        afficherMessage('Format d\'email invalide', 'error');
+        return;
+    }
+    
+    // Confirmation
+    if (!confirm('Êtes-vous sûr de vouloir modifier votre email ?\n\nCet email sera utilisé pour vous connecter au système.\n\nNouveau email : ' + nouvelEmail)) {
+        return;
+    }
+    
+    // Envoyer la requête
+    fetch('{% url "modifier_email_admin" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            email_personnel: nouvelEmail
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            afficherMessage(data.message, 'success');
+            
+            // Mettre à jour l'affichage de l'email de connexion
+            const emailConnexion = document.getElementById('email');
+            if (emailConnexion) {
+                emailConnexion.value = nouvelEmail;
+            }
+            
+            // Afficher un message d'information supplémentaire
+            setTimeout(() => {
+                afficherMessage('Votre email de connexion a été mis à jour', 'info');
+            }, 1500);
+        } else {
+            afficherMessage('Erreur: ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        afficherMessage('Une erreur est survenue lors de la sauvegarde', 'error');
+    });
 }
 </script>
 

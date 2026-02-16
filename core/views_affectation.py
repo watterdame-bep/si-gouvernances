@@ -444,3 +444,150 @@ def retirer_membre_module_view(request, projet_id, module_id):
                 'projet_id': str(projet_id)
             }
         })
+
+
+@login_required
+@require_http_methods(["POST"])
+def modifier_role_module_view(request, projet_id, module_id, affectation_id):
+    """Modifier le rôle d'un membre sur un module"""
+    try:
+        from django.apps import apps
+        AffectationModule = apps.get_model('core', 'AffectationModule')
+        NotificationModule = apps.get_model('core', 'NotificationModule')
+        
+        # Récupération des objets
+        projet = get_object_or_404(Projet, id=projet_id)
+        module = get_object_or_404(ModuleProjet, id=module_id, projet=projet)
+        affectation = get_object_or_404(AffectationModule, id=affectation_id, module=module)
+        
+        # Vérification des permissions - Seulement responsable du projet
+        user = request.user
+        can_manage = (
+            user.est_super_admin() or 
+            projet.createur == user or
+            projet.affectations.filter(
+                utilisateur=user, 
+                est_responsable_principal=True,
+                date_fin__isnull=True
+            ).exists()
+        )
+        
+        if not can_manage:
+            return JsonResponse({
+                'success': False, 
+                'error': 'Seul le responsable du projet peut modifier les rôles.'
+            })
+        
+        # Récupérer le nouveau rôle
+        nouveau_role = request.POST.get('role_module')
+        if not nouveau_role or nouveau_role not in ['RESPONSABLE', 'CONTRIBUTEUR', 'CONSULTANT']:
+            return JsonResponse({
+                'success': False,
+                'error': 'Rôle invalide.'
+            })
+        
+        # Sauvegarder l'ancien rôle
+        ancien_role = affectation.role_module
+        
+        # Si pas de changement
+        if ancien_role == nouveau_role:
+            return JsonResponse({
+                'success': True,
+                'message': 'Aucun changement de rôle.'
+            })
+        
+        # Vérifier qu'on ne retire pas le seul responsable
+        if ancien_role == 'RESPONSABLE' and nouveau_role != 'RESPONSABLE':
+            autres_responsables = AffectationModule.objects.filter(
+                module=module,
+                role_module='RESPONSABLE',
+                date_fin_affectation__isnull=True
+            ).exclude(id=affectation.id).exists()
+            
+            if not autres_responsables:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Impossible de retirer le seul responsable du module. Nommez d\'abord un autre responsable.'
+                })
+        
+        # Vérifier qu'il n'y a pas déjà un autre responsable si on veut promouvoir
+        if nouveau_role == 'RESPONSABLE':
+            autre_responsable = AffectationModule.objects.filter(
+                module=module,
+                role_module='RESPONSABLE',
+                date_fin_affectation__isnull=True
+            ).exclude(id=affectation.id).first()
+            
+            if autre_responsable:
+                return JsonResponse({
+                    'success': False,
+                    'error': f'Le module a déjà un responsable : {autre_responsable.utilisateur.get_full_name()}.'
+                })
+        
+        # Mettre à jour le rôle
+        affectation.role_module = nouveau_role
+        
+        # Mettre à jour les permissions selon le rôle
+        if nouveau_role == 'RESPONSABLE':
+            affectation.peut_creer_taches = True
+            affectation.peut_voir_toutes_taches = True
+        else:
+            affectation.peut_creer_taches = False
+            affectation.peut_voir_toutes_taches = False
+        
+        affectation.save()
+        
+        # Créer la notification CHANGEMENT_ROLE
+        NotificationModule.objects.create(
+            destinataire=affectation.utilisateur,
+            module=module,
+            type_notification='CHANGEMENT_ROLE',
+            titre=f"Changement de rôle: {module.nom}",
+            message=f"Votre rôle sur le module '{module.nom}' a été modifié de {affectation.get_role_module_display_from_value(ancien_role)} à {affectation.get_role_module_display()}.",
+            emetteur=user,
+            donnees_contexte={
+                'ancien_role': ancien_role,
+                'nouveau_role': nouveau_role,
+                'date_changement': timezone.now().isoformat()
+            }
+        )
+        
+        # Audit
+        enregistrer_audit(
+            utilisateur=user,
+            type_action='MODIFICATION_ROLE_MODULE',
+            description=f'Modification du rôle de {affectation.utilisateur.get_full_name()} sur le module "{module.nom}"',
+            projet=projet,
+            donnees_avant={
+                'role': ancien_role
+            },
+            donnees_apres={
+                'role': nouveau_role,
+                'peut_creer_taches': affectation.peut_creer_taches,
+                'peut_voir_toutes_taches': affectation.peut_voir_toutes_taches
+            },
+            request=request
+        )
+        
+        messages.success(
+            request,
+            f'Rôle de {affectation.utilisateur.get_full_name()} modifié avec succès.'
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Rôle modifié de {ancien_role} à {nouveau_role}.',
+            'data': {
+                'ancien_role': ancien_role,
+                'nouveau_role': nouveau_role,
+                'utilisateur': affectation.utilisateur.get_full_name()
+            }
+        })
+        
+    except Exception as e:
+        import traceback
+        return JsonResponse({
+            'success': False,
+            'error': f'Erreur: {str(e)}',
+            'debug': traceback.format_exc()
+        })

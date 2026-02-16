@@ -10,8 +10,9 @@ from django.db import models
 from django.utils import timezone
 from django.core.exceptions import ValidationError, PermissionDenied
 from django.db import transaction
-from .models import Utilisateur, Projet, Affectation, ActionAudit, RoleSysteme, RoleProjet, StatutProjet, Membre, TypeEtape, EtapeProjet, ModuleProjet, TacheModule, TacheEtape, NotificationModule, NotificationTache, NotificationEtape, TacheTest, BugTest, ValidationTest
+from .models import Utilisateur, Projet, Affectation, ActionAudit, RoleSysteme, RoleProjet, StatutProjet, Membre, TypeEtape, EtapeProjet, ModuleProjet, TacheModule, TacheEtape, NotificationModule, NotificationTache, NotificationEtape, TacheTest, BugTest, ValidationTest, AlerteProjet, LigneBudget
 from .utils import enregistrer_audit, envoyer_notification_changement_mot_de_passe
+from django.db.models import Sum
 import json
 
 def login_view(request):
@@ -110,14 +111,206 @@ def dashboard_view(request):
     }
     
     if user.est_super_admin():
-        # Données pour Super Admin
+        # Statistiques pour Super Admin
+        from django.db.models import Sum, Q, Count
+        from .models_budget import LigneBudget
+        
+        # Projets par statut
+        projets_en_cours = Projet.objects.filter(statut__nom='EN_COURS').count()
+        projets_termines = Projet.objects.filter(statut__nom='TERMINE').count()
+        projets_non_demarres = Projet.objects.filter(date_debut__isnull=True).exclude(statut__nom='TERMINE').count()
+        
+        # Budget total consommé pour projets en cours
+        budget_consomme = LigneBudget.objects.filter(
+            projet__statut__nom='EN_COURS'
+        ).aggregate(total=Sum('montant'))['total'] or 0
+        
+        # Alertes pour projets en cours
+        alertes_projets_en_cours = AlerteProjet.objects.filter(
+            projet__statut__nom='EN_COURS',
+            lue=False
+        ).count()
+        
+        # Alertes critiques (projets en retard, budget dépassé)
+        alertes_critiques = AlerteProjet.objects.filter(
+            lue=False,
+            type_alerte__in=['PROJET_EN_RETARD', 'BUDGET_DEPASSE']
+        ).select_related('projet')[:5]
+        
+        # Projets à surveiller (données réelles)
+        projets_a_surveiller = []
+        
+        # 1. Projets en retard
+        projets_en_retard = AlerteProjet.objects.filter(
+            lue=False,
+            type_alerte='PROJET_EN_RETARD'
+        ).select_related('projet')[:3]
+        for alerte in projets_en_retard:
+            projets_a_surveiller.append({
+                'type': 'retard',
+                'projet': alerte.projet,
+                'message': alerte.message,
+                'severite': 'critique'
+            })
+        
+        # 2. Projets sans responsable
+        projets_sans_responsable = Projet.objects.exclude(
+            statut__nom='TERMINE'
+        ).exclude(
+            affectations__est_responsable_principal=True,
+            affectations__date_fin__isnull=True
+        ).distinct()[:3]
+        for projet in projets_sans_responsable:
+            projets_a_surveiller.append({
+                'type': 'sans_responsable',
+                'projet': projet,
+                'message': 'Aucun responsable principal assigné',
+                'severite': 'urgent'
+            })
+        
+        # 3. Projets avec budget dépassé
+        projets_budget_depasse = AlerteProjet.objects.filter(
+            lue=False,
+            type_alerte='BUDGET_DEPASSE'
+        ).select_related('projet')[:3]
+        for alerte in projets_budget_depasse:
+            projets_a_surveiller.append({
+                'type': 'budget',
+                'projet': alerte.projet,
+                'message': alerte.message,
+                'severite': 'attention'
+            })
+        
+        # Limiter à 5 projets maximum
+        projets_a_surveiller = projets_a_surveiller[:5]
+        
+        # Indicateurs de santé du système
+        indicateurs_sante = []
+        
+        # 1. Vérifier que tous les projets actifs ont un responsable
+        projets_actifs_sans_resp = Projet.objects.exclude(
+            statut__nom='TERMINE'
+        ).exclude(
+            affectations__est_responsable_principal=True,
+            affectations__date_fin__isnull=True
+        ).distinct().count()
+        
+        if projets_actifs_sans_resp == 0:
+            indicateurs_sante.append({
+                'statut': 'ok',
+                'titre': 'Tous les projets ont un responsable',
+                'message': 'OK'
+            })
+        else:
+            indicateurs_sante.append({
+                'statut': 'critique',
+                'titre': f'{projets_actifs_sans_resp} projet(s) sans responsable',
+                'message': 'Urgent'
+            })
+        
+        # 2. Vérifier les utilisateurs inactifs avec affectations
+        utilisateurs_inactifs_affectes = Utilisateur.objects.filter(
+            statut_actif=False,
+            affectations__date_fin__isnull=True
+        ).distinct().count()
+        
+        if utilisateurs_inactifs_affectes == 0:
+            indicateurs_sante.append({
+                'statut': 'ok',
+                'titre': 'Aucun utilisateur inactif affecté',
+                'message': 'OK'
+            })
+        else:
+            indicateurs_sante.append({
+                'statut': 'attention',
+                'titre': f'{utilisateurs_inactifs_affectes} utilisateur(s) inactif(s) affecté(s)',
+                'message': 'Action'
+            })
+        
+        # 3. Vérifier les budgets non définis pour projets en cours
+        projets_en_cours_sans_budget = Projet.objects.filter(
+            statut__nom='EN_COURS'
+        ).filter(
+            Q(budget_previsionnel__isnull=True) | Q(budget_previsionnel=0)
+        ).count()
+        
+        if projets_en_cours_sans_budget == 0:
+            indicateurs_sante.append({
+                'statut': 'ok',
+                'titre': 'Tous les projets en cours ont un budget',
+                'message': 'OK'
+            })
+        else:
+            indicateurs_sante.append({
+                'statut': 'critique',
+                'titre': f'{projets_en_cours_sans_budget} projet(s) en cours sans budget',
+                'message': 'Urgent'
+            })
+        
+        # 4. Vérifier l'audit (toujours OK si le système fonctionne)
+        indicateurs_sante.append({
+            'statut': 'ok',
+            'titre': 'Audit à jour',
+            'message': 'OK'
+        })
+        
+        # Calculer le score global de santé
+        score_sante = 0
+        total_indicateurs = len(indicateurs_sante)
+        for indicateur in indicateurs_sante:
+            if indicateur['statut'] == 'ok':
+                score_sante += 100
+            elif indicateur['statut'] == 'attention':
+                score_sante += 50
+            # critique = 0 points
+        
+        score_sante_global = round(score_sante / total_indicateurs) if total_indicateurs > 0 else 0
+        
+        # Projets par statut pour le graphique (IDEE, PLANIFIE, EN_COURS, TERMINE)
+        projets_par_statut = {}
+        statuts_a_afficher = ['IDEE', 'PLANIFIE', 'EN_COURS', 'TERMINE']
+        for statut_nom in statuts_a_afficher:
+            try:
+                statut = StatutProjet.objects.get(nom=statut_nom)
+                count = Projet.objects.filter(statut=statut).count()
+                if count > 0:
+                    projets_par_statut[statut.get_nom_display()] = count
+            except StatutProjet.DoesNotExist:
+                pass
+        
+        # Budget par priorité pour le graphique (SEULEMENT projets EN_COURS)
+        # Somme des lignes de budget pour chaque priorité
+        budget_par_priorite = {}
+        priorites_ordre = ['CRITIQUE', 'HAUTE', 'MOYENNE', 'BASSE']
+        for priorite in priorites_ordre:
+            # Calculer la somme des lignes de budget pour les projets en cours de cette priorité
+            budget = LigneBudget.objects.filter(
+                projet__statut__nom='EN_COURS',
+                projet__priorite=priorite
+            ).aggregate(total=Sum('montant'))['total'] or 0
+            
+            if budget > 0:
+                priorite_display = dict(Projet._meta.get_field('priorite').choices)[priorite]
+                budget_par_priorite[priorite_display] = float(budget)
+        
         context.update({
-            'projets': Projet.objects.all()[:10],
+            'projets': Projet.objects.all().order_by('-date_creation')[:10],
             'total_projets': Projet.objects.count(),
-            'projets_actifs': Projet.objects.exclude(statut__nom__in=['TERMINE', 'ARCHIVE']).count(),
+            'projets_actifs': projets_en_cours,
+            'projets_en_cours': projets_en_cours,
+            'projets_termines': projets_termines,
+            'projets_non_demarres': projets_non_demarres,
+            'budget_consomme': budget_consomme,
+            'alertes_projets_en_cours': alertes_projets_en_cours,
+            'alertes_critiques': alertes_critiques,
             'utilisateurs_actifs': Utilisateur.objects.filter(statut_actif=True).count(),
             'total_utilisateurs': Utilisateur.objects.count(),
             'super_admins': Utilisateur.objects.filter(is_superuser=True).count(),
+            'projets_par_statut': projets_par_statut,
+            'budget_par_priorite': budget_par_priorite,
+            'projets_a_surveiller': projets_a_surveiller,
+            'indicateurs_sante': indicateurs_sante,
+            'score_sante_global': score_sante_global,
         })
     else:
         # Données pour utilisateur normal
@@ -126,9 +319,37 @@ def dashboard_view(request):
             affectations__date_fin__isnull=True
         ).distinct()
         
+        # Statistiques personnelles
+        mes_projets_en_cours = mes_projets.filter(statut__nom='EN_COURS').count()
+        mes_projets_termines = mes_projets.filter(statut__nom='TERMINE').count()
+        total_mes_projets = mes_projets.count()
+        
+        # Graphique des statuts de MES projets uniquement
+        mes_projets_par_statut = {}
+        statuts_a_afficher = ['IDEE', 'PLANIFIE', 'EN_COURS', 'TERMINE']
+        for statut_nom in statuts_a_afficher:
+            try:
+                statut = StatutProjet.objects.get(nom=statut_nom)
+                count = mes_projets.filter(statut=statut).count()
+                if count > 0:
+                    mes_projets_par_statut[statut.get_nom_display()] = count
+            except StatutProjet.DoesNotExist:
+                pass
+        
+        # Alertes critiques liées à MES projets et tâches
+        mes_alertes_critiques = AlerteProjet.objects.filter(
+            lue=False,
+            projet__in=mes_projets,
+            type_alerte__in=['PROJET_EN_RETARD', 'BUDGET_DEPASSE', 'TACHE_EN_RETARD']
+        ).select_related('projet')[:5]
+        
         context.update({
             'mes_projets': mes_projets,
-            'projets_en_cours': mes_projets.filter(statut__nom='EN_COURS').count(),
+            'projets_en_cours': mes_projets_en_cours,
+            'projets_termines': mes_projets_termines,
+            'total_mes_projets': total_mes_projets,
+            'mes_projets_par_statut': mes_projets_par_statut,
+            'mes_alertes_critiques': mes_alertes_critiques,
             'mes_roles': user.get_roles_par_projet(),
         })
     
@@ -242,6 +463,30 @@ def projet_detail_view(request, projet_id):
     # Utiliser le même template pour tous, avec conditions dans le template
     template_name = 'core/projet_detail.html'
     
+    # Calculer la progression globale du projet
+    total_taches = 0
+    taches_terminees = 0
+    
+    # Compter les tâches d'étapes
+    for etape in projet.etapes.all():
+        taches_etape = etape.taches_etape.all()
+        total_taches += taches_etape.count()
+        taches_terminees += taches_etape.filter(statut='TERMINEE').count()
+    
+    # Compter les tâches de modules (phase développement)
+    for module in projet.modules.all():
+        taches_module = module.taches.all()
+        total_taches += taches_module.count()
+        taches_terminees += taches_module.filter(statut='TERMINEE').count()
+    
+    # Calculer le pourcentage
+    if total_taches > 0:
+        progression_taches = (taches_terminees / total_taches) * 100
+    else:
+        progression_taches = 0
+    
+    taches_restantes = total_taches - taches_terminees
+    
     context = {
         'projet': projet,
         'affectations': affectations,
@@ -252,6 +497,11 @@ def projet_detail_view(request, projet_id):
         'user_affectation': user_affectation,
         'is_super_admin': user.est_super_admin(),
         'historique_audit': ActionAudit.objects.filter(projet=projet)[:10] if user.est_super_admin() else None,
+        # Progression du projet
+        'progression_taches': round(progression_taches, 1),
+        'total_taches': total_taches,
+        'taches_terminees': taches_terminees,
+        'taches_restantes': taches_restantes,
     }
     
     return render(request, template_name, context)
@@ -373,7 +623,7 @@ def modifier_budget_projet(request, projet_id):
     projet = get_object_or_404(Projet, id=projet_id)
     
     # Vérifier les permissions
-    if not user.est_super_admin():
+    if not user.is_superuser:
         # Vérifier si l'utilisateur est responsable principal du projet
         if not projet.affectations.filter(utilisateur=user, est_responsable_principal=True, date_fin__isnull=True).exists():
             return JsonResponse({'success': False, 'error': 'Permission refusée'})
@@ -382,19 +632,8 @@ def modifier_budget_projet(request, projet_id):
         nouveau_budget = float(request.POST.get('budget', 0))
         ancien_budget = float(projet.budget_previsionnel)
         
-        if nouveau_budget <= 0:
-            return JsonResponse({'success': False, 'error': 'Le budget doit être supérieur à 0'})
-        
-        # Calculer l'écart
-        ecart_pourcent = abs(nouveau_budget - ancien_budget) / ancien_budget * 100
-        
-        # Si écart > 20% et utilisateur n'est pas Super Admin, demander validation
-        if ecart_pourcent > 20 and not user.est_super_admin():
-            # TODO: Implémenter le système de validation hiérarchique
-            return JsonResponse({
-                'success': False, 
-                'error': f'Modification de {ecart_pourcent:.1f}% nécessite une validation Super Admin'
-            })
+        if nouveau_budget < 0:
+            return JsonResponse({'success': False, 'error': 'Le budget ne peut pas être négatif'})
         
         # Enregistrer l'audit avant modification
         enregistrer_audit(
@@ -411,8 +650,38 @@ def modifier_budget_projet(request, projet_id):
         projet.budget_previsionnel = nouveau_budget
         projet.save()
         
-        messages.success(request, f'Budget modifié avec succès: {nouveau_budget}€')
-        return JsonResponse({'success': True})
+        # Créer notification pour les administrateurs
+        from .models import NotificationProjet
+        from .utils_notifications_email import envoyer_email_notification_projet
+        
+        # Notifier tous les administrateurs
+        admins = Utilisateur.objects.filter(is_superuser=True, statut_actif=True)
+        for admin in admins:
+            # Créer notification dans l'application
+            notification = NotificationProjet.objects.create(
+                destinataire=admin,
+                projet=projet,
+                type_notification='CHANGEMENT_ECHEANCE',  # Réutiliser un type existant proche
+                titre=f'Budget défini - {projet.nom}',
+                message=f'{user.get_full_name()} a défini le budget du projet "{projet.nom}" à {nouveau_budget:,.0f}€',
+                emetteur=user,
+                donnees_contexte={
+                    'ancien_budget': ancien_budget,
+                    'nouveau_budget': nouveau_budget,
+                    'type_action': 'DEFINITION_BUDGET'
+                }
+            )
+            
+            # Envoyer email
+            try:
+                envoyer_email_notification_projet(notification)
+            except Exception as e:
+                print(f"Erreur envoi email: {e}")
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Budget total défini à {nouveau_budget:,.0f}€'
+        })
         
     except (ValueError, TypeError):
         return JsonResponse({'success': False, 'error': 'Budget invalide'})
@@ -471,7 +740,7 @@ def creer_projet_view(request):
         client = request.POST.get('client', '').strip()
         statut_nom = request.POST.get('statut')
         priorite = request.POST.get('priorite', 'MOYENNE')
-        fichier_description = request.FILES.get('fichier_description')
+        fichiers = request.FILES.getlist('fichiers')  # MODIFIÉ: Récupérer plusieurs fichiers
         
         # Récupérer et convertir la durée en jours
         duree_valeur = request.POST.get('duree_valeur', '').strip()
@@ -499,30 +768,15 @@ def creer_projet_view(request):
         elif Projet.objects.filter(nom=nom).exists():
             errors.append('Ce nom de projet existe déjà.')
             
-        # Validation du fichier (seulement si fourni)
-        if fichier_description:
-            # Validation du fichier
+        # Validation des fichiers (seulement si fournis)
+        if fichiers:
+            import mimetypes
             max_size = 10 * 1024 * 1024  # 10 MB
-            allowed_extensions = ['.pdf', '.doc', '.docx']
-            allowed_content_types = [
-                'application/pdf',
-                'application/msword',
-                'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-            ]
             
-            # Vérifier la taille
-            if fichier_description.size > max_size:
-                errors.append('Le fichier est trop volumineux. Taille maximale : 10 MB')
-            
-            # Vérifier l'extension
-            import os
-            file_ext = os.path.splitext(fichier_description.name)[1].lower()
-            if file_ext not in allowed_extensions:
-                errors.append('Format de fichier non accepté. Utilisez PDF ou Word (.doc, .docx)')
-            
-            # Vérifier le type MIME
-            if fichier_description.content_type not in allowed_content_types:
-                errors.append('Type de fichier non valide.')
+            for fichier in fichiers:
+                # Vérifier la taille
+                if fichier.size > max_size:
+                    errors.append(f'Le fichier "{fichier.name}" est trop volumineux. Taille maximale : 10 MB')
         
         if not duree_projet_jours or duree_projet_jours <= 0:
             errors.append('La durée du projet doit être supérieure à 0.')
@@ -543,8 +797,7 @@ def creer_projet_view(request):
                 # Créer le projet avec valeurs par défaut
                 projet = Projet.objects.create(
                     nom=nom,
-                    description='Voir fichier joint' if fichier_description else 'Description à compléter',
-                    fichier_description=fichier_description if fichier_description else None,
+                    description='Description à compléter',
                     client=client if client else 'À définir',  # Valeur par défaut si vide
                     budget_previsionnel=Decimal('0'),  # Budget par défaut à 0
                     devise='EUR',
@@ -553,6 +806,25 @@ def creer_projet_view(request):
                     createur=request.user,
                     duree_projet=duree_projet_jours  # Nouvelle: durée en jours
                 )
+                
+                # Ajouter les fichiers joints
+                fichiers_ajoutes = []
+                if fichiers:
+                    from .models import FichierProjet
+                    import mimetypes
+                    
+                    for fichier in fichiers:
+                        if fichier.size <= 10 * 1024 * 1024:  # Max 10MB
+                            type_mime, _ = mimetypes.guess_type(fichier.name)
+                            FichierProjet.objects.create(
+                                projet=projet,
+                                fichier=fichier,
+                                nom_original=fichier.name,
+                                taille=fichier.size,
+                                type_mime=type_mime or 'application/octet-stream',
+                                ajoute_par=request.user
+                            )
+                            fichiers_ajoutes.append(fichier.name)
                 
                 # Initialiser automatiquement les étapes standard
                 projet.initialiser_etapes_standard(request.user)
@@ -570,12 +842,14 @@ def creer_projet_view(request):
                         'statut': statut.nom,
                         'priorite': priorite,
                         'duree_projet': duree_projet_jours,
-                        'fichier_description': fichier_description.name if fichier_description else None,
+                        'fichiers_ajoutes': fichiers_ajoutes,
                         'etapes_initialisees': True
                     }
                 )
                 
                 messages.success(request, f'Projet "{projet.nom}" créé avec succès !')
+                if fichiers_ajoutes:
+                    messages.success(request, f'{len(fichiers_ajoutes)} fichier(s) ajouté(s).')
                 
                 # Rediriger directement vers les détails du projet
                 return redirect('projet_detail', projet_id=projet.id)
@@ -1322,10 +1596,21 @@ def ajouter_membre_projet(request, projet_id):
         # Sauvegarder
         affectation.save()
         
-        # Créer une notification pour le membre ajouté (sauf si c'est un responsable, car il a déjà sa notification)
-        if not est_responsable:
-            from .models import NotificationProjet
-            
+        # Créer les notifications appropriées
+        from .models import NotificationProjet
+        
+        if est_responsable:
+            # Notification AFFECTATION_RESPONSABLE pour le responsable principal
+            NotificationProjet.objects.create(
+                destinataire=utilisateur,
+                projet=projet,
+                type_notification='AFFECTATION_RESPONSABLE',
+                titre=f'👑 Vous êtes responsable du projet {projet.nom}',
+                message=f'Vous avez été désigné responsable principal du projet "{projet.nom}". Vous êtes maintenant en charge de la coordination et du suivi de ce projet.',
+                emetteur=user
+            )
+        else:
+            # Notification AJOUT_EQUIPE pour les membres normaux
             NotificationProjet.objects.create(
                 destinataire=utilisateur,
                 projet=projet,
@@ -1576,6 +1861,23 @@ def definir_responsable(request, projet_id):
             donnees_apres={'nouveau_responsable': nouveau_responsable}
         )
         
+        # 🆕 NOTIFICATION: AFFECTATION_RESPONSABLE
+        # Créer une notification pour le nouveau responsable
+        from .models import NotificationProjet
+        NotificationProjet.objects.create(
+            destinataire=nouvelle_affectation.utilisateur,
+            projet=projet,
+            type_notification='AFFECTATION_RESPONSABLE',
+            titre=f"Vous êtes responsable du projet {projet.nom}",
+            message=f"Vous avez été désigné responsable principal du projet '{projet.nom}'. Vous êtes maintenant en charge de la coordination et du suivi de ce projet.",
+            emetteur=user,
+            donnees_contexte={
+                'ancien_responsable': ancien_responsable,
+                'nouveau_responsable': nouveau_responsable,
+                'date_affectation': timezone.now().isoformat()
+            }
+        )
+        
         messages.success(request, message_success)
         return JsonResponse({'success': True, 'message': message_success, 'transfert': ancien_responsable is not None})
         
@@ -1639,6 +1941,10 @@ def modifier_projet_view(request, projet_id):
                 messages.error(request, error)
         else:
             try:
+                # Sauvegarder l'ancienne date de fin pour détecter les changements
+                ancienne_date_fin = projet.date_fin
+                ancien_statut = projet.statut
+                
                 # Mettre à jour le projet
                 projet.nom = nom
                 projet.description = description
@@ -1647,6 +1953,40 @@ def modifier_projet_view(request, projet_id):
                 projet.statut = statut
                 projet.priorite = priorite
                 projet.save()
+                
+                # Notification CHANGEMENT_ECHEANCE si la date de fin a changé
+                if ancienne_date_fin and projet.date_fin and ancienne_date_fin != projet.date_fin:
+                    equipe = projet.get_equipe()
+                    for membre in equipe:
+                        NotificationProjet.objects.create(
+                            destinataire=membre,
+                            projet=projet,
+                            type_notification='CHANGEMENT_ECHEANCE',
+                            titre=f"Changement d'échéance: {projet.nom}",
+                            message=f"La date de fin du projet '{projet.nom}' a été modifiée de {ancienne_date_fin.strftime('%d/%m/%Y')} à {projet.date_fin.strftime('%d/%m/%Y')}.",
+                            emetteur=request.user,
+                            donnees_contexte={
+                                'ancienne_date': ancienne_date_fin.isoformat(),
+                                'nouvelle_date': projet.date_fin.isoformat()
+                            }
+                        )
+                
+                # Notification PROJET_SUSPENDU si le statut change vers SUSPENDU
+                if ancien_statut.nom != statut.nom and statut.nom == 'SUSPENDU':
+                    equipe = projet.get_equipe()
+                    for membre in equipe:
+                        NotificationProjet.objects.create(
+                            destinataire=membre,
+                            projet=projet,
+                            type_notification='PROJET_SUSPENDU',
+                            titre=f"⚠️ Projet suspendu: {projet.nom}",
+                            message=f"Le projet '{projet.nom}' a été suspendu. Toutes les activités sont en pause.",
+                            emetteur=request.user,
+                            donnees_contexte={
+                                'ancien_statut': ancien_statut.nom,
+                                'date_suspension': timezone.now().isoformat()
+                            }
+                        )
                 
                 # Données après modification
                 donnees_apres = {
@@ -2343,7 +2683,7 @@ def creer_compte_utilisateur_view(request, membre_id):
     context = {
         'membre': membre,
         'username_suggere': username_suggere,
-        'roles_systeme': RoleSysteme.objects.all(),
+        'roles_systeme': RoleSysteme.objects.exclude(nom='QA'),  # Exclure le rôle QA
     }
     
     return render(request, 'core/creer_compte_utilisateur.html', context)
@@ -2459,7 +2799,7 @@ def modifier_compte_view(request, user_id):
     
     context = {
         'utilisateur': utilisateur,
-        'roles_systeme': RoleSysteme.objects.all(),
+        'roles_systeme': RoleSysteme.objects.exclude(nom='QA'),
     }
     
     return render(request, 'core/modifier_compte.html', context)
@@ -2525,11 +2865,17 @@ def reset_compte_password(request, user_id):
     })
 
 @require_super_admin
-@require_super_admin
 @require_http_methods(["POST"])
 def delete_compte(request, user_id):
     """Supprime un compte utilisateur"""
     try:
+        # Imports nécessaires pour la suppression
+        from .models import (
+            NotificationProjet, AlerteProjet, 
+            CommentaireTache, HistoriqueTache, PieceJointeTache,
+            Deploiement
+        )
+        
         utilisateur = get_object_or_404(Utilisateur, id=user_id)
         
         # Empêcher la suppression de son propre compte
@@ -2720,15 +3066,6 @@ def terminer_etape(request, projet_id, etape_id):
     user = request.user
     projet = get_object_or_404(Projet, id=projet_id)
     etape = get_object_or_404(EtapeProjet, id=etape_id, projet=projet)
-    
-    # Vérifier si le projet a commencé
-    if projet.statut.nom != 'EN_COURS':
-        return JsonResponse({
-            'success': False, 
-            'error': 'Le projet n\'a pas encore commencé',
-            'message': 'Vous ne pouvez pas terminer une étape pour un projet qui n\'a pas encore démarré. Veuillez d\'abord démarrer le projet.',
-            'show_modal': True
-        })
     
     # Vérifier les permissions
     can_manage = user.est_super_admin() or projet.createur == user
@@ -5021,6 +5358,13 @@ def mettre_a_jour_progression_tache(request, projet_id, tache_id, type_tache):
         if not user.a_acces_projet(projet) and projet.createur != user:
             return JsonResponse({'success': False, 'error': 'Accès refusé au projet'})
     
+    # Vérifier que le projet est démarré
+    if not projet.date_debut:
+        return JsonResponse({
+            'success': False, 
+            'error': 'Le projet n\'est pas encore démarré. Impossible de mettre à jour la progression d\'une tâche.'
+        })
+    
     try:
         # Récupérer le pourcentage depuis la requête
         data = json.loads(request.body)
@@ -5182,6 +5526,13 @@ def demarrer_tache_view(request, projet_id, tache_id, type_tache):
         if not user.a_acces_projet(projet) and projet.createur != user:
             return JsonResponse({'success': False, 'error': 'Accès refusé'})
     
+    # Vérifier que le projet est démarré
+    if not projet.date_debut:
+        return JsonResponse({
+            'success': False, 
+            'error': 'Le projet n\'est pas encore démarré. Impossible de démarrer une tâche.'
+        })
+    
     try:
         if type_tache == 'etape':
             tache = get_object_or_404(TacheEtape, id=tache_id, etape__projet=projet)
@@ -5224,6 +5575,13 @@ def mettre_en_pause_tache_view(request, projet_id, tache_id, type_tache):
         if not user.a_acces_projet(projet) and projet.createur != user:
             return JsonResponse({'success': False, 'error': 'Accès refusé'})
     
+    # Vérifier que le projet est démarré
+    if not projet.date_debut:
+        return JsonResponse({
+            'success': False, 
+            'error': 'Le projet n\'est pas encore démarré. Impossible de mettre en pause une tâche.'
+        })
+    
     try:
         if type_tache == 'etape':
             tache = get_object_or_404(TacheEtape, id=tache_id, etape__projet=projet)
@@ -5264,6 +5622,13 @@ def reprendre_tache_view(request, projet_id, tache_id, type_tache):
     if not user.est_super_admin():
         if not user.a_acces_projet(projet) and projet.createur != user:
             return JsonResponse({'success': False, 'error': 'Accès refusé'})
+    
+    # Vérifier que le projet est démarré
+    if not projet.date_debut:
+        return JsonResponse({
+            'success': False, 
+            'error': 'Le projet n\'est pas encore démarré. Impossible de reprendre une tâche.'
+        })
     
     try:
         if type_tache == 'etape':
@@ -5306,6 +5671,13 @@ def terminer_tache_view(request, projet_id, tache_id, type_tache):
     if not user.est_super_admin():
         if not user.a_acces_projet(projet) and projet.createur != user:
             return JsonResponse({'success': False, 'error': 'Accès refusé au projet'})
+    
+    # Vérifier que le projet est démarré
+    if not projet.date_debut:
+        return JsonResponse({
+            'success': False, 
+            'error': 'Le projet n\'est pas encore démarré. Impossible de terminer une tâche.'
+        })
     
     try:
         if type_tache == 'etape':
@@ -5453,6 +5825,13 @@ def changer_statut_ma_tache_view(request, projet_id, tache_id, type_tache):
     if not user.est_super_admin():
         if not user.a_acces_projet(projet) and projet.createur != user:
             return JsonResponse({'success': False, 'error': 'Accès refusé au projet'})
+    
+    # Vérifier que le projet est démarré
+    if not projet.date_debut:
+        return JsonResponse({
+            'success': False, 
+            'error': 'Le projet n\'est pas encore démarré. Impossible de changer le statut d\'une tâche.'
+        })
     
     try:
         if type_tache == 'etape':
@@ -6059,6 +6438,27 @@ def modifier_statut_tache_module_view(request, projet_id, tache_id):
             donnees_apres={'statut': nouveau_statut},
             request=request
         )
+        
+        # 🆕 NOTIFICATION: CHANGEMENT_STATUT (sauf si terminée, car déjà géré)
+        # Notifier le responsable du module si le statut change (sauf TERMINEE qui a sa propre notification)
+        if ancien_statut != nouveau_statut and nouveau_statut != 'TERMINEE':
+            responsable_module = tache.module.get_responsable()
+            if responsable_module and responsable_module != user:
+                NotificationModule.objects.create(
+                    destinataire=responsable_module,
+                    module=tache.module,
+                    type_notification='CHANGEMENT_STATUT',
+                    titre=f"Changement de statut: {tache.nom}",
+                    message=f"Le statut de la tâche '{tache.nom}' est passé de {tache.get_statut_display_from_value(ancien_statut)} à {tache.get_statut_display()}.",
+                    emetteur=user,
+                    donnees_contexte={
+                        'tache_id': str(tache.id),
+                        'tache_nom': tache.nom,
+                        'ancien_statut': ancien_statut,
+                        'nouveau_statut': nouveau_statut,
+                        'date_changement': timezone.now().isoformat()
+                    }
+                )
         
         return JsonResponse({
             'success': True,

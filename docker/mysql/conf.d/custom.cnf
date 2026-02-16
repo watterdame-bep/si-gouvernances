@@ -1,0 +1,88 @@
+# ============================================================================
+# MYSQL CONFIGURATION PRODUCTION - SI-GOUVERNANCE
+# ============================================================================
+
+[mysqld]
+# ============================================================================
+# CONFIGURATION DE BASE
+# ============================================================================
+default-authentication-plugin=mysql_native_password
+character-set-server=utf8mb4
+collation-server=utf8mb4_unicode_ci
+
+# ============================================================================
+# PERFORMANCE
+# ============================================================================
+# Connexions
+max_connections=200
+max_connect_errors=100
+connect_timeout=10
+wait_timeout=600
+interactive_timeout=600
+
+# InnoDB Buffer Pool (ajuster selon RAM disponible)
+innodb_buffer_pool_size=512M
+innodb_buffer_pool_instances=4
+innodb_log_file_size=128M
+innodb_log_buffer_size=16M
+innodb_flush_log_at_trx_commit=2
+innodb_flush_method=O_DIRECT
+
+# Query Cache (désactivé en MySQL 8.0+)
+# query_cache_type=0
+# query_cache_size=0
+
+# Tmp tables
+tmp_table_size=64M
+max_heap_table_size=64M
+
+# ============================================================================
+# LOGS
+# ============================================================================
+# General log (désactivé en production pour performance)
+general_log=0
+
+# Slow query log
+slow_query_log=1
+slow_query_log_file=/var/log/mysql/slow.log
+long_query_time=2
+log_queries_not_using_indexes=0
+
+# Error log
+log_error=/var/log/mysql/error.log
+
+# Binary log (pour réplication si nécessaire)
+# log_bin=/var/log/mysql/mysql-bin.log
+# binlog_expire_logs_seconds=604800
+# max_binlog_size=100M
+
+# ============================================================================
+# SÉCURITÉ
+# ============================================================================
+# Désactiver LOCAL INFILE
+local_infile=0
+
+# Symbolic links
+symbolic-links=0
+
+# ============================================================================
+# OPTIMISATIONS
+# ============================================================================
+# Thread cache
+thread_cache_size=50
+
+# Table cache
+table_open_cache=2000
+table_definition_cache=1400
+
+# Sort et join buffers
+sort_buffer_size=2M
+read_buffer_size=1M
+read_rnd_buffer_size=2M
+join_buffer_size=2M
+
+[mysql]
+default-character-set=utf8mb4
+
+[client]
+default-character-set=utf8mb4

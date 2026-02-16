@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SI-Gouvernance{% endblock %}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333333;
+            background-color: #f5f7fa;
+            padding: 20px 0;
+        }
+        
+        .email-wrapper {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+        }
+        
+        /* Header avec logo */
+        .email-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px 30px;
+            text-align: center;
+        }
+        
+        .logo-container {
+            margin-bottom: 20px;
+        }
+        
+        .logo-img {
+            max-width: 120px;
+            height: auto;
+            border-radius: 8px;
+            background-color: white;
+            padding: 10px;
+        }
+        
+        .header-title {
+            color: #ffffff;
+            font-size: 28px;
+            font-weight: 700;
+            margin: 15px 0 5px 0;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .header-subtitle {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 16px;
+            font-weight: 400;
+        }
+        
+        /* Corps du message */
+        .email-body {
+            padding: 40px 30px;
+        }
+        
+        .greeting {
+            font-size: 18px;
+            color: #1a202c;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        
+        .message-content {
+            font-size: 15px;
+            color: #4a5568;
+            line-height: 1.8;
+            margin-bottom: 30px;
+        }
+        
+        /* Carte d'information */
+        .info-card {
+            background: linear-gradient(135deg, #f6f8fb 0%, #e9ecef 100%);
+            border-left: 4px solid #667eea;
+            border-radius: 8px;
+            padding: 25px;
+            margin: 25px 0;
+        }
+        
+        .info-card-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .info-card-icon {
+            font-size: 20px;
+            margin-right: 10px;
+        }
+        
+        .info-list {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .info-item {
+            display: flex;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        .info-item:last-child {
+            border-bottom: none;
+        }
+        
+        .info-label {
+            font-weight: 600;
+            color: #4a5568;
+            min-width: 140px;
+            font-size: 14px;
+        }
+        
+        .info-value {
+            color: #2d3748;
+            font-size: 14px;
+            flex: 1;
+        }
+        
+        /* Bouton d'action */
+        .action-button-container {
+            text-align: center;
+            margin: 35px 0;
+        }
+        
+        .action-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #ffffff !important;
+            text-decoration: none;
+            padding: 16px 40px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s ease;
+        }
+        
+        .action-button:hover {
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+            transform: translateY(-2px);
+        }
+        
+        /* Alerte/Note importante */
+        .alert-box {
+            background-color: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 25px 0;
+        }
+        
+        .alert-box-warning {
+            background-color: #f8d7da;
+            border-color: #dc3545;
+        }
+        
+        .alert-box-info {
+            background-color: #d1ecf1;
+            border-color: #17a2b8;
+        }
+        
+        .alert-box-success {
+            background-color: #d4edda;
+            border-color: #28a745;
+        }
+        
+        .alert-title {
+            font-weight: 700;
+            font-size: 15px;
+            margin-bottom: 8px;
+            color: #856404;
+        }
+        
+        .alert-box-warning .alert-title {
+            color: #721c24;
+        }
+        
+        .alert-box-info .alert-title {
+            color: #0c5460;
+        }
+        
+        .alert-box-success .alert-title {
+            color: #155724;
+        }
+        
+        .alert-message {
+            font-size: 14px;
+            color: #856404;
+            line-height: 1.6;
+        }
+        
+        .alert-box-warning .alert-message {
+            color: #721c24;
+        }
+        
+        .alert-box-info .alert-message {
+            color: #0c5460;
+        }
+        
+        .alert-box-success .alert-message {
+            color: #155724;
+        }
+        
+        /* Footer */
+        .email-footer {
+            background-color: #2d3748;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .footer-content {
+            color: #cbd5e0;
+            font-size: 13px;
+            line-height: 1.8;
+        }
+        
+        .footer-logo-text {
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+        
+        .footer-links {
+            margin: 20px 0;
+        }
+        
+        .footer-link {
+            color: #a0aec0;
+            text-decoration: none;
+            margin: 0 10px;
+            font-size: 13px;
+        }
+        
+        .footer-link:hover {
+            color: #ffffff;
+        }
+        
+        .copyright {
+            color: #718096;
+            font-size: 12px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #4a5568;
+        }
+        
+        .social-links {
+            margin: 15px 0;
+        }
+        
+        .social-link {
+            display: inline-block;
+            margin: 0 8px;
+            color: #a0aec0;
+            text-decoration: none;
+            font-size: 20px;
+        }
+        
+        /* Responsive */
+        @media only screen and (max-width: 600px) {
+            .email-wrapper {
+                width: 100% !important;
+            }
+            
+            .email-header,
+            .email-body,
+            .email-footer {
+                padding: 25px 20px !important;
+            }
+            
+            .header-title {
+                font-size: 24px !important;
+            }
+            
+            .action-button {
+                padding: 14px 30px !important;
+                font-size: 15px !important;
+            }
+            
+            .info-item {
+                flex-direction: column;
+            }
+            
+            .info-label {
+                min-width: auto;
+                margin-bottom: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-wrapper">
+        <!-- Header -->
+        <div class="email-header">
+            <div class="logo-container">
+                {% block logo %}
+                <img src="{{ logo_url }}" alt="J-Consult MY Logo" class="logo-img">
+                {% endblock %}
+            </div>
+            <h1 class="header-title">{% block header_title %}SI-Gouvernance{% endblock %}</h1>
+            <p class="header-subtitle">{% block header_subtitle %}Système de Gestion de Projets{% endblock %}</p>
+        </div>
+        
+        <!-- Body -->
+        <div class="email-body">
+            {% block content %}
+            <!-- Le contenu spécifique sera inséré ici -->
+            {% endblock %}
+        </div>
+        
+        <!-- Footer -->
+        <div class="email-footer">
+            <div class="footer-logo-text">J-CONSULT MY</div>
+            <div class="footer-content">
+                <p>Système de Gouvernance et Gestion de Projets</p>
+            </div>
+            
+            <div class="footer-links">
+                <a href="{{ base_url }}" class="footer-link">Accueil</a>
+                <a href="{{ base_url }}/aide" class="footer-link">Aide</a>
+                <a href="{{ base_url }}/contact" class="footer-link">Contact</a>
+            </div>
+            
+            <div class="copyright">
+                © 2026 J-Consult MY. Tous droits réservés.
+            </div>
+            
+            <div class="footer-content" style="margin-top: 15px; font-size: 11px;">
+                <p>Ceci est un email automatique, merci de ne pas y répondre directement.</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

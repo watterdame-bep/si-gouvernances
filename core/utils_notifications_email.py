@@ -3,19 +3,35 @@ Utilitaires pour l'envoi d'emails de notifications
 Centralise l'envoi d'emails pour tous les types de notifications
 """
 
-from django.core.mail import send_mail
+from django.core.mail import send_mail, EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.conf import settings
 from django.utils import timezone
+from django.contrib.sites.shortcuts import get_current_site
 
 
-def envoyer_email_notification(notification, type_model='tache'):
+def get_base_url(request=None):
+    """Retourne l'URL de base de l'application"""
+    if request:
+        return f"{request.scheme}://{request.get_host()}"
+    return getattr(settings, 'BASE_URL', 'http://localhost:8000')
+
+
+def get_logo_url(request=None):
+    """Retourne l'URL complète du logo"""
+    base_url = get_base_url(request)
+    # Le logo est dans media/logos/jconsult_logo.png
+    return f"{base_url}/media/logos/jconsult_logo.png"
+
+
+def envoyer_email_notification(notification, type_model='tache', request=None):
     """
-    Envoie un email pour une notification donnée
+    Envoie un email pour une notification donnée avec template HTML professionnel
     
     Args:
         notification: Instance de NotificationTache, NotificationEtape, NotificationModule, NotificationProjet ou AlerteProjet
         type_model: Type de modèle ('tache', 'etape', 'module', 'projet', 'alerte')
+        request: Objet request Django (optionnel, pour générer les URLs)
     
     Returns:
         bool: True si l'email a été envoyé avec succès, False sinon
@@ -26,90 +42,175 @@ def envoyer_email_notification(notification, type_model='tache'):
             print(f"Pas d'email pour {notification.destinataire.get_full_name()}")
             return False
         
-        # Préparer le contexte selon le type
+        base_url = get_base_url(request)
+        logo_url = get_logo_url(request)
+        
+        # Contexte de base commun à tous les emails
         context = {
             'notification': notification,
             'destinataire': notification.destinataire,
+            'destinataire_nom': notification.destinataire.get_full_name(),
             'titre': notification.titre,
             'message': notification.message,
             'date_creation': notification.date_creation,
-            'site_name': 'SI-Gouvernance JCM',
+            'date_notification': notification.date_creation.strftime('%d/%m/%Y à %H:%M'),
+            'site_name': 'SI-Gouvernance',
+            'base_url': base_url,
+            'logo_url': logo_url,
         }
         
-        # Ajouter des informations spécifiques selon le type
-        if type_model == 'tache':
-            context.update({
-                'tache': notification.tache,
-                'projet': notification.tache.etape.projet if hasattr(notification.tache, 'etape') else notification.tache.module.projet,
-                'type_notification': notification.get_type_notification_display(),
-                'emetteur': notification.emetteur,
-            })
-            sujet_prefix = "Tâche"
-            
-        elif type_model == 'etape':
-            context.update({
-                'etape': notification.etape,
-                'projet': notification.etape.projet,
-                'type_notification': notification.get_type_notification_display(),
-                'emetteur': notification.emetteur,
-            })
-            sujet_prefix = "Étape"
-            
-        elif type_model == 'module':
-            context.update({
-                'module': notification.module,
-                'projet': notification.module.projet,
-                'type_notification': notification.get_type_notification_display(),
-                'emetteur': notification.emetteur,
-            })
-            sujet_prefix = "Module"
-            
-        elif type_model == 'projet':
-            context.update({
-                'projet': notification.projet,
-                'type_notification': notification.get_type_notification_display(),
-                'emetteur': notification.emetteur,
-            })
-            sujet_prefix = "Projet"
-            
-        elif type_model == 'alerte':
-            context.update({
-                'projet': notification.projet,
-                'type_alerte': notification.get_type_alerte_display(),
-                'niveau': notification.get_niveau_display(),
-            })
-            sujet_prefix = "Alerte"
+        # Préparer le sujet et le template selon le type
+        sujet, template_name = preparer_email_context(notification, type_model, context, base_url)
         
-        # Sujet de l'email
-        sujet = f"[SI-Gouvernance] {sujet_prefix}: {notification.titre}"
-        
-        # Corps de l'email en texte brut
+        # Corps de l'email en texte brut (fallback)
         message_text = generer_message_texte(notification, type_model, context)
         
-        # Essayer d'utiliser un template HTML si disponible
-        message_html = None
+        # Générer le HTML avec le template professionnel
         try:
-            template_name = f'emails/notification_{type_model}.html'
             message_html = render_to_string(template_name, context)
-        except Exception:
-            # Si le template n'existe pas, on utilise seulement le texte brut
-            pass
+        except Exception as e:
+            print(f"Erreur lors du rendu du template {template_name}: {e}")
+            # Utiliser le template de base si le template spécifique n'existe pas
+            message_html = None
         
-        # Envoyer l'email
-        send_mail(
+        # Créer et envoyer l'email
+        email = EmailMultiAlternatives(
             subject=sujet,
-            message=message_text,
-            from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@si-gouvernance.com'),
-            recipient_list=[notification.destinataire.email],
-            html_message=message_html,
-            fail_silently=False,
+            body=message_text,
+            from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'SI-Gouvernance <noreply@si-gouvernance.com>'),
+            to=[notification.destinataire.email],
         )
+        
+        if message_html:
+            email.attach_alternative(message_html, "text/html")
+        
+        email.send(fail_silently=False)
         
         return True
         
     except Exception as e:
         print(f"Erreur lors de l'envoi de l'email de notification: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return False
+
+
+def preparer_email_context(notification, type_model, context, base_url):
+    """
+    Prépare le contexte spécifique selon le type de notification
+    
+    Returns:
+        tuple: (sujet, template_name)
+    """
+    if type_model == 'tache':
+        tache = notification.tache
+        if hasattr(tache, 'etape'):
+            projet = tache.etape.projet
+            etape_nom = tache.etape.type_etape.get_nom_display()
+        else:
+            projet = tache.module.projet
+            etape_nom = tache.module.nom
+        
+        context.update({
+            'tache': tache,
+            'tache_titre': tache.nom,
+            'tache_description': tache.description if hasattr(tache, 'description') else '',
+            'projet': projet,
+            'projet_nom': projet.nom,
+            'etape_nom': etape_nom,
+            'date_echeance': tache.date_fin.strftime('%d/%m/%Y') if tache.date_fin else None,
+            'assigne_par': notification.emetteur.get_full_name() if notification.emetteur else 'Système',
+            'tache_url': f"{base_url}/projets/{projet.id}/",
+        })
+        
+        sujet = f"[SI-Gouvernance] Nouvelle Tâche: {tache.nom}"
+        template_name = 'emails/notification_assignation_tache.html'
+        
+    elif type_model == 'etape':
+        etape = notification.etape
+        projet = etape.projet
+        
+        context.update({
+            'etape': etape,
+            'etape_nom': etape.type_etape.get_nom_display(),
+            'projet': projet,
+            'projet_nom': projet.nom,
+            'projet_client': projet.client,
+            'emetteur': notification.emetteur.get_full_name() if notification.emetteur else 'Système',
+            'projet_url': f"{base_url}/projets/{projet.id}/",
+        })
+        
+        sujet = f"[SI-Gouvernance] Étape: {notification.titre}"
+        template_name = 'emails/notification_etape.html'
+        
+    elif type_model == 'module':
+        module = notification.module
+        projet = module.projet
+        
+        context.update({
+            'module': module,
+            'module_nom': module.nom,
+            'projet': projet,
+            'projet_nom': projet.nom,
+            'projet_client': projet.client,
+            'emetteur': notification.emetteur.get_full_name() if notification.emetteur else 'Système',
+            'module_url': f"{base_url}/projets/{projet.id}/modules/",
+        })
+        
+        sujet = f"[SI-Gouvernance] Module: {notification.titre}"
+        template_name = 'emails/notification_module.html'
+        
+    elif type_model == 'projet':
+        projet = notification.projet
+        
+        # Déterminer le template selon le type de notification
+        if notification.type_notification == 'RESPONSABLE_PRINCIPAL':
+            template_name = 'emails/notification_responsable_projet.html'
+            sujet = f"[SI-Gouvernance] Nouveau Responsable: {projet.nom}"
+        else:
+            template_name = 'emails/notification_projet.html'
+            sujet = f"[SI-Gouvernance] Projet: {notification.titre}"
+        
+        context.update({
+            'projet': projet,
+            'projet_nom': projet.nom,
+            'projet_client': projet.client,
+            'projet_statut': projet.statut.get_nom_display(),
+            'projet_budget': f"{projet.budget_previsionnel:,.2f}",
+            'projet_devise': projet.devise,
+            'affecte_par': notification.emetteur.get_full_name() if notification.emetteur else 'Système',
+            'projet_url': f"{base_url}/projets/{projet.id}/",
+        })
+        
+    elif type_model == 'alerte':
+        projet = notification.projet
+        
+        context.update({
+            'projet': projet,
+            'projet_nom': projet.nom,
+            'projet_client': projet.client,
+            'projet_statut': projet.statut.get_nom_display(),
+            'alerte_titre': notification.get_type_alerte_display(),
+            'alerte_message': notification.message,
+            'niveau': notification.get_niveau_display(),
+            'projet_url': f"{base_url}/projets/{projet.id}/",
+        })
+        
+        # Ajouter les données contextuelles
+        if notification.donnees_contexte:
+            context.update({
+                'jours_restants': notification.donnees_contexte.get('jours_restants'),
+                'date_echeance': notification.donnees_contexte.get('date_echeance'),
+            })
+        
+        sujet = f"[SI-Gouvernance] ⚠️ Alerte: {notification.titre}"
+        template_name = 'emails/notification_alerte_projet.html'
+    
+    else:
+        sujet = f"[SI-Gouvernance] {notification.titre}"
+        template_name = 'emails/base_email.html'
+    
+    return sujet, template_name
 
 
 def generer_message_texte(notification, type_model, context):

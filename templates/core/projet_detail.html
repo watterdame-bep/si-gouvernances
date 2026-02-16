@@ -65,6 +65,55 @@
             </div>
         </div>
 
+        <!-- Barre de Progression Globale du Projet -->
+        <div class="bg-white rounded-lg p-3 md:p-4 shadow-sm border border-slate-200">
+            <div class="flex items-center justify-between mb-2">
+                <div>
+                    <h3 class="text-sm md:text-base font-semibold text-slate-900">Progression Globale</h3>
+                    <p class="text-xs text-slate-600 mt-0.5">Toutes les tâches du projet</p>
+                </div>
+                <div class="text-right">
+                    <div class="text-2xl md:text-3xl font-bold 
+                        {% if progression_taches >= 75 %}text-emerald-600
+                        {% elif progression_taches >= 50 %}text-blue-600
+                        {% elif progression_taches >= 25 %}text-amber-600
+                        {% else %}text-gray-600{% endif %}">
+                        {{ progression_taches|floatformat:0 }}%
+                    </div>
+                    <p class="text-xs text-slate-500">complété</p>
+                </div>
+            </div>
+            
+            <!-- Barre de progression moderne et compacte -->
+            <div class="relative w-full bg-gray-200 rounded-full h-2.5 overflow-hidden shadow-inner">
+                <div class="absolute inset-0 bg-gradient-to-r 
+                    {% if progression_taches >= 75 %}from-emerald-500 via-green-500 to-teal-500
+                    {% elif progression_taches >= 50 %}from-blue-500 via-indigo-500 to-purple-500
+                    {% elif progression_taches >= 25 %}from-amber-500 via-yellow-500 to-orange-500
+                    {% else %}from-slate-400 via-gray-500 to-slate-600{% endif %}
+                    h-full rounded-full transition-all duration-700 ease-out"
+                     style="width: {{ progression_taches }}%">
+                    <!-- Effet de brillance animé -->
+                    <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-40 animate-shimmer"></div>
+                    <!-- Reflet supérieur pour effet 3D -->
+                    <div class="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white to-transparent opacity-30 rounded-full"></div>
+                </div>
+            </div>
+            
+            {% if total_taches == 0 %}
+            <!-- Message si aucune tâche -->
+            <div class="mt-2.5 p-2.5 bg-blue-50 border border-blue-200 rounded-lg">
+                <div class="flex items-start">
+                    <i class="fas fa-info-circle text-blue-600 mt-0.5 mr-2 text-sm"></i>
+                    <p class="text-xs text-blue-800">
+                        Aucune tâche n'a encore été créée pour ce projet. 
+                        Commencez par créer des tâches dans les étapes ou modules.
+                    </p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
         <!-- Main Content Grid -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4">
             <!-- Main Content -->
@@ -295,7 +344,7 @@
                     <div class="space-y-2">
                         <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
                             <span class="text-xs font-medium text-gray-600">Budget</span>
-                            <span class="text-sm font-semibold text-gray-900">{{ projet.budget_previsionnel|floatformat:0 }} €</span>
+                            <span class="text-sm font-semibold text-gray-900">${{ projet.budget_previsionnel|floatformat:0 }}</span>
                         </div>
                         <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
                             <span class="text-xs font-medium text-gray-600">Créateur</span>
@@ -312,62 +361,109 @@
                     </div>
                 </div>
 
-                <!-- Description -->
+                <!-- Fichiers du Projet -->
                 <div class="bg-white rounded-lg p-3 md:p-4 shadow-sm border border-slate-200">
-                    <h3 class="text-sm md:text-base font-semibold text-slate-900 mb-3">Description</h3>
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-sm md:text-base font-semibold text-slate-900">
+                            <i class="fas fa-paperclip text-purple-600 mr-1"></i>
+                            Fichiers du projet
+                        </h3>
+                        {% if can_manage %}
+                        <button onclick="showAjouterFichiersModal()" 
+                                class="inline-flex items-center justify-center px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-medium transition-colors"
+                                title="Ajouter des fichiers">
+                            <i class="fas fa-plus mr-1"></i>Ajouter
+                        </button>
+                        {% endif %}
+                    </div>
                     
-                    {% if projet.fichier_description %}
+                    {% if projet.fichiers.all or projet.fichier_description %}
                     <div class="space-y-2">
-                        <div class="p-2 bg-purple-50 rounded border border-purple-200">
-                            <div class="flex items-center space-x-2">
-                                {% if projet.fichier_description.name|slice:"-4:" == ".pdf" %}
-                                <i class="fas fa-file-pdf text-red-600 text-xl"></i>
-                                {% elif projet.fichier_description.name|slice:"-5:" == ".docx" or projet.fichier_description.name|slice:"-4:" == ".doc" %}
-                                <i class="fas fa-file-word text-blue-600 text-xl"></i>
-                                {% else %}
-                                <i class="fas fa-file text-gray-600 text-xl"></i>
-                                {% endif %}
-                                <div class="flex-1 min-w-0">
-                                    <p class="text-xs font-medium text-gray-900 truncate">
-                                        {{ projet.fichier_description.name|slice:"22:" }}
-                                    </p>
-                                    {% if projet.fichier_description.size %}
-                                    <p class="text-xs text-gray-600">{{ projet.fichier_description.size|filesizeformat }}</p>
+                        <!-- Ancien fichier description (si existe) -->
+                        {% if projet.fichier_description %}
+                        <div class="border border-purple-200 rounded-lg p-2 hover:shadow-md transition-shadow bg-purple-50">
+                            <div class="flex items-start justify-between">
+                                <div class="flex items-start space-x-2 flex-1 min-w-0">
+                                    {% if projet.fichier_description.name|slice:"-4:" == ".pdf" %}
+                                    <i class="fas fa-file-pdf text-red-600 text-base mt-0.5"></i>
+                                    {% elif projet.fichier_description.name|slice:"-5:" == ".docx" or projet.fichier_description.name|slice:"-4:" == ".doc" %}
+                                    <i class="fas fa-file-word text-blue-600 text-base mt-0.5"></i>
+                                    {% else %}
+                                    <i class="fas fa-file text-gray-600 text-base mt-0.5"></i>
+                                    {% endif %}
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-xs font-medium text-gray-900 truncate" title="{{ projet.fichier_description.name|slice:'22:' }}">
+                                            {{ projet.fichier_description.name|slice:"22:" }}
+                                        </p>
+                                        <div class="flex items-center gap-2">
+                                            {% if projet.fichier_description.size %}
+                                            <p class="text-xs text-gray-600">{{ projet.fichier_description.size|filesizeformat }}</p>
+                                            {% endif %}
+                                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                                                Description
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-1 ml-2">
+                                    {% if projet.fichier_description.name|slice:"-4:" == ".pdf" %}
+                                    <button onclick="visualiserPDF()"
+                                            class="text-purple-600 hover:text-purple-800 p-1"
+                                            title="Visualiser">
+                                        <i class="fas fa-eye text-xs"></i>
+                                    </button>
+                                    {% endif %}
+                                    <a href="{% url 'telecharger_fichier_description' projet.id %}"
+                                       class="text-blue-600 hover:text-blue-800 p-1"
+                                       title="Télécharger">
+                                        <i class="fas fa-download text-xs"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Nouveaux fichiers -->
+                        {% for fichier in projet.fichiers.all %}
+                        <div class="border border-gray-200 rounded-lg p-2 hover:shadow-md transition-shadow bg-gray-50">
+                            <div class="flex items-start justify-between">
+                                <div class="flex items-start space-x-2 flex-1 min-w-0">
+                                    <i class="fas {{ fichier.get_icone }} text-base mt-0.5"></i>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-xs font-medium text-gray-900 truncate" title="{{ fichier.nom_original }}">
+                                            {{ fichier.nom_original }}
+                                        </p>
+                                        <p class="text-xs text-gray-500">
+                                            {{ fichier.get_taille_formatee }} • {{ fichier.date_ajout|date:"d/m/Y" }}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-1 ml-2">
+                                    <a href="{% url 'telecharger_fichier_projet' fichier.id %}"
+                                       class="text-blue-600 hover:text-blue-800 p-1"
+                                       title="Télécharger">
+                                        <i class="fas fa-download text-xs"></i>
+                                    </a>
+                                    {% if can_manage %}
+                                    <button onclick="supprimerFichier({{ fichier.id }}, '{{ fichier.nom_original|escapejs }}')"
+                                            class="text-red-600 hover:text-red-800 p-1"
+                                            title="Supprimer">
+                                        <i class="fas fa-trash text-xs"></i>
+                                    </button>
                                     {% endif %}
                                 </div>
                             </div>
                         </div>
-                        
-                        <div class="flex gap-2">
-                            <a href="{% url 'telecharger_fichier_description' projet.id %}" 
-                               class="flex-1 inline-flex items-center justify-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium text-xs transition-colors">
-                                <i class="fas fa-download mr-1"></i>Télécharger
-                            </a>
-                            {% if projet.fichier_description.name|slice:"-4:" == ".pdf" %}
-                            <button onclick="visualiserPDF()" 
-                                    class="flex-1 inline-flex items-center justify-center px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded font-medium text-xs transition-colors">
-                                <i class="fas fa-eye mr-1"></i>Visualiser
-                            </button>
-                            {% endif %}
-                        </div>
-                        
-                        {% if user.est_super_admin %}
-                        <button onclick="showModifierFichierModal()" 
-                                class="w-full inline-flex items-center justify-center px-3 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded font-medium text-xs transition-colors">
-                            <i class="fas fa-edit mr-1"></i>Modifier
-                        </button>
-                        {% endif %}
+                        {% endfor %}
                     </div>
                     {% else %}
-                    <div class="space-y-2">
-                        <div class="p-3 bg-gray-50 rounded border border-gray-200 text-center">
-                            <i class="fas fa-file-upload text-gray-400 text-2xl mb-1"></i>
-                            <p class="text-xs text-gray-600">Aucun fichier</p>
-                        </div>
-                        {% if user.est_super_admin %}
-                        <button onclick="showAjouterFichierModal()" 
-                                class="w-full inline-flex items-center justify-center px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-medium text-xs transition-colors">
-                            <i class="fas fa-plus mr-1"></i>Ajouter
+                    <div class="text-center py-6">
+                        <i class="fas fa-inbox text-gray-300 text-3xl mb-2"></i>
+                        <p class="text-xs text-gray-500 mb-3">Aucun fichier attaché</p>
+                        {% if can_manage %}
+                        <button onclick="showAjouterFichiersModal()" 
+                                class="inline-flex items-center justify-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-medium transition-colors">
+                            <i class="fas fa-plus mr-1"></i>Ajouter des fichiers
                         </button>
                         {% endif %}
                     </div>
@@ -553,53 +649,61 @@
 </div>
 {% endif %}
 
-<!-- Modal Ajouter/Modifier Fichier Description -->
-{% if user.est_super_admin %}
-<div id="ajouterFichierModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+<!-- Modal Ajouter Fichiers Multiples -->
+{% if can_manage %}
+<div id="ajouterFichiersModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
     <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-lg bg-white">
         <!-- Header -->
         <div class="flex items-center justify-between p-4 bg-purple-500 text-white rounded-t-lg">
             <h3 class="text-lg font-bold">
-                <i class="fas fa-file-upload mr-2"></i>
-                <span id="modalTitle">Ajouter un fichier de description</span>
+                <i class="fas fa-paperclip mr-2"></i>Ajouter des fichiers
             </h3>
-            <button onclick="hideAjouterFichierModal()" class="text-white hover:text-gray-200">
+            <button onclick="hideAjouterFichiersModal()" class="text-white hover:text-gray-200">
                 <i class="fas fa-times text-xl"></i>
             </button>
         </div>
         
         <!-- Body -->
-        <form method="post" action="{% url 'ajouter_fichier_description' projet.id %}" enctype="multipart/form-data" id="fichierForm">
+        <form method="post" action="{% url 'ajouter_fichiers_projet' projet.id %}" enctype="multipart/form-data" id="fichiersForm">
             {% csrf_token %}
             <div class="p-6">
                 <div class="mb-4">
-                    <label for="fichier_description_modal" class="block text-sm font-medium text-gray-700 mb-2">
-                        Sélectionner un fichier
+                    <label for="fichiers_multiples" class="block text-sm font-medium text-gray-700 mb-2">
+                        Sélectionner des fichiers
                     </label>
                     <input 
                         type="file" 
-                        id="fichier_description_modal" 
-                        name="fichier_description" 
+                        id="fichiers_multiples" 
+                        name="fichiers" 
+                        multiple
                         required
-                        accept=".pdf,.doc,.docx"
+                        accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar,.jpg,.jpeg,.png"
                         class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
+                        onchange="afficherFichiersSelectionnes()"
                     >
                 </div>
+                
+                <!-- Liste des fichiers sélectionnés -->
+                <div id="listefichiersSelectionnes" class="hidden mb-4">
+                    <p class="text-xs font-medium text-gray-700 mb-2">Fichiers sélectionnés :</p>
+                    <div id="fichiersListe" class="space-y-1 max-h-32 overflow-y-auto"></div>
+                </div>
+                
                 <p class="text-xs text-gray-500">
                     <i class="fas fa-info-circle mr-1"></i>
-                    Formats acceptés : PDF, Word (.doc, .docx) - Max 10 MB
+                    Formats acceptés : PDF, Word, Excel, PowerPoint, images, archives, texte - Max 10 MB par fichier
                 </p>
             </div>
             
             <!-- Footer -->
             <div class="flex items-center justify-end p-4 border-t border-gray-200 space-x-3">
-                <button type="button" onclick="hideAjouterFichierModal()" 
+                <button type="button" onclick="hideAjouterFichiersModal()" 
                         class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors text-sm">
                     <i class="fas fa-times mr-1"></i>Annuler
                 </button>
                 <button type="submit" 
                         class="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors text-sm">
-                    <i class="fas fa-check mr-1"></i>Enregistrer
+                    <i class="fas fa-check mr-1"></i>Ajouter
                 </button>
             </div>
         </form>
@@ -628,47 +732,91 @@ function hideVisualisationPDF() {
     document.body.style.overflow = 'auto';
 }
 
-function showAjouterFichierModal() {
-    document.getElementById('modalTitle').textContent = 'Ajouter un fichier de description';
-    document.getElementById('ajouterFichierModal').classList.remove('hidden');
+// Fonctions pour la gestion des fichiers multiples
+function showAjouterFichiersModal() {
+    document.getElementById('ajouterFichiersModal').classList.remove('hidden');
     document.body.style.overflow = 'hidden';
 }
 
-function showModifierFichierModal() {
-    document.getElementById('modalTitle').textContent = 'Modifier le fichier de description';
-    document.getElementById('ajouterFichierModal').classList.remove('hidden');
-    document.body.style.overflow = 'hidden';
-}
-
-function hideAjouterFichierModal() {
-    document.getElementById('ajouterFichierModal').classList.add('hidden');
+function hideAjouterFichiersModal() {
+    document.getElementById('ajouterFichiersModal').classList.add('hidden');
     document.body.style.overflow = 'auto';
+    // Réinitialiser le formulaire
+    document.getElementById('fichiersForm').reset();
+    document.getElementById('listefichiersSelectionnes').classList.add('hidden');
 }
 
-// Validation du formulaire fichier
-document.getElementById('fichierForm')?.addEventListener('submit', function(e) {
-    const fichier = document.getElementById('fichier_description_modal').files[0];
+function afficherFichiersSelectionnes() {
+    const input = document.getElementById('fichiers_multiples');
+    const liste = document.getElementById('fichiersListe');
+    const container = document.getElementById('listefichiersSelectionnes');
     
-    if (!fichier) {
+    if (input.files.length > 0) {
+        container.classList.remove('hidden');
+        liste.innerHTML = '';
+        
+        Array.from(input.files).forEach(file => {
+            const taille = (file.size / 1024 / 1024).toFixed(2);
+            const div = document.createElement('div');
+            div.className = 'flex items-center justify-between p-1.5 bg-gray-50 rounded text-xs';
+            div.innerHTML = `
+                <span class="truncate flex-1">${file.name}</span>
+                <span class="text-gray-500 ml-2">${taille} MB</span>
+            `;
+            liste.appendChild(div);
+        });
+    } else {
+        container.classList.add('hidden');
+    }
+}
+
+function supprimerFichier(fichierId, nomFichier) {
+    if (!confirm(`Voulez-vous vraiment supprimer le fichier "${nomFichier}" ?`)) {
+        return;
+    }
+    
+    fetch(`/fichiers/${fichierId}/supprimer/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.error || 'Erreur lors de la suppression du fichier');
+        }
+    })
+    .catch(error => {
+        alert('Erreur lors de la suppression du fichier');
+        console.error('Erreur:', error);
+    });
+}
+
+// Validation du formulaire fichiers multiples
+document.getElementById('fichiersForm')?.addEventListener('submit', function(e) {
+    const fichiers = document.getElementById('fichiers_multiples').files;
+    
+    if (!fichiers || fichiers.length === 0) {
         e.preventDefault();
-        alert('Veuillez sélectionner un fichier.');
+        alert('Veuillez sélectionner au moins un fichier.');
         return false;
     }
     
-    // Validation
+    // Validation de chaque fichier
     const maxSize = 10 * 1024 * 1024; // 10 MB
-    const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
     
-    if (fichier.size > maxSize) {
-        e.preventDefault();
-        alert('Le fichier est trop volumineux. Taille maximale : 10 MB');
-        return false;
-    }
-    
-    if (!allowedTypes.includes(fichier.type)) {
-        e.preventDefault();
-        alert('Format de fichier non accepté. Utilisez PDF ou Word (.doc, .docx)');
-        return false;
+    for (let i = 0; i < fichiers.length; i++) {
+        const fichier = fichiers[i];
+        
+        if (fichier.size > maxSize) {
+            e.preventDefault();
+            alert(`Le fichier "${fichier.name}" est trop volumineux. Taille maximale : 10 MB`);
+            return false;
+        }
     }
     
     return true;
@@ -687,9 +835,9 @@ document.getElementById('visualiserPDFModal')?.addEventListener('click', functio
     }
 });
 
-document.getElementById('ajouterFichierModal')?.addEventListener('click', function(e) {
+document.getElementById('ajouterFichiersModal')?.addEventListener('click', function(e) {
     if (e.target === this) {
-        hideAjouterFichierModal();
+        hideAjouterFichiersModal();
     }
 });
 
@@ -698,9 +846,25 @@ document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
         hideDemarrerProjetModal();
         hideVisualisationPDF();
-        hideAjouterFichierModal();
+        hideAjouterFichiersModal();
     }
 });
 </script>
+
+<!-- Animation CSS pour l'effet de brillance de la barre de progression -->
+<style>
+@keyframes shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+.animate-shimmer {
+    animation: shimmer 2s infinite;
+}
+</style>
 
 {% endblock %}

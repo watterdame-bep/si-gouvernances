@@ -1,0 +1,286 @@
+<!-- Modale Définir Budget Total -->
+<div id="modalDefinirBudget" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div class="p-6">
+            <div class="flex items-center mb-4">
+                <div class="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mr-4">
+                    <i class="fas fa-wallet text-indigo-600 text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl font-semibold text-gray-900">Définir le Budget Total</h3>
+                    <p class="text-sm text-gray-600">Budget prévisionnel du projet</p>
+                </div>
+            </div>
+            
+            <form id="formDefinirBudget" onsubmit="enregistrerBudgetTotal(event)">
+                {% csrf_token %}
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-dollar-sign text-green-600 mr-1"></i>Montant du budget ($)
+                    </label>
+                    <input type="number" id="inputBudgetTotal" name="budget_total" required min="0" step="0.01" 
+                           value="{{ projet.budget_previsionnel }}"
+                           placeholder="Ex: 50000"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-lg">
+                    <p class="text-xs text-gray-500 mt-1">
+                        <i class="fas fa-info-circle mr-1"></i>Ce montant servira de référence pour calculer le budget disponible
+                    </p>
+                </div>
+                
+                <div class="flex space-x-3">
+                    <button type="button" onclick="fermerModalDefinirBudget()" 
+                            class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors">
+                        <i class="fas fa-times mr-2"></i>Annuler
+                    </button>
+                    <button type="submit" 
+                            class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                        <i class="fas fa-save mr-2"></i>Enregistrer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modale Confirmation Succès -->
+<div id="modalSucces" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div class="p-6 text-center">
+            <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-check text-green-600 text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-2">Succès !</h3>
+            <p id="messageSucces" class="text-gray-600 mb-6"></p>
+            <button onclick="fermerModalSucces()" 
+                    class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg font-medium transition-colors">
+                <i class="fas fa-check mr-2"></i>OK
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modale Confirmation Erreur -->
+<div id="modalErreur" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div class="p-6 text-center">
+            <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-exclamation-triangle text-red-600 text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-2">Erreur</h3>
+            <p id="messageErreur" class="text-gray-600 mb-6"></p>
+            <button onclick="fermerModalErreur()" 
+                    class="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-lg font-medium transition-colors">
+                <i class="fas fa-times mr-2"></i>Fermer
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modale Confirmation Suppression -->
+<div id="modalConfirmationSuppression" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div class="p-6 text-center">
+            <div class="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-question-circle text-orange-600 text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-2">Confirmer la suppression</h3>
+            <p id="messageConfirmation" class="text-gray-600 mb-6">Êtes-vous sûr de vouloir supprimer cette dépense ?</p>
+            <div class="flex space-x-3">
+                <button onclick="annulerSuppression()" 
+                        class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 rounded-lg font-medium transition-colors">
+                    <i class="fas fa-times mr-2"></i>Annuler
+                </button>
+                <button onclick="confirmerSuppression()" 
+                        class="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-lg font-medium transition-colors">
+                    <i class="fas fa-trash-alt mr-2"></i>Supprimer
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Variables globales pour la suppression
+let ligneIdASupprimer = null;
+
+// Fonctions pour modale Définir Budget
+function ouvrirModalDefinirBudget() {
+    document.getElementById('modalDefinirBudget').classList.remove('hidden');
+}
+
+function fermerModalDefinirBudget() {
+    document.getElementById('modalDefinirBudget').classList.add('hidden');
+}
+
+function enregistrerBudgetTotal(event) {
+    event.preventDefault();
+    const montant = document.getElementById('inputBudgetTotal').value;
+    
+    fetch('{% url "modifier_budget_projet" projet.id %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: `budget=${montant}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        fermerModalDefinirBudget();
+        if (data.success) {
+            afficherSucces(data.message || 'Budget total mis à jour avec succès !');
+            
+            // Mise à jour dynamique SANS rechargement
+            const budgetTotal = document.getElementById('budgetTotal');
+            if (budgetTotal) {
+                budgetTotal.textContent = `$${parseFloat(montant).toFixed(0)}`;
+            }
+            
+            // Recalculer le budget disponible
+            const totalMateriel = parseFloat(document.getElementById('totalMateriel').textContent.replace('$', '')) || 0;
+            const totalServices = parseFloat(document.getElementById('totalServices').textContent.replace('$', '')) || 0;
+            const disponible = parseFloat(montant) - totalMateriel - totalServices;
+            
+            const budgetDisponible = document.getElementById('budgetDisponible');
+            if (budgetDisponible) {
+                budgetDisponible.textContent = `$${disponible.toFixed(0)}`;
+                budgetDisponible.className = `text-base font-bold ${disponible < 0 ? 'text-red-900' : 'text-blue-900'}`;
+            }
+        } else {
+            afficherErreur(data.error || 'Erreur lors de la mise à jour du budget.');
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        fermerModalDefinirBudget();
+        afficherErreur('Erreur lors de la communication avec le serveur.');
+    });
+}
+
+// Fonctions pour modale Succès
+function afficherSucces(message) {
+    document.getElementById('messageSucces').textContent = message;
+    document.getElementById('modalSucces').classList.remove('hidden');
+}
+
+function fermerModalSucces() {
+    document.getElementById('modalSucces').classList.add('hidden');
+}
+
+// Fonctions pour modale Erreur
+function afficherErreur(message) {
+    document.getElementById('messageErreur').textContent = message;
+    document.getElementById('modalErreur').classList.remove('hidden');
+}
+
+function fermerModalErreur() {
+    document.getElementById('modalErreur').classList.add('hidden');
+}
+
+// Fonctions pour modale Confirmation Suppression
+function demanderConfirmationSuppression(ligneId, nomDepense) {
+    ligneIdASupprimer = ligneId;
+    document.getElementById('messageConfirmation').textContent = 
+        `Êtes-vous sûr de vouloir supprimer la dépense "${nomDepense}" ?`;
+    document.getElementById('modalConfirmationSuppression').classList.remove('hidden');
+}
+
+function annulerSuppression() {
+    ligneIdASupprimer = null;
+    document.getElementById('modalConfirmationSuppression').classList.add('hidden');
+}
+
+function confirmerSuppression() {
+    if (!ligneIdASupprimer) return;
+    
+    const ligneId = ligneIdASupprimer;
+    ligneIdASupprimer = null;
+    document.getElementById('modalConfirmationSuppression').classList.add('hidden');
+    
+    // Appeler la fonction de suppression
+    executerSuppressionLigne(ligneId);
+}
+
+function executerSuppressionLigne(ligneId) {
+    fetch(`/budget/ligne/${ligneId}/supprimer/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Mise à jour dynamique SANS rechargement
+            afficherSucces(data.message || 'Dépense supprimée avec succès !');
+            
+            // Supprimer la ligne du tableau dynamiquement
+            const lignes = document.querySelectorAll('#tableauLignesBudget tr');
+            lignes.forEach(ligne => {
+                const btnSupprimer = ligne.querySelector(`button[onclick*="${ligneId}"]`);
+                if (btnSupprimer) {
+                    ligne.remove();
+                }
+            });
+            
+            // Mettre à jour le résumé budgétaire dynamiquement
+            if (data.resume) {
+                mettreAJourResumeBudget(data.resume);
+            }
+            
+            // Vérifier s'il reste des lignes
+            const lignesRestantes = document.querySelectorAll('#tableauLignesBudget tr');
+            if (lignesRestantes.length === 0) {
+                document.getElementById('tableauLignesBudget').innerHTML = '';
+                document.getElementById('messageBudgetVide').classList.remove('hidden');
+            }
+        } else {
+            afficherErreur(data.error || 'Erreur lors de la suppression.');
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        afficherErreur('Erreur lors de la communication avec le serveur.');
+    });
+}
+
+// Fonction pour mettre à jour le résumé budgétaire dynamiquement
+function mettreAJourResumeBudget(resume) {
+    // Mettre à jour dans la modale liste
+    const resumeContainer = document.getElementById('resumeBudgetListe');
+    if (resumeContainer) {
+        resumeContainer.innerHTML = `
+            <div class="p-2 bg-green-50 rounded border border-green-200 text-center">
+                <div class="text-xs text-green-700 mb-1">Budget Total</div>
+                <div class="text-base font-bold text-green-900">$${resume.budget_total.toFixed(0)}</div>
+            </div>
+            <div class="p-2 bg-purple-50 rounded border border-purple-200 text-center">
+                <div class="text-xs text-purple-700 mb-1">💻 Matériel</div>
+                <div class="text-base font-bold text-purple-900">$${resume.total_materiel.toFixed(0)}</div>
+            </div>
+            <div class="p-2 bg-orange-50 rounded border border-orange-200 text-center">
+                <div class="text-xs text-orange-700 mb-1">🏢 Services</div>
+                <div class="text-base font-bold text-orange-900">$${resume.total_services.toFixed(0)}</div>
+            </div>
+            <div class="p-2 bg-blue-50 rounded border border-blue-200 text-center">
+                <div class="text-xs text-blue-700 mb-1">Disponible</div>
+                <div class="text-base font-bold ${resume.budget_disponible < 0 ? 'text-red-900' : 'text-blue-900'}">
+                    $${resume.budget_disponible.toFixed(0)}
+                </div>
+            </div>
+        `;
+    }
+    
+    // Mettre à jour dans la page principale
+    const totalMateriel = document.getElementById('totalMateriel');
+    const totalServices = document.getElementById('totalServices');
+    const budgetDisponible = document.getElementById('budgetDisponible');
+    
+    if (totalMateriel) totalMateriel.textContent = `$${resume.total_materiel.toFixed(0)}`;
+    if (totalServices) totalServices.textContent = `$${resume.total_services.toFixed(0)}`;
+    if (budgetDisponible) {
+        budgetDisponible.textContent = `$${resume.budget_disponible.toFixed(0)}`;
+        budgetDisponible.className = `text-base font-bold ${resume.budget_disponible < 0 ? 'text-red-900' : 'text-blue-900'}`;
+    }
+}
+</script>

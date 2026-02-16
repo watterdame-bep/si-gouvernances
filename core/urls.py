@@ -10,6 +10,8 @@ from . import views_maintenance_v2  # Nouvelles vues simplifiées
 from . import views_demarrage_projet
 from . import views_alertes  # Vues pour les alertes
 from . import views_activation  # Vues pour l'activation sécurisée des comptes
+from . import views_budget  # Vues pour la gestion budgétaire
+from . import views_fichiers  # Vues pour la gestion des fichiers
 
 urlpatterns = [
     path('', views.dashboard_view, name='dashboard'),
@@ -193,6 +195,7 @@ urlpatterns = [
     path('profil/modifier/', views.modifier_profil_view, name='modifier_profil'),
     path('profil/changer-mot-de-passe/', views.changer_mot_de_passe_view, name='changer_mot_de_passe'),
     path('profil/creer-membre/', views_admin_profile.creer_profil_membre_admin_view, name='creer_profil_membre_admin'),
+    path('profil/modifier-email-admin/', views_admin_profile.modifier_email_admin_view, name='modifier_email_admin'),
     
     # Gestion des modules (Phase développement)
     path('projets/<uuid:projet_id>/mes-modules/', views.mes_modules_view, name='mes_modules'),
@@ -237,4 +240,19 @@ urlpatterns = [
     path('projets/<uuid:projet_id>/demarrer/', views_demarrage_projet.demarrer_projet_view, name='demarrer_projet'),
     path('projets/<uuid:projet_id>/ajax/demarrer/', views_demarrage_projet.ajax_demarrer_projet, name='ajax_demarrer_projet'),
     path('projets/<uuid:projet_id>/ajax/info-temporelle/', views_demarrage_projet.info_temporelle_projet, name='info_temporelle_projet'),
+    
+    # ========================================================================
+    # GESTION BUDGÉTAIRE
+    # ========================================================================
+    path('projets/<uuid:projet_id>/budget/ajouter/', views_budget.ajouter_lignes_budget, name='ajouter_lignes_budget'),
+    path('projets/<uuid:projet_id>/budget/liste/', views_budget.liste_lignes_budget, name='liste_lignes_budget'),
+    path('projets/<uuid:projet_id>/budget/resume/', views_budget.resume_budget, name='resume_budget'),
+    path('budget/ligne/<uuid:ligne_id>/supprimer/', views_budget.supprimer_ligne_budget, name='supprimer_ligne_budget'),
+    
+    # ========================================================================
+    # GESTION DES FICHIERS DE PROJET
+    # ========================================================================
+    path('projets/<uuid:projet_id>/fichiers/ajouter/', views_fichiers.ajouter_fichiers_projet, name='ajouter_fichiers_projet'),
+    path('fichiers/<int:fichier_id>/supprimer/', views_fichiers.supprimer_fichier_projet, name='supprimer_fichier_projet'),
+    path('fichiers/<int:fichier_id>/telecharger/', views_fichiers.telecharger_fichier_projet, name='telecharger_fichier_projet'),
 ]

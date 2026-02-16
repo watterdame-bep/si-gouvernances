@@ -1,0 +1,81 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Nouveau Responsable de Projet - SI-Gouvernance{% endblock %}
+
+{% block header_title %}Nouvelle Responsabilité{% endblock %}
+{% block header_subtitle %}Vous avez été désigné responsable de projet{% endblock %}
+
+{% block content %}
+<div class="greeting">
+    Bonjour {{ destinataire_nom }},
+</div>
+
+<div class="message-content">
+    <p>Nous avons le plaisir de vous informer que vous avez été désigné <strong>responsable principal</strong> du projet suivant :</p>
+</div>
+
+<div class="info-card">
+    <div class="info-card-title">
+        <span class="info-card-icon">📋</span>
+        Détails du Projet
+    </div>
+    <ul class="info-list">
+        <li class="info-item">
+            <span class="info-label">Projet :</span>
+            <span class="info-value"><strong>{{ projet_nom }}</strong></span>
+        </li>
+        <li class="info-item">
+            <span class="info-label">Client :</span>
+            <span class="info-value">{{ projet_client }}</span>
+        </li>
+        <li class="info-item">
+            <span class="info-label">Statut :</span>
+            <span class="info-value">{{ projet_statut }}</span>
+        </li>
+        <li class="info-item">
+            <span class="info-label">Budget :</span>
+            <span class="info-value">{{ projet_budget }} {{ projet_devise }}</span>
+        </li>
+        <li class="info-item">
+            <span class="info-label">Affecté par :</span>
+            <span class="info-value">{{ affecte_par }}</span>
+        </li>
+        <li class="info-item">
+            <span class="info-label">Date :</span>
+            <span class="info-value">{{ date_notification }}</span>
+        </li>
+    </ul>
+</div>
+
+<div class="message-content">
+    <p><strong>Vos responsabilités incluent :</strong></p>
+    <ul style="margin-left: 20px; margin-top: 10px;">
+        <li>Coordination et suivi de l'équipe projet</li>
+        <li>Gestion du planning et des échéances</li>
+        <li>Validation des livrables et étapes</li>
+        <li>Communication avec le client et les parties prenantes</li>
+        <li>Reporting régulier sur l'avancement du projet</li>
+    </ul>
+</div>
+
+<div class="action-button-container">
+    <a href="{{ projet_url }}" class="action-button">
+        🚀 Accéder au Projet
+    </a>
+</div>
+
+<div class="alert-box alert-box-info">
+    <div class="alert-title">💡 Conseil</div>
+    <div class="alert-message">
+        Commencez par consulter la description du projet et les documents associés. N'hésitez pas à contacter l'équipe si vous avez des questions.
+    </div>
+</div>
+
+<div class="message-content">
+    <p>Nous vous souhaitons plein succès dans cette nouvelle mission !</p>
+    <p style="margin-top: 20px;">
+        Cordialement,<br>
+        <strong>L'équipe SI-Gouvernance</strong>
+    </p>
+</div>
+{% endblock %}

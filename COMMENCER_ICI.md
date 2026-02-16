@@ -1,95 +1,225 @@
-# 🚀 COMMENCER ICI - Système d'Alertes
+# 🚀 COMMENCER ICI - SI-Gouvernance
 
-## ✅ Tout est prêt !
+## ⚡ Démarrage Rapide (2 minutes)
 
-Le système d'alertes est **100% fonctionnel**. Il ne reste plus qu'à le configurer.
+### Windows
 
-## ⚡ 3 Étapes Simples
-
-### 1️⃣ Ouvrir le Planificateur de tâches (30 secondes)
-
-```
-Windows → Taper "Planificateur de tâches" → Ouvrir
+```cmd
+deploy-local.bat
 ```
 
-### 2️⃣ Créer la tâche (4 minutes)
+Choisir **option 1** → Attendre 30 secondes → Aller sur http://localhost:8000
 
-```
-Créer une tâche → Suivre le guide ci-dessous
-```
+**Connexion:** `jovi` / `jovi123`
 
-**Guide détaillé** : Ouvrir `CONFIGURATION_PLANIFICATEUR_ETAPE_PAR_ETAPE.md`
-
-**Résumé ultra-rapide** :
-- **Nom** : Alertes SI-Gouvernance
-- **Déclencheur** : Quotidien à 8h00
-- **Action** : `E:\DOCERA\PROJETS\PYTHON\Django\SI-GOUVERNANCE\run_check_deadlines.bat`
-- **Permissions** : Cocher "Exécuter avec les autorisations maximales"
-
-### 3️⃣ Tester immédiatement (30 secondes)
-
-```
-Clic droit sur la tâche → Exécuter
-```
-
-## ✅ C'est fait !
-
-Votre système d'alertes est maintenant **100% automatisé**.
-
-Chaque jour à 8h00, il va :
-- ✅ Vérifier toutes les tâches actives
-- ✅ Créer des alertes pour les échéances proches
-- ✅ Notifier les utilisateurs concernés
-
-## 📊 Suivi Quotidien (Optionnel)
-
-Chaque matin, vous pouvez exécuter :
+### Linux/Mac
 
 ```bash
-python suivi_quotidien_alertes.py
+cp .env.example .env
+docker-compose up -d
 ```
 
-Cela vous donnera un résumé complet du système.
+Attendre 30 secondes → http://localhost:8000
 
-## 📚 Documentation
+## 📁 Structure du Projet
 
-Si vous voulez en savoir plus :
+```
+SI-Gouvernance/
+├── docker-compose.yml          # ✅ Configuration Docker UNIQUE
+├── .env.example                # ✅ Configuration locale
+├── .env.production.example     # ✅ Configuration production
+├── deploy-local.bat            # ✅ Script déploiement
+├── README_DEPLOIEMENT.md       # 📖 Documentation complète
+└── DEPLOIEMENT_UNIFIE_FINAL.md # 📖 Guide technique
+```
 
-| Document | Quand l'utiliser |
-|----------|------------------|
-| **`QUICK_START_ALERTES.md`** | Pour démarrer rapidement |
-| **`README_SYSTEME_ALERTES.md`** | Pour comprendre le système |
-| **`INDEX_DOCUMENTATION_ALERTES.md`** | Pour trouver un document spécifique |
-| **`RESUME_FINAL_ALERTES.md`** | Pour voir tout ce qui a été fait |
+## 🎯 Modes de Déploiement
 
-## 🎯 Prochaines Étapes
+### 1️⃣ Local (Développement)
 
-### Cette semaine
-- Vérifier que la tâche s'exécute chaque jour à 8h00
-- Utiliser `python suivi_quotidien_alertes.py` pour le suivi
+**Commande:**
+```bash
+docker-compose up -d
+```
 
-### Semaine prochaine
-- Faire le bilan de la semaine
-- Supprimer les tâches de test si nécessaire
+**Caractéristiques:**
+- Serveur de développement Django
+- Code modifiable en temps réel
+- Superuser "jovi" créé automatiquement
+- Emails affichés dans la console
+- Ports exposés pour debug
 
-### Plus tard (optionnel)
-- Migrer vers Celery pour la production (voir `MIGRATION_CELERY_READY.md`)
+**Accès:**
+- Application: http://localhost:8000
+- Base de données: localhost:3306
+- Redis: localhost:6379
 
-## 🎉 Félicitations !
+### 2️⃣ Production
 
-Vous avez maintenant un système d'alertes professionnel et automatisé.
+**Commande:**
+```bash
+docker-compose --profile production up -d
+```
 
-**Temps total** : 5 minutes  
-**Résultat** : Système 100% automatisé ✅
+**Caractéristiques:**
+- Gunicorn + Nginx
+- Sécurité renforcée
+- Emails SMTP réels
+- Limites ressources
+- Logs professionnels
+
+**Accès:**
+- Application: http://localhost (via Nginx)
+- HTTPS: https://localhost (si configuré)
+
+### 3️⃣ Monitoring (Optionnel)
+
+**Commande:**
+```bash
+# Local
+docker-compose --profile monitoring up -d
+
+# Production
+docker-compose --profile production --profile monitoring up -d
+```
+
+**Accès:**
+- Flower: http://localhost:5555
+
+## 🔄 Alertes Automatiques
+
+Les alertes s'exécutent automatiquement toutes les 4 heures:
+
+✅ Échéances projets  
+✅ Retards d'étapes  
+✅ Tâches en retard  
+✅ Dépassements budget  
+✅ Expirations contrats  
+
+## 📝 Commandes Essentielles
+
+### Démarrage
+```bash
+# Local
+docker-compose up -d
+
+# Production
+docker-compose --profile production up -d
+```
+
+### Arrêt
+```bash
+docker-compose down
+```
+
+### Logs
+```bash
+# Tous les services
+docker-compose logs -f
+
+# Service spécifique
+docker-compose logs -f web
+docker-compose logs -f celery_worker
+```
+
+### Shell Django
+```bash
+# Local
+docker-compose exec web python manage.py shell
+
+# Production
+docker-compose --profile production exec web_prod python manage.py shell
+```
+
+### Redémarrage
+```bash
+docker-compose restart
+```
+
+## 🔧 Configuration
+
+### Local (.env)
+
+```bash
+# Copier le template
+cp .env.example .env
+
+# Les valeurs par défaut fonctionnent directement
+# Modifier uniquement si nécessaire
+```
+
+### Production (.env.production)
+
+```bash
+# Copier le template
+cp .env.production.example .env.production
+
+# IMPORTANT: Modifier TOUTES les valeurs
+# - DJANGO_SECRET_KEY (générer une clé sécurisée)
+# - DB_PASSWORD (mot de passe fort)
+# - EMAIL_HOST_USER et EMAIL_HOST_PASSWORD
+# - DJANGO_ALLOWED_HOSTS (votre domaine)
+```
+
+## 🎓 Documentation Complète
+
+- **README_DEPLOIEMENT.md** - Guide utilisateur complet
+- **DEPLOIEMENT_UNIFIE_FINAL.md** - Guide technique détaillé
+- **.env.example** - Configuration locale commentée
+- **.env.production.example** - Configuration production commentée
+
+## ❓ Problèmes Courants
+
+### Port 8000 déjà utilisé
+```bash
+# Dans .env, changer:
+WEB_PORT=8001
+```
+
+### Services ne démarrent pas
+```bash
+# Vérifier les logs
+docker-compose logs
+
+# Rebuild complet
+docker-compose down
+docker-compose build
+docker-compose up -d
+```
+
+### Réinitialiser la base de données
+```bash
+# ATTENTION: Supprime toutes les données!
+docker-compose down -v
+docker-compose up -d
+```
+
+### Passer de local à production
+```bash
+# 1. Arrêter local
+docker-compose down
+
+# 2. Configurer production
+cp .env.production.example .env.production
+# Éditer .env.production
+
+# 3. Démarrer production
+docker-compose --profile production up -d
+```
+
+## 🎉 C'est Tout!
+
+Votre application est maintenant déployée avec:
+
+✅ Base de données MySQL  
+✅ Cache Redis  
+✅ Serveur web Django  
+✅ Workers Celery  
+✅ Alertes automatiques  
+✅ Superuser créé  
+
+**Prêt à l'emploi en 2 minutes!** 🚀
 
 ---
 
-**Action immédiate** : Ouvrir le Planificateur de tâches Windows et créer la tâche
-
-**Guide à suivre** : `CONFIGURATION_PLANIFICATEUR_ETAPE_PAR_ETAPE.md`
-
-**Durée** : 5 minutes
-
-**Difficulté** : Facile ⭐
-
-🚀 **C'est parti !**
+**Besoin d'aide?** Consultez `README_DEPLOIEMENT.md` pour plus de détails.
