@@ -681,51 +681,56 @@ function afficherTousBesoins() {
 }
 
 // Ajouter un membre
-document.getElementById('ajouterMembreForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(this);
-    const submitBtn = this.querySelector('button[type="submit"]');
-    const originalText = submitBtn.innerHTML;
-    
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Ajout...';
-    submitBtn.disabled = true;
-    
-    fetch('{% url "ajouter_membre_projet" projet.id %}', {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            fermerModalAjouterMembre();
-            // Afficher message de succès
-            const message = document.createElement('div');
-            message.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-fade-in';
-            message.innerHTML = '<i class="fas fa-check mr-2"></i>Membre ajouté avec succès !';
-            document.body.appendChild(message);
-            setTimeout(() => {
-                message.remove();
-                location.reload(); // Recharger pour mettre à jour la liste
-            }, 1500);
-        } else {
-            alert('Erreur: ' + data.error);
+const ajouterMembreForm = document.getElementById('ajouterMembreForm');
+if (ajouterMembreForm) {
+    ajouterMembreForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Ajout...';
+        submitBtn.disabled = true;
+        
+        fetch('{% url "ajouter_membre_projet" projet.id %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                fermerModalAjouterMembre();
+                // Afficher message de succès
+                const message = document.createElement('div');
+                message.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-fade-in';
+                message.innerHTML = '<i class="fas fa-check mr-2"></i>Membre ajouté avec succès !';
+                document.body.appendChild(message);
+                setTimeout(() => {
+                    message.remove();
+                    location.reload(); // Recharger pour mettre à jour la liste
+                }, 1500);
+            } else {
+                alert('Erreur: ' + data.error);
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        })
+        .catch(error => {
+            alert('Erreur: ' + error);
             submitBtn.innerHTML = originalText;
             submitBtn.disabled = false;
-        }
-    })
-    .catch(error => {
-        alert('Erreur: ' + error);
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
+        });
     });
-});
+}
 
 // Ajouter le responsable (première affectation)
-document.getElementById('ajouterResponsableForm').addEventListener('submit', function(e) {
+const ajouterResponsableForm = document.getElementById('ajouterResponsableForm');
+if (ajouterResponsableForm) {
+    ajouterResponsableForm.addEventListener('submit', function(e) {
     e.preventDefault();
     
     const formData = new FormData(this);
@@ -769,47 +774,51 @@ document.getElementById('ajouterResponsableForm').addEventListener('submit', fun
         submitBtn.disabled = false;
     });
 });
+}
 
 // Retirer un membre
-document.getElementById('retirerMembreForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(this);
-    const submitBtn = this.querySelector('button[type="submit"]');
-    const originalText = submitBtn.innerHTML;
-    
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Suppression...';
-    submitBtn.disabled = true;
-    
-    fetch('{% url "retirer_membre_projet" projet.id %}', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            fermerModalRetirer();
-            // Afficher message de succès
-            const message = document.createElement('div');
-            message.className = 'fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-fade-in';
-            message.innerHTML = '<i class="fas fa-check mr-2"></i>Membre retiré avec succès !';
-            document.body.appendChild(message);
-            setTimeout(() => {
-                message.remove();
-                location.reload(); // Recharger pour mettre à jour la liste
-            }, 1500);
-        } else {
-            alert('Erreur: ' + data.error);
+const retirerMembreForm = document.getElementById('retirerMembreForm');
+if (retirerMembreForm) {
+    retirerMembreForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Suppression...';
+        submitBtn.disabled = true;
+        
+        fetch('{% url "retirer_membre_projet" projet.id %}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                fermerModalRetirer();
+                // Afficher message de succès
+                const message = document.createElement('div');
+                message.className = 'fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-fade-in';
+                message.innerHTML = '<i class="fas fa-check mr-2"></i>Membre retiré avec succès !';
+                document.body.appendChild(message);
+                setTimeout(() => {
+                    message.remove();
+                    location.reload(); // Recharger pour mettre à jour la liste
+                }, 1500);
+            } else {
+                alert('Erreur: ' + data.error);
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        })
+        .catch(error => {
+            alert('Erreur: ' + error);
             submitBtn.innerHTML = originalText;
             submitBtn.disabled = false;
-        }
-    })
-    .catch(error => {
-        alert('Erreur: ' + error);
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
+        });
     });
-});
+}
 
 // Ouvrir modal transfert responsabilité
 function ouvrirModalTransfert(responsableActuelId, nomResponsableActuel) {
@@ -854,7 +863,9 @@ function fermerModalDefinirResponsable() {
 }
 
 // Traitement transfert responsabilité
-document.getElementById('transfertResponsabiliteForm').addEventListener('submit', function(e) {
+const transfertResponsabiliteForm = document.getElementById('transfertResponsabiliteForm');
+if (transfertResponsabiliteForm) {
+    transfertResponsabiliteForm.addEventListener('submit', function(e) {
     e.preventDefault();
     
     const formData = new FormData(this);
@@ -893,47 +904,51 @@ document.getElementById('transfertResponsabiliteForm').addEventListener('submit'
         submitBtn.disabled = false;
     });
 });
+}
 
 // Traitement définir responsable
-document.getElementById('definirResponsableForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(this);
-    const submitBtn = this.querySelector('button[type="submit"]');
-    const originalText = submitBtn.innerHTML;
-    
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Définition...';
-    submitBtn.disabled = true;
-    
-    fetch('{% url "definir_responsable" projet.id %}', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            fermerModalDefinirResponsable();
-            // Afficher message de succès
-            const message = document.createElement('div');
-            message.className = 'fixed top-4 right-4 bg-yellow-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-fade-in';
-            message.innerHTML = '<i class="fas fa-crown mr-2"></i>Responsable défini avec succès !';
-            document.body.appendChild(message);
-            setTimeout(() => {
-                message.remove();
-                location.reload(); // Recharger pour mettre à jour la liste
-            }, 1500);
-        } else {
-            alert('Erreur: ' + data.error);
+const definirResponsableForm = document.getElementById('definirResponsableForm');
+if (definirResponsableForm) {
+    definirResponsableForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Définition...';
+        submitBtn.disabled = true;
+        
+        fetch('{% url "definir_responsable" projet.id %}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                fermerModalDefinirResponsable();
+                // Afficher message de succès
+                const message = document.createElement('div');
+                message.className = 'fixed top-4 right-4 bg-yellow-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-fade-in';
+                message.innerHTML = '<i class="fas fa-crown mr-2"></i>Responsable défini avec succès !';
+                document.body.appendChild(message);
+                setTimeout(() => {
+                    message.remove();
+                    location.reload(); // Recharger pour mettre à jour la liste
+                }, 1500);
+            } else {
+                alert('Erreur: ' + data.error);
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        })
+        .catch(error => {
+            alert('Erreur: ' + error);
             submitBtn.innerHTML = originalText;
             submitBtn.disabled = false;
-        }
-    })
-    .catch(error => {
-        alert('Erreur: ' + error);
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
+        });
     });
-});
+}
 
 // Calculer automatiquement le total des besoins
 document.addEventListener('DOMContentLoaded', function() {
@@ -944,41 +959,59 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Fermer modales en cliquant à l'extérieur
-document.getElementById('modalAjouterMembre').addEventListener('click', function(e) {
-    if (e.target === this) {
-        fermerModalAjouterMembre();
-    }
-});
+const modalAjouterMembre = document.getElementById('modalAjouterMembre');
+if (modalAjouterMembre) {
+    modalAjouterMembre.addEventListener('click', function(e) {
+        if (e.target === this) {
+            fermerModalAjouterMembre();
+        }
+    });
+}
 
-document.getElementById('modalAjouterResponsable').addEventListener('click', function(e) {
-    if (e.target === this) {
-        fermerModalAjouterResponsable();
-    }
-});
+const modalAjouterResponsable = document.getElementById('modalAjouterResponsable');
+if (modalAjouterResponsable) {
+    modalAjouterResponsable.addEventListener('click', function(e) {
+        if (e.target === this) {
+            fermerModalAjouterResponsable();
+        }
+    });
+}
 
-document.getElementById('modalRetirerMembre').addEventListener('click', function(e) {
-    if (e.target === this) {
-        fermerModalRetirer();
-    }
-});
+const modalRetirerMembre = document.getElementById('modalRetirerMembre');
+if (modalRetirerMembre) {
+    modalRetirerMembre.addEventListener('click', function(e) {
+        if (e.target === this) {
+            fermerModalRetirer();
+        }
+    });
+}
 
-document.getElementById('modalBesoins').addEventListener('click', function(e) {
-    if (e.target === this) {
-        fermerModalBesoins();
-    }
-});
+const modalBesoins = document.getElementById('modalBesoins');
+if (modalBesoins) {
+    modalBesoins.addEventListener('click', function(e) {
+        if (e.target === this) {
+            fermerModalBesoins();
+        }
+    });
+}
 
-document.getElementById('modalTransfertResponsabilite').addEventListener('click', function(e) {
-    if (e.target === this) {
-        fermerModalTransfert();
-    }
-});
+const modalTransfertResponsabilite = document.getElementById('modalTransfertResponsabilite');
+if (modalTransfertResponsabilite) {
+    modalTransfertResponsabilite.addEventListener('click', function(e) {
+        if (e.target === this) {
+            fermerModalTransfert();
+        }
+    });
+}
 
-document.getElementById('modalDefinirResponsable').addEventListener('click', function(e) {
-    if (e.target === this) {
-        fermerModalDefinirResponsable();
-    }
-});
+const modalDefinirResponsable = document.getElementById('modalDefinirResponsable');
+if (modalDefinirResponsable) {
+    modalDefinirResponsable.addEventListener('click', function(e) {
+        if (e.target === this) {
+            fermerModalDefinirResponsable();
+        }
+    });
+}
 
 // Fermer modales avec Escape
 document.addEventListener('keydown', function(e) {

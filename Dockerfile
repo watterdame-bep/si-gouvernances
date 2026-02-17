@@ -3,11 +3,31 @@
 # ============================================================================
 # Targets:
 # - development: Image avec code monté en volume
-# - production: Image standalone avec code copié
+# - production: Image standalone avec code copié et Tailwind CSS compilé
 # ============================================================================
 
 # ============================================================================
-# STAGE 1: BASE
+# STAGE 1: TAILWIND CSS BUILDER
+# ============================================================================
+FROM node:18-alpine as tailwind-builder
+
+WORKDIR /app
+
+# Copie des fichiers de configuration Tailwind
+COPY package*.json ./
+COPY tailwind.config.js ./
+COPY theme/static/css/input.css ./theme/static/css/
+
+# Copie des templates pour l'analyse Tailwind
+COPY templates/ ./templates/
+COPY core/ ./core/
+
+# Installation et build de Tailwind CSS
+RUN npm install && \
+    npx tailwindcss -i ./theme/static/css/input.css -o ./theme/static/css/output.css --minify
+
+# ============================================================================
+# STAGE 2: BASE
 # ============================================================================
 FROM python:3.11-slim as base
 
@@ -22,7 +42,7 @@ ENV PYTHONUNBUFFERED=1 \
 WORKDIR /app
 
 # ============================================================================
-# STAGE 2: BUILDER (Installation des dépendances)
+# STAGE 3: BUILDER (Installation des dépendances)
 # ============================================================================
 FROM base as builder
 
@@ -41,7 +61,7 @@ COPY requirements.txt .
 RUN pip install --user --no-cache-dir -r requirements.txt
 
 # ============================================================================
-# STAGE 3: DEVELOPMENT (avec volume monté)
+# STAGE 4: DEVELOPMENT (avec volume monté)
 # ============================================================================
 FROM base as development
 
@@ -77,7 +97,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
 
 # ============================================================================
-# STAGE 4: PRODUCTION (image standalone)
+# STAGE 5: PRODUCTION (image standalone)
 # ============================================================================
 FROM base as production
 
@@ -97,6 +117,9 @@ ENV PATH=/root/.local/bin:$PATH
 
 # Copie du code de l'application (PAS de volume en production)
 COPY . .
+
+# Copie du CSS Tailwind compilé depuis le builder
+COPY --from=tailwind-builder /app/theme/static/css/output.css /app/theme/static/css/output.css
 
 # Création des dossiers nécessaires
 RUN mkdir -p /app/logs/celery \

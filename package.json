@@ -1,0 +1,19 @@
+{
+  "name": "si-gouvernance-jcm",
+  "version": "1.0.0",
+  "description": "Système de Gouvernance IT - Gestion de Projets",
+  "scripts": {
+    "dev": "tailwindcss -i ./theme/static/css/input.css -o ./theme/static/css/output.css --watch",
+    "build": "tailwindcss -i ./theme/static/css/input.css -o ./theme/static/css/output.css --minify"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.1"
+  },
+  "keywords": [
+    "django",
+    "tailwindcss",
+    "project-management"
+  ],
+  "author": "JCM",
+  "license": "ISC"
+}

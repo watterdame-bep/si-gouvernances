@@ -18,9 +18,24 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from core.views_password_reset import (
+    CustomPasswordResetView,
+    CustomPasswordResetDoneView,
+    CustomPasswordResetConfirmView,
+    CustomPasswordResetCompleteView
+)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    
+    # ========================================================================
+    # SYSTÈME DE RÉINITIALISATION DE MOT DE PASSE
+    # ========================================================================
+    path('password-reset/', CustomPasswordResetView.as_view(), name='password_reset'),
+    path('password-reset/done/', CustomPasswordResetDoneView.as_view(), name='password_reset_done'),
+    path('password-reset-confirm/<uidb64>/<token>/', CustomPasswordResetConfirmView.as_view(), name='password_reset_confirm'),
+    path('password-reset-complete/', CustomPasswordResetCompleteView.as_view(), name='password_reset_complete'),
+    
     path('', include('core.urls')),
     path("__reload__/", include("django_browser_reload.urls")),
 ]

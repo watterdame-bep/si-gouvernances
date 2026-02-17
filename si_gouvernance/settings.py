@@ -161,6 +161,9 @@ LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/dashboard/'
 LOGOUT_REDIRECT_URL = '/login/'
 
+# Password Reset Configuration
+PASSWORD_RESET_TIMEOUT = 600  # 10 minutes (en secondes)
+
 # Internationalization
 LANGUAGE_CODE = 'fr-fr'
 TIME_ZONE = 'Europe/Paris'

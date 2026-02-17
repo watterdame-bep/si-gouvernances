@@ -1,0 +1,10 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom animations and utilities */
+@layer utilities {
+  .animate-shimmer {
+    animation: shimmer 2s linear infinite;
+  }
+}

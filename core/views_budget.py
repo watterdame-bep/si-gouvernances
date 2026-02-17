@@ -123,6 +123,35 @@ def ajouter_lignes_budget(request, projet_id):
         # Calculer le nouveau résumé
         resume = ResumeBudget(projet)
         
+        # Vérifier si le budget est dépassé et notifier l'administrateur
+        if resume.budget_disponible < 0:
+            from .models import AlerteProjet
+            
+            # Récupérer tous les super admins
+            admins = Utilisateur.objects.filter(is_superuser=True, is_active=True)
+            
+            for admin in admins:
+                # Vérifier si une alerte similaire n'existe pas déjà (non lue)
+                alerte_existante = AlerteProjet.objects.filter(
+                    destinataire=admin,
+                    projet=projet,
+                    type_alerte='BUDGET_DEPASSE',
+                    lue=False
+                ).exists()
+                
+                if not alerte_existante:
+                    AlerteProjet.objects.create(
+                        destinataire=admin,
+                        projet=projet,
+                        type_alerte='BUDGET_DEPASSE',
+                        titre=f'⚠️ Budget dépassé - {projet.nom}',
+                        message=f'Le budget du projet "{projet.nom}" a été dépassé. '
+                                f'Budget total: ${resume.budget_total:,.2f} | '
+                                f'Dépenses: ${resume.total_depenses:,.2f} | '
+                                f'Dépassement: ${abs(resume.budget_disponible):,.2f}',
+                        niveau='URGENT'
+                    )
+        
         return JsonResponse({
             'success': True,
             'message': f'{len(lignes_creees)} ligne(s) budgétaire(s) ajoutée(s) avec succès.',
